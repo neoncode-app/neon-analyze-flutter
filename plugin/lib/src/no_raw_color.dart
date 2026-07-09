@@ -48,6 +48,11 @@ class NoRawColor extends AnalysisRule {
     '/ui/app_icon.dart',
     '/ui/app_style.dart',
     '/lib/model/',
+    // The color-editor tool computes arbitrary picker/spectrum colors; a color
+    // picker is a color-definition surface, so raw colors are inherent here.
+    // No trailing slash: the picker parts are `part of color_editor_dialog.dart`,
+    // so the analyzer reports that library file's path as the defining unit.
+    '/color_editor',
   ];
 
   // Semantic named colors that carry meaning beyond the palette.
