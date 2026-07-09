@@ -39,14 +39,25 @@ linter:
 # enforced; they are the checklist the agents follow.
 # =======================================================================
 #
-# TODO(rule): ban the `!` null-assertion operator anywhere in lib/.
-# TODO(rule): forbid helper methods that return a Widget (`Widget _buildX()`).
+# SHIPPED as native neon_lints warning rules (see plugin/lib/main.dart):
+#   avoid_bang, no_widget_builder_method, no_raw_color, no_raw_asset_path,
+#   no_tr_in_global_widget, extend_base_cubit.
+#
+# DEFERRED (need type resolution or too noisy syntactically; left as
+# review-checklist items):
 # TODO(rule): forbid magic numbers in widget code — use AppDimens.
+#   (deferred: every dimension/duration/index int is a numeric literal; a
+#   syntactic rule can't tell a layout constant from a legit count/flex/index.)
 # TODO(rule): forbid inline EdgeInsets construction — named consts in AppDimens.
-# TODO(rule): forbid raw colors — resolve through the theme (context.appColors).
-# TODO(rule): forbid raw asset path string literals — use AppAssets.
+#   (deferred: EdgeInsets.all(AppDimens.x) is legit; distinguishing raw-number
+#   args from token args reliably needs the AppDimens type, i.e. resolution.)
 # TODO(rule): forbid hardcoded user-visible strings — use tr('key') in cs/en/uk.
-# TODO(rule): forbid tr() inside global widgets — callers pass translated text.
+#   (deferred: cannot tell a user-visible label from a map key / asset id /
+#   log string / debugLabel syntactically — extremely high false-positive rate.)
 # TODO(rule): forbid reading a Cubit below the page root.
-# TODO(rule): require every Cubit to extend BaseCubit, never Cubit<T> directly.
+#   (deferred: "page root" is a semantic notion; needs widget-tree/type
+#   resolution to know a read happens below the BlocProvider owner.)
 # TODO(rule): (vernakapp) forbid context.read<T>() for GetIt-registered types.
+#   (deferred: syntactically context.read<T>() for a GetIt type and for a Cubit
+#   are identical; separating them needs the registered-type set / resolution.
+#   Also vernakapp-only, so it must not become a shared default warning.)
