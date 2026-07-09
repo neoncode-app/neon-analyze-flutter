@@ -13,6 +13,10 @@ import 'package:analyzer/src/dart/error/lint_codes.dart';
 ///
 /// Allowed:
 ///  * theme token files themselves (where the palette is defined),
+///  * generated files (`*.g.dart`) — json_serializable / hive emit raw
+///    `Color(...)` and the plugin does not honour analyzer `exclude`,
+///  * the model / serialization layer (`lib/model/**`) — converters,
+///    type adapters and data-model default values have no BuildContext,
 ///  * the semantic constants `Colors.white`, `Colors.black`,
 ///    `Colors.transparent` (and their `black87`/`white70`-style variants).
 class NoRawColor extends AnalysisRule {
@@ -32,11 +36,14 @@ class NoRawColor extends AnalysisRule {
 
   // Locations that legitimately define raw color values (the token source):
   // the whole theme/ directory (app_colors, vernak_colors, *_text_styles, ...)
-  // plus the icon and theme-assembly setup files.
+  // plus the icon and theme-assembly setup files. Also the model /
+  // serialization layer (lib/model/**), which has no BuildContext:
+  // JsonConverters, Hive TypeAdapters and plain data-model default colors.
   static const _allowedPathFragments = <String>[
     '/theme/',
     '/ui/app_icon.dart',
     '/ui/app_style.dart',
+    '/lib/model/',
   ];
 
   // Semantic named colors that carry meaning beyond the palette.
@@ -68,7 +75,11 @@ class NoRawColor extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
-    final path = context.definingUnit.file.path;
+    // Normalise separators so path fragments match on every platform.
+    final path = context.definingUnit.file.path.replaceAll(r'\', '/');
+    // Skip generated files: json_serializable / hive emit raw `Color(...)`,
+    // and the plugin does not honour the analyzer `exclude` glob.
+    if (path.endsWith('.g.dart')) return;
     if (_allowedPathFragments.any(path.contains)) return;
     final visitor = _Visitor(this);
     registry.addInstanceCreationExpression(this, visitor);
