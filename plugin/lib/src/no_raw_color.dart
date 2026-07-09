@@ -18,7 +18,11 @@ import 'package:analyzer/src/dart/error/lint_codes.dart';
 ///  * the model / serialization layer (`lib/model/**`) — converters,
 ///    type adapters and data-model default values have no BuildContext,
 ///  * the semantic constants `Colors.white`, `Colors.black`,
-///    `Colors.transparent` (and their `black87`/`white70`-style variants).
+///    `Colors.transparent` (and their `black87`/`white70`-style variants),
+///  * `Color(expr)` where the argument is NOT an integer literal — a variable,
+///    method call, `int.parse(...)`, arithmetic, etc. This is color
+///    deserialization (a stored/parsed int turned into a Color), which is
+///    legitimate and unavoidable; only hardcoded literal values are flagged.
 class NoRawColor extends AnalysisRule {
   NoRawColor() : super(name: 'no_raw_color', description: _desc);
 
@@ -95,9 +99,34 @@ class _Visitor extends SimpleAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final typeName = node.constructorName.type.name.lexeme;
-    if (typeName == 'Color') {
+    if (typeName != 'Color') return;
+    // Only flag hardcoded literal colors (`Color(0xFF...)`). A `Color(expr)`
+    // built from a non-literal argument (variable, `int.parse(...)`,
+    // arithmetic, ...) is color deserialization and must be allowed.
+    final arguments = node.argumentList.arguments;
+    if (arguments.isEmpty) return;
+    if (_isIntLiteralExpression(arguments.first)) {
       rule.reportAtNode(node);
     }
+  }
+
+  /// True when [expression] is an integer literal or a const expression built
+  /// only from integer literals (e.g. `0xFF1E0795`, `-1`, `0xFF << 24`),
+  /// i.e. a value the author hardcoded rather than deserialized.
+  static bool _isIntLiteralExpression(Expression expression) {
+    final unwrapped = expression.unParenthesized;
+    if (unwrapped is IntegerLiteral) return true;
+    // A leading `-`/`~` on a literal is still a literal (`Color(-1)`).
+    if (unwrapped is PrefixExpression) {
+      return _isIntLiteralExpression(unwrapped.operand);
+    }
+    // Bit-shift / bitwise expressions of literals stay hardcoded
+    // (`Color(0xFF << 24 | 0x00FFFFFF)`).
+    if (unwrapped is BinaryExpression) {
+      return _isIntLiteralExpression(unwrapped.leftOperand) &&
+          _isIntLiteralExpression(unwrapped.rightOperand);
+    }
+    return false;
   }
 
   @override
