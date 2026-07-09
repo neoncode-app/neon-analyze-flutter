@@ -1,11 +1,12 @@
 name: neon_analysis
-version: 10.3.0
+version: 1.0.0
 description: >-
-  Neon Code fork of very_good_analysis. Ships their ruleset as the base plus our
-  curation. Consumed by vernakapp / neoncode / baseapp.
+  Neon Code shared lint config (a fork of very_good_analysis) plus the neon_lints
+  native analyzer plugin. Consumed by vernakapp / neoncode / baseapp.
 publish_to: none
 repository: https://github.com/neoncode-app/neon-analyze-flutter
 
-# Upstream pins ^3.12.0; relaxed so the apps (Dart 3.11) can consume the fork.
+# Base ruleset is VGV 10.2.0 (the Dart 3.11 line); SDK relaxed so the apps
+# (Dart 3.11) can consume the fork.
 environment:
   sdk: '>=3.4.0 <4.0.0'
