@@ -30,12 +30,13 @@ class NoRawColor extends AnalysisRule {
     severity: DiagnosticSeverity.WARNING,
   );
 
-  // Files that legitimately define raw color values (the token source).
-  static const _allowedSuffixes = <String>[
-    '/theme/app_colors.dart',
-    '/theme/app_shadows.dart',
-    '/theme/app_text_styles.dart',
+  // Locations that legitimately define raw color values (the token source):
+  // the whole theme/ directory (app_colors, vernak_colors, *_text_styles, ...)
+  // plus the icon and theme-assembly setup files.
+  static const _allowedPathFragments = <String>[
+    '/theme/',
     '/ui/app_icon.dart',
+    '/ui/app_style.dart',
   ];
 
   // Semantic named colors that carry meaning beyond the palette.
@@ -68,7 +69,7 @@ class NoRawColor extends AnalysisRule {
     RuleContext context,
   ) {
     final path = context.definingUnit.file.path;
-    if (_allowedSuffixes.any(path.endsWith)) return;
+    if (_allowedPathFragments.any(path.contains)) return;
     final visitor = _Visitor(this);
     registry.addInstanceCreationExpression(this, visitor);
     registry.addPrefixedIdentifier(this, visitor);
