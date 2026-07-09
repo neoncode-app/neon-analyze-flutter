@@ -1,11 +1,11 @@
-name: very_good_analysis
+name: neon_analysis
 version: 10.3.0
-description: Lint rules for Dart and Flutter used internally at Very Good Ventures.
-repository: https://github.com/VeryGoodOpenSource/very_good_analysis
-issue_tracker: https://github.com/VeryGoodOpenSource/very_good_analysis/issues
-homepage: https://github.com/VeryGoodOpenSource/very_good_analysis
-documentation: https://github.com/VeryGoodOpenSource/very_good_analysis
-topics: [lints, analyzer, analysis]
+description: >-
+  Neon Code fork of very_good_analysis. Ships their ruleset as the base plus our
+  curation. Consumed by vernakapp / neoncode / baseapp.
+publish_to: none
+repository: https://github.com/neoncode-app/neon-analyze-flutter
 
+# Upstream pins ^3.12.0; relaxed so the apps (Dart 3.11) can consume the fork.
 environment:
-  sdk: ^3.12.0
+  sdk: '>=3.4.0 <4.0.0'

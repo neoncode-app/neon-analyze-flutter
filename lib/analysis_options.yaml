@@ -1,1 +1,52 @@
-include: package:very_good_analysis/analysis_options.10.3.0.yaml
+# Neon Code fork of very_good_analysis — the file apps consume:
+#   include: package:neon_analysis/analysis_options.yaml
+#
+# Base  = VGV v10.2.0 ruleset (analysis_options.10.2.0.yaml) — the Dart 3.11 line,
+#         matching the apps. v10.3.0 targets Dart 3.12 (adds lints the 3.11
+#         analyzer doesn't know, e.g. simple_directive_paths); switch the include
+#         to 10.3.0 once the apps move to Dart 3.12.
+# Below = our curation. Toggle rules in the `linter: rules:` block. Because the
+# apps pin this by local path (pubspec_overrides.yaml), edits hit `flutter
+# analyze` on the next run. To ship, bump the git tag + the apps' `ref:`.
+#
+# To pull VGV updates: `git fetch upstream && git merge upstream/main`, then point
+# the include below at the new analysis_options.<version>.yaml.
+
+include: package:neon_analysis/analysis_options.10.2.0.yaml
+
+analyzer:
+  exclude:
+    - '**/*.g.dart'
+    - '**/*.freezed.dart'
+    - '**/*.gen.dart'
+    - api_backup/**
+
+linter:
+  rules:
+    # --- Team relaxations (agreed across vernakapp + neoncode) -------------
+    public_member_api_docs: false      # apps aren't published libraries
+    lines_longer_than_80_chars: false  # 80 cols too tight for widget trees
+    comment_references: false
+    directives_ordering: false
+    sort_constructors_first: false
+
+    # --- Neon Code additions enforceable by core lints -------------------
+    # Add adopted core-lint rules here as the team agrees on them.
+
+# =======================================================================
+# Neon Code review checklist — rules core Dart lints CANNOT express.
+# These mirror the rules in the .claude agents/skills. They are not lint-
+# enforced; they are the checklist the agents follow.
+# =======================================================================
+#
+# TODO(rule): ban the `!` null-assertion operator anywhere in lib/.
+# TODO(rule): forbid helper methods that return a Widget (`Widget _buildX()`).
+# TODO(rule): forbid magic numbers in widget code — use AppDimens.
+# TODO(rule): forbid inline EdgeInsets construction — named consts in AppDimens.
+# TODO(rule): forbid raw colors — resolve through the theme (context.appColors).
+# TODO(rule): forbid raw asset path string literals — use AppAssets.
+# TODO(rule): forbid hardcoded user-visible strings — use tr('key') in cs/en/uk.
+# TODO(rule): forbid tr() inside global widgets — callers pass translated text.
+# TODO(rule): forbid reading a Cubit below the page root.
+# TODO(rule): require every Cubit to extend BaseCubit, never Cubit<T> directly.
+# TODO(rule): (vernakapp) forbid context.read<T>() for GetIt-registered types.
