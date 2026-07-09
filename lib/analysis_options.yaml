@@ -20,6 +20,12 @@ analyzer:
     - '**/*.freezed.dart'
     - '**/*.gen.dart'
     - api_backup/**
+    # The neon_lints plugin submodule is loaded via each app's `plugins:` block;
+    # don't analyze its own source (VGV tooling/examples have unresolved deps).
+    - neon-analyze-flutter/**
+    # Agent-generated git worktrees are throwaway copies of the whole app;
+    # analyzing them multiplies every issue N times and pulls in stale branches.
+    - .claude/worktrees/**
 
 linter:
   rules:
@@ -29,6 +35,9 @@ linter:
     comment_references: false
     directives_ordering: false
     sort_constructors_first: false
+    # Noisy for BLoC / fire-and-forget-heavy code; intentional fire-and-forget
+    # calls are pervasive and wrapping every one in unawaited() adds no value.
+    discarded_futures: false
 
     # --- Neon Code additions enforceable by core lints -------------------
     # Add adopted core-lint rules here as the team agrees on them.
