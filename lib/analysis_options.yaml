@@ -26,6 +26,9 @@ analyzer:
     # Agent-generated git worktrees are throwaway copies of the whole app;
     # analyzing them multiplies every issue N times and pulls in stale branches.
     - .claude/worktrees/**
+    # Flutter build artifacts — iOS SPM checkouts (flutterfire, etc.) are third-party
+    # Dart code with unresolved dependencies; analyzing them adds thousands of false issues.
+    - build/**
 
 linter:
   rules:
