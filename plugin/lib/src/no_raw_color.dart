@@ -4,8 +4,6 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
-// LintCode is not in the public API surface yet.
-import 'package:analyzer/src/dart/error/lint_codes.dart';
 
 /// Forbids raw colors in widget code: `Color(0x...)` literals and
 /// `Colors.<named>` references. Colors must be resolved through the theme
@@ -91,8 +89,9 @@ class NoRawColor extends AnalysisRule {
     if (path.endsWith('.g.dart')) return;
     if (_allowedPathFragments.any(path.contains)) return;
     final visitor = _Visitor(this);
-    registry.addInstanceCreationExpression(this, visitor);
-    registry.addPrefixedIdentifier(this, visitor);
+    registry
+      ..addInstanceCreationExpression(this, visitor)
+      ..addPrefixedIdentifier(this, visitor);
   }
 }
 

@@ -7,5 +7,5 @@ environment:
   sdk: ^3.4.0
 
 dependencies:
-  analyzer: ^10.0.0
   analysis_server_plugin: ^0.3.0
+  analyzer: ^10.0.0

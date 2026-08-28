@@ -18,11 +18,12 @@ class NeonLintsPlugin extends Plugin {
   @override
   void register(PluginRegistry registry) {
     // Warning rules are enabled by default (no analysis_options entry needed).
-    registry.registerWarningRule(AvoidBang());
-    registry.registerWarningRule(ExtendBaseCubit());
-    registry.registerWarningRule(NoWidgetBuilderMethod());
-    registry.registerWarningRule(NoRawColor());
-    registry.registerWarningRule(NoRawAssetPath());
-    registry.registerWarningRule(NoTrInGlobalWidget());
+    registry
+      ..registerWarningRule(AvoidBang())
+      ..registerWarningRule(ExtendBaseCubit())
+      ..registerWarningRule(NoWidgetBuilderMethod())
+      ..registerWarningRule(NoRawColor())
+      ..registerWarningRule(NoRawAssetPath())
+      ..registerWarningRule(NoTrInGlobalWidget());
   }
 }

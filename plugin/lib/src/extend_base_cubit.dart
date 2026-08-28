@@ -4,8 +4,6 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
-// LintCode is not in the public API surface yet.
-import 'package:analyzer/src/dart/error/lint_codes.dart';
 
 /// Requires every Cubit to extend `BaseCubit`, never `Cubit<T>` directly.
 ///
@@ -46,7 +44,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     final superclass = node.extendsClause?.superclass;
     if (superclass == null) return;
     // Allow BaseCubit itself to extend Cubit.
-    if (node.name.lexeme == 'BaseCubit') return;
+    if (node.namePart.typeName.lexeme == 'BaseCubit') return;
     if (superclass.name.lexeme == 'Cubit') {
       rule.reportAtNode(superclass);
     }
