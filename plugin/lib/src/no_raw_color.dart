@@ -51,6 +51,9 @@ class NoRawColor extends AnalysisRule {
     // No trailing slash: the picker parts are `part of color_editor_dialog.dart`,
     // so the analyzer reports that library file's path as the defining unit.
     '/color_editor',
+    // Contrast-math tests exercise arbitrary colour values by design — there
+    // is no theme in scope inside a unit test of colour arithmetic.
+    '/test/readable_accent_test.dart',
   ];
 
   // Semantic named colors that carry meaning beyond the palette.
