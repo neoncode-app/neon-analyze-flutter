@@ -168,7 +168,9 @@ root (languages, paths, suites) and a `tool/check.sh` wrapper that runs
 | 13 | `providers` | context getters match cubits provided in the router / shell | no |
 | 14 | `page_help` | every configured page has `onHelp` and its help keys | no |
 | 15 | `generated` | `*.g.dart` match their sources (build_runner) | yes |
-| 16 | `tests` | `flutter test`, suites selected by the changed files | no |
+| 16 | `test_existence` | every cubit has a `<name>_cubit_test.dart`, every router `GoRoute` a `<route>_route_test.dart` (ratchet `test_missing`) | no |
+| 17 | `tests` | `flutter test`, suites selected by the changed files | no |
+| 18 | `coverage` | changed lines under `tests.coverage.sources` are covered by the tests that ran (`flutter test --coverage`, hard `coverage_low`) | no |
 
 **Scope.** Default `--changed`: files changed against the branch base
 (`branch.<name>.neonBase`, else `default_base`), plus uncommitted and
@@ -192,6 +194,20 @@ failures (for hooks). `--step <name>` runs one step alone.
 the other suites' folders; a changed source matching a suite's `sources`
 globs (or a changed test in its folder) adds that suite; a `shared` glob runs
 every suite; `--all` runs all suites plus `integration_command`.
+
+**Test gates (NCR0000022).** `tests.existence.cubits` (`dir`, `suffix`, `exempt`)
+names the cubit files; each needs a `<name>_test.dart` anywhere under the test
+folder. `tests.existence.routes.routers` names the router files; each
+`path: Routes.<id>.absolutePath` needs `<id_snake_case>_route_test.dart` in a
+`tests_folder` (`routes`) folder of a suite. Both are `test_missing` findings
+on the cubit or router file and go through the ratchet. `tests.coverage`
+(`sources`, `min_percent` 90, `lcov`) makes the tests step run with
+`--coverage` and the coverage step compare the changed lines of every changed
+source (against the merge base with the branch base, the base version
+formatted first so a reformat is not a change) with the report; below the
+minimum is a hard `coverage_low`. Both steps need the `base` of the run
+(`--base`, else `branch.<name>.neonBase`, else `default_base`); without a
+resolvable base the coverage step skips.
 
 Run the runner's own tests with `cd checker && dart test`.
 

@@ -26,6 +26,19 @@ bool matchesGlob(String pattern, String path) {
   return RegExp(regex.toString()).hasMatch(path);
 }
 
+/// Whether this run measures coverage (NCR0000022): the tests step then runs
+/// `flutter test --coverage` and the coverage step reads the report. On when
+/// the app names coverage sources and the run is `--all` or touches one.
+bool coverageWanted(CheckContext context) {
+  final sources = context.config.coverageSources;
+  if (sources.isEmpty) return false;
+  if (context.isAll) return true;
+  return [
+    ...context.changedFiles,
+    ...context.deletedFiles,
+  ].any((file) => file.endsWith('.dart') && sources.any((glob) => matchesGlob(glob, file)));
+}
+
 /// Which suites a set of changed files selects. The default suite always runs;
 /// a shared source selects every suite.
 Set<String> selectSuites({
@@ -109,7 +122,13 @@ final class TestsStep extends CheckStep {
     final paths = context.isAll ? [config.testDir] : [for (final suite in suites) ...pathsOf(context, suite)];
     final findings = <Finding>[];
     if (paths.isNotEmpty) {
-      final result = await runProcess(context.root, 'flutter', ['test', '--reporter', 'failures-only', ...paths]);
+      final result = await runProcess(context.root, 'flutter', [
+        'test',
+        '--reporter',
+        'failures-only',
+        if (coverageWanted(context)) '--coverage',
+        ...paths,
+      ]);
       if (result.exitCode != 0) findings.addAll(_failures(result.stdout, result.stderr));
     }
     final integration = config.integrationCommand;

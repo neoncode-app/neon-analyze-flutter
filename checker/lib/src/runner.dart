@@ -7,6 +7,8 @@ import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/project_steps.dart';
+import 'package:neon_check/src/steps/coverage_step.dart';
+import 'package:neon_check/src/steps/test_existence_step.dart';
 import 'package:neon_check/src/steps/tests_step.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
 
@@ -63,7 +65,9 @@ List<CheckStep> allSteps({bool pruneTranslations = false}) => [
       const ProvidersStep(),
       const PageHelpStep(),
       const GeneratedCodeStep(),
+      const TestExistenceStep(),
       const TestsStep(),
+      const CoverageStep(),
     ];
 
 /// Runs the checks for the app at [root]; returns the exit code.
@@ -89,6 +93,7 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
     deletedFiles: scope.deleted,
     fix: !options.ci && !reportOnly,
     ci: options.ci,
+    base: options.base ?? recordedBase(root) ?? config.defaultBase,
   );
   final baselinePath = context.absolute(config.baselinePath);
   final baseline = Baseline.load(baselinePath);
@@ -112,7 +117,7 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
   final collected = <Finding>[];
   var ran = 0;
   for (final step in selected) {
-    if (reportOnly && (step.autoFix || step is TestsStep)) continue;
+    if (reportOnly && (step.autoFix || step is TestsStep || step is CoverageStep)) continue;
     if (!step.appliesTo(context)) continue;
     ran++;
     final result = await step.run(context);

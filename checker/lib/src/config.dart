@@ -117,4 +117,29 @@ final class CheckConfig {
 
   /// Command that runs the integration tests in `--all` mode, if any.
   List<String> get integrationCommand => _strings(_tests['integration_command']);
+
+  // Test existence (NCR0000022): every cubit and every route has a test.
+  YamlMap get _existence => _tests['existence'] is YamlMap ? _tests['existence'] as YamlMap : YamlMap();
+  YamlMap get _cubitExistence => _existence['cubits'] is YamlMap ? _existence['cubits'] as YamlMap : YamlMap();
+  YamlMap get _routeExistence => _existence['routes'] is YamlMap ? _existence['routes'] as YamlMap : YamlMap();
+  bool get hasTestExistence => _existence.isNotEmpty;
+
+  /// Folder scanned for cubits (`lib/bloc`); a file ending in [cubitSuffix]
+  /// needs a `<name>_test.dart` somewhere under the test folder.
+  String get cubitsDir => _string(_cubitExistence['dir']) ?? 'lib/bloc';
+  String get cubitSuffix => _string(_cubitExistence['suffix']) ?? '_cubit.dart';
+  List<String> get cubitExempt => _strings(_cubitExistence['exempt']);
+
+  /// Router files scanned for `path: Routes.<id>.absolutePath`; each route id
+  /// needs `<id_snake_case>_route_test.dart` in a [routeTestsFolder] folder.
+  List<String> get routeRouters => _strings(_routeExistence['routers']);
+  String get routeTestsFolder => _string(_routeExistence['tests_folder']) ?? 'routes';
+
+  // Coverage of changed lines (NCR0000022).
+  YamlMap get _coverage => _tests['coverage'] is YamlMap ? _tests['coverage'] as YamlMap : YamlMap();
+
+  /// Source globs whose changed lines must be covered; empty = no coverage gate.
+  List<String> get coverageSources => _strings(_coverage['sources']);
+  int get coverageMinPercent => (_coverage['min_percent'] as int?) ?? 90;
+  String get coverageLcov => _string(_coverage['lcov']) ?? 'coverage/lcov.info';
 }

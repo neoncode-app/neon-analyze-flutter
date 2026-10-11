@@ -6,10 +6,16 @@ import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
+import 'package:neon_check/src/steps/coverage_step.dart';
+import 'package:neon_check/src/steps/test_existence_step.dart';
 import 'package:neon_check/src/steps/tests_step.dart';
 import 'package:test/test.dart';
 
 Finding _f(String rule, String file, [int line = 1]) => Finding(rule: rule, file: file, line: line, message: 'm');
+
+void _write(Directory dir, String path, [String content = '']) => File('${dir.path}/$path')
+  ..createSync(recursive: true)
+  ..writeAsStringSync(content);
 
 void main() {
   group('ratchet', () {
@@ -258,6 +264,121 @@ void main() {
     expect(step.pathsOf(context, 'vernak'), ['test/vernak']);
     expect(step.pathsOf(context, 'quest'), isEmpty);
     expect(TestsStep.hasTests('${dir.path}/test/support'), isFalse);
+  });
+
+  group('test existence (NCR0000022)', () {
+    test('identifiers become snake case file names', () {
+      expect(toSnakeCase('adminPosts'), 'admin_posts');
+      expect(toSnakeCase('appVernak'), 'app_vernak');
+      expect(toSnakeCase('users'), 'users');
+      expect(toSnakeCase('doordropStats'), 'doordrop_stats');
+    });
+
+    test('a cubit without a test and a route without a test are reported, the others are not', () async {
+      final dir = Directory.systemTemp.createTempSync('neon_check');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'lib/bloc/a/a_cubit.dart');
+      _write(dir, 'lib/bloc/b/b_cubit.dart');
+      _write(dir, 'lib/bloc/base/base_cubit.dart');
+      _write(dir, 'lib/bloc/a/a_state.dart');
+      _write(
+        dir,
+        'lib/flavors/f/f_router.dart',
+        'GoRoute(\n  path: Routes.users.absolutePath,\n),\nGoRoute(\n  path: Routes.adminPosts.absolutePath,\n),\n'
+            'GoRoute(path: Routes.adminPosts.absolutePath),\n',
+      );
+      _write(dir, 'test/app/bloc/a_cubit_test.dart');
+      _write(dir, 'test/app/routes/users_route_test.dart');
+      _write(dir, 'test/support/harness.dart');
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse(
+          'tests:\n  existence:\n    cubits: {dir: lib/bloc, exempt: [lib/bloc/base/base_cubit.dart]}\n'
+          '    routes: {routers: [lib/flavors/f/f_router.dart]}',
+        ),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      const step = TestExistenceStep();
+      expect(step.appliesTo(context), isTrue);
+      final result = await step.run(context);
+      expect(result.findings.map((finding) => finding.format()), [
+        startsWith('lib/bloc/b/b_cubit.dart:1 test_missing: no cubit test: add test/<suite>/bloc/b_cubit_test.dart'),
+        startsWith(
+          'lib/flavors/f/f_router.dart:5 test_missing: route Routes.adminPosts has no test: '
+          'add test/<suite>/routes/admin_posts_route_test.dart',
+        ),
+      ]);
+      final scope = result.findingsScope;
+      expect(scope, isNotNull);
+      expect(scope?.call('lib/bloc/a/a_cubit.dart'), isTrue);
+      expect(scope?.call('lib/flavors/f/f_router.dart'), isTrue);
+      expect(scope?.call('lib/pages/x.dart'), isFalse);
+    });
+
+    test('does not apply without an existence section', () {
+      final context = CheckContext(
+        root: '/nowhere',
+        config: CheckConfig.parse('tests: {dir: test}'),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      expect(const TestExistenceStep().appliesTo(context), isFalse);
+    });
+  });
+
+  group('coverage (NCR0000022)', () {
+    test('lcov is parsed per file and line', () {
+      final report = parseLcov(
+          'SF:lib/bloc/a/a_cubit.dart\nDA:1,1\nDA:2,0\nDA:3,4\nend_of_record\nSF:lib/b.dart\nDA:7,0\nend_of_record\n');
+      expect(report['lib/bloc/a/a_cubit.dart'], {1: 1, 2: 0, 3: 4});
+      expect(report['lib/b.dart'], {7: 0});
+    });
+
+    test('the + side of every hunk gives the changed lines', () {
+      const diff = '--- a\n+++ b\n@@ -1 +1 @@\n-x\n+y\n@@ -5,2 +6,3 @@\n+a\n+b\n+c\n@@ -9,1 +12,0 @@\n-gone\n';
+      expect(changedLines(diff), {1, 6, 7, 8});
+    });
+
+    test('coverage counts only executable changed lines and names the first uncovered one', () {
+      final coverage = coverageOf({1, 2, 3, 4, 10}, {1: 1, 2: 0, 3: 2, 4: 0});
+      expect(coverage.executable, 4);
+      expect(coverage.covered, 2);
+      expect(coverage.firstUncovered, 2);
+      expect(coverageOf({5}, {1: 1}).executable, 0);
+    });
+
+    test('coverage is wanted for --all and for a change under a coverage source', () {
+      CheckContext context(ScopeMode mode, Set<String> changed) => CheckContext(
+            root: '/nowhere',
+            config: CheckConfig.parse('tests:\n  coverage: {sources: [lib/bloc]}'),
+            mode: mode,
+            changedFiles: changed,
+            deletedFiles: const {},
+            fix: false,
+            ci: true,
+          );
+      expect(coverageWanted(context(ScopeMode.all, const {})), isTrue);
+      expect(coverageWanted(context(ScopeMode.changed, {'lib/bloc/a/a_cubit.dart'})), isTrue);
+      expect(coverageWanted(context(ScopeMode.changed, {'lib/pages/a.dart'})), isFalse);
+      expect(coverageWanted(context(ScopeMode.changed, {'lib/bloc/a/a_cubit.g.dart'})), isTrue);
+      final none = CheckContext(
+        root: '/nowhere',
+        config: CheckConfig.parse('tests: {dir: test}'),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      expect(coverageWanted(none), isFalse);
+    });
   });
 
   test('NEON ignore comments are reported', () async {

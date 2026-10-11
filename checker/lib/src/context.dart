@@ -27,6 +27,7 @@ final class CheckContext {
     required this.deletedFiles,
     required this.fix,
     required this.ci,
+    this.base,
   });
 
   /// Absolute app root, without a trailing slash.
@@ -47,6 +48,10 @@ final class CheckContext {
 
   /// CI: auto-fix steps only check, the baseline is never written.
   final bool ci;
+
+  /// The branch the work is compared against (`--base`, else
+  /// `branch.<name>.neonBase`, else `default_base`); `null` when none resolves.
+  final String? base;
 
   bool get isAll => mode == ScopeMode.all;
 
@@ -89,6 +94,30 @@ final class CheckContext {
           for (final entity in Directory('$root/lib').listSync(recursive: true))
             if (entity is File && entity.path.endsWith('.dart')) relative(entity.path),
       ]..sort();
+}
+
+/// The base branch recorded for the current branch (`branch.<name>.neonBase`),
+/// or `null`.
+String? recordedBase(String root) {
+  final branch = Process.runSync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], workingDirectory: root);
+  if (branch.exitCode != 0) return null;
+  final recorded = Process.runSync(
+    'git',
+    ['config', 'branch.${(branch.stdout as String).trim()}.neonBase'],
+    workingDirectory: root,
+  );
+  final value = recorded.exitCode == 0 ? (recorded.stdout as String).trim() : '';
+  return value.isEmpty ? null : value;
+}
+
+/// The merge base of HEAD and [base] (tried as given, then as `origin/<base>`),
+/// or `null` when neither ref exists.
+String? mergeBase(String root, String base) {
+  for (final ref in [base, 'origin/$base']) {
+    final result = Process.runSync('git', ['merge-base', 'HEAD', ref], workingDirectory: root);
+    if (result.exitCode == 0) return (result.stdout as String).trim();
+  }
+  return null;
 }
 
 /// Resolves the changed / staged files of the git checkout at [root].
