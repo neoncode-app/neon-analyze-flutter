@@ -18,8 +18,7 @@ import 'package:analyzer/src/dart/error/lint_codes.dart';
 class NoRawAssetPath extends AnalysisRule {
   NoRawAssetPath() : super(name: 'no_raw_asset_path', description: _desc);
 
-  static const _desc =
-      'Do not hardcode asset path strings; use AppAssets tokens.';
+  static const _desc = 'Do not hardcode asset path strings; use AppAssets tokens.';
 
   static const LintCode _code = LintCode(
     'no_raw_asset_path',
@@ -45,8 +44,11 @@ class NoRawAssetPath extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
-    final path = context.definingUnit.file.path;
+    final path = context.definingUnit.file.path.replaceAll(r'\', '/');
     if (_allowedSuffixes.any(path.endsWith)) return;
+    // App code only: tests and tools read files (fixtures, translations)
+    // through dart:io; they reference no bundled asset.
+    if (!path.contains('/lib/')) return;
     registry.addSimpleStringLiteral(this, _Visitor(this));
   }
 }

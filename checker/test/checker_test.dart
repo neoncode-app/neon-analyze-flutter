@@ -1,0 +1,255 @@
+import 'dart:io';
+
+import 'package:neon_check/src/baseline.dart';
+import 'package:neon_check/src/config.dart';
+import 'package:neon_check/src/context.dart';
+import 'package:neon_check/src/finding.dart';
+import 'package:neon_check/src/steps/dart_steps.dart';
+import 'package:neon_check/src/steps/translation_steps.dart';
+import 'package:neon_check/src/steps/tests_step.dart';
+import 'package:test/test.dart';
+
+Finding _f(String rule, String file, [int line = 1]) => Finding(rule: rule, file: file, line: line, message: 'm');
+
+void main() {
+  group('ratchet', () {
+    RatchetResult check(Baseline baseline, List<Finding> findings, {Set<String> zero = const {}, bool lower = true}) =>
+        ratchet(
+          findings: findings,
+          baseline: baseline,
+          owns: (rule) => true,
+          inScope: (file) => true,
+          zero: zero,
+          lower: lower,
+        );
+
+    test('a new finding without a baseline fails', () {
+      final result = check(Baseline({}), [_f('no_navigator', 'lib/a.dart')]);
+      expect(result.failures, hasLength(1));
+    });
+
+    test('findings within the baseline pass', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/a.dart': 2},
+      });
+      expect(
+          check(baseline, [_f('no_navigator', 'lib/a.dart'), _f('no_navigator', 'lib/a.dart', 2)]).failures, isEmpty);
+    });
+
+    test('one finding above the count fails and reports every finding of that file', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/a.dart': 1},
+      });
+      final result = check(baseline, [_f('no_navigator', 'lib/a.dart'), _f('no_navigator', 'lib/a.dart', 2)]);
+      expect(result.failures, hasLength(2));
+      expect(result.failures.first.message, contains('baseline allows 1'));
+    });
+
+    test('a dropped count lowers the baseline, a vanished file removes its entry', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/a.dart': 3, 'lib/b.dart': 1},
+      });
+      final result = check(baseline, [_f('no_navigator', 'lib/a.dart')]);
+      expect(result.failures, isEmpty);
+      expect(baseline.allowed('no_navigator', 'lib/a.dart'), 1);
+      expect(baseline.allowed('no_navigator', 'lib/b.dart'), 0);
+      expect(baseline.isDirty, isTrue);
+    });
+
+    test('--ci never lowers the baseline', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/a.dart': 3},
+      });
+      check(baseline, const [], lower: false);
+      expect(baseline.allowed('no_navigator', 'lib/a.dart'), 3);
+    });
+
+    test('--zero ignores the baseline for that rule', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/a.dart': 5},
+      });
+      expect(check(baseline, [_f('no_navigator', 'lib/a.dart')], zero: {'no_navigator'}).failures, hasLength(1));
+    });
+
+    test('hard findings are never tolerated', () {
+      final baseline = Baseline({
+        'undefined_identifier': {'lib/a.dart': 5},
+      });
+      final hard = const Finding(rule: 'undefined_identifier', file: 'lib/a.dart', message: 'm', hard: true);
+      expect(check(baseline, [hard]).failures, [hard]);
+    });
+
+    test('entries outside the scope are neither checked nor lowered', () {
+      final baseline = Baseline({
+        'no_navigator': {'lib/other.dart': 4},
+      });
+      ratchet(
+        findings: const [],
+        baseline: baseline,
+        owns: (rule) => true,
+        inScope: (file) => file == 'lib/a.dart',
+      );
+      expect(baseline.allowed('no_navigator', 'lib/other.dart'), 4);
+    });
+
+    test('baseline round-trips through its file', () {
+      final dir = Directory.systemTemp.createTempSync('neon_check');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      final path = '${dir.path}/baseline.json';
+      Baseline({
+        'b': {'z.dart': 1, 'a.dart': 2},
+      }).save(path);
+      expect(Baseline.load(path).allowed('b', 'a.dart'), 2);
+    });
+  });
+
+  group('suite selection', () {
+    final suites = {
+      'vernak': (tests: ['test/vernak'], sources: ['lib/pages/vernak', 'lib/bloc/neoncode/admin_*']),
+      'doordrop': (tests: ['test/doordrop'], sources: ['lib/pages/neoncode/neoncode_doordrop_*']),
+    };
+    Set<String> select(List<String> files) =>
+        selectSuites(changedFiles: files, suites: suites, shared: ['lib/utils'], defaultSuite: 'neoncode');
+
+    test('the default suite always runs', () {
+      expect(select(['lib/pages/neoncode/neoncode_users_page.dart']), {'neoncode'});
+    });
+
+    test('an app source selects its suite', () {
+      expect(select(['lib/pages/vernak/vernak_cards_page.dart']), {'neoncode', 'vernak'});
+      expect(select(['lib/bloc/neoncode/admin_coupons_mgmt/x.dart']), {'neoncode', 'vernak'});
+      expect(select(['lib/pages/neoncode/neoncode_doordrop_stats_page.dart']), {'neoncode', 'doordrop'});
+    });
+
+    test('a changed test selects its own suite', () {
+      expect(select(['test/doordrop/doordrop_helpers_test.dart']), {'neoncode', 'doordrop'});
+    });
+
+    test('a shared source selects every suite', () {
+      expect(select(['lib/utils/utils.dart']), {'neoncode', 'vernak', 'doordrop'});
+    });
+
+    test('globs', () {
+      expect(matchesGlob('lib/bloc/neoncode/admin_*', 'lib/bloc/neoncode/admin_x/y.dart'), isTrue);
+      expect(matchesGlob('lib/bloc/neoncode/admin_*', 'lib/bloc/neoncode/vernak_x/y.dart'), isFalse);
+      expect(matchesGlob('lib/main_*.dart', 'lib/main_vernak.dart'), isTrue);
+      expect(matchesGlob('lib/**/x.dart', 'lib/a/b/x.dart'), isTrue);
+      expect(matchesGlob('lib/utils', 'lib/utilsx/a.dart'), isFalse);
+    });
+  });
+
+  test('analyzer machine output is parsed, compile errors are hard', () {
+    const output =
+        'WARNING|STATIC_WARNING|NO_NAVIGATOR|/app/lib/a.dart|3|5|9|[NEON] Navigator is imperative navigation; use x.\n'
+        'ERROR|COMPILE_TIME_ERROR|UNDEFINED_IDENTIFIER|/app/lib/b.dart|7|1|3|Undefined name a\\|b.\n'
+        'Analyzing app...\n';
+    final findings = AnalyzeStep.parseMachineOutput(output, (path) => path.replaceFirst('/app/', ''));
+    expect(findings.map((finding) => finding.format()), [
+      'lib/a.dart:3 no_navigator: [NEON] Navigator is imperative navigation; use x.',
+      'lib/b.dart:7 undefined_identifier: Undefined name a|b.',
+    ]);
+    expect(findings.map((finding) => finding.hard), [false, true]);
+  });
+
+  group('translations', () {
+    late Directory dir;
+    late CheckContext context;
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('neon_check');
+      File('${dir.path}/assets/translations/cs.json')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+            '{\n  "a_one": "Jedna",\n  "api_error": {\n    "X": "Chyba — x"\n  },\n  "b_two": "Dva"\n}\n');
+      File('${dir.path}/assets/translations/en.json').writeAsStringSync('{\n  "b_two": "Two",\n  "a_one": "One"\n}\n');
+      File('${dir.path}/lib/page.dart')
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          "/// Example: tr('doc_only')\n"
+          "final a = tr('a_one');\n"
+          "final m = tr('missing_key');\n"
+          r"final d = tr('api_error.$code');"
+          '\n',
+        );
+      context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse('translations: {languages: [cs, en], primary: cs}\nsource_dirs: [lib]'),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+    });
+
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    test('keys are flattened with their lines', () {
+      final cs = TranslationFile.load(context, 'cs');
+      expect(cs.values.keys, ['a_one', 'api_error.X', 'b_two']);
+      expect(cs.lineOf('api_error.X'), 4);
+      expect(cs.lineOf('b_two'), 6);
+    });
+
+    test('parity reports keys missing in a language', () async {
+      final result = await const TranslationParityStep().run(context);
+      expect(result.findings.map((finding) => '${finding.file} ${finding.message}'), [
+        contains('en.json key `api_error.X` is missing'),
+      ]);
+    });
+
+    test('dashes are reported with their line', () async {
+      final result = await const TranslationDashesStep().run(context);
+      expect(result.findings.single.format(), startsWith('assets/translations/cs.json:4 translation_dash'));
+    });
+
+    test('a missing literal key is reported, comments and dynamic keys are not', () async {
+      final result = await const TranslationMissingStep().run(context);
+      expect(result.findings.single.format(), startsWith('lib/page.dart:3 translation_missing'));
+    });
+
+    test('unused keys exclude literal and dynamic uses', () async {
+      final result = await const TranslationUnusedStep().run(context);
+      expect(result.findings.single.message, startsWith('`b_two`'));
+    });
+
+    test('order is checked against the primary file and fixed', () async {
+      expect((await const TranslationOrderStep().run(context)).findings, hasLength(1));
+      final fixing = CheckContext(
+        root: context.root,
+        config: context.config,
+        mode: context.mode,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: true,
+        ci: false,
+      );
+      expect((await const TranslationOrderStep().run(fixing)).fixed, ['assets/translations/en.json']);
+      expect(TranslationFile.load(context, 'en').values.keys, ['a_one', 'b_two']);
+    });
+  });
+
+  test('NEON ignore comments are reported', () async {
+    final dir = Directory.systemTemp.createTempSync('neon_check');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    File('${dir.path}/plugin/lib/src/rule.dart')
+      ..createSync(recursive: true)
+      ..writeAsStringSync("class R { R() : super(name: 'no_navigator'); }");
+    File('${dir.path}/lib/a.dart')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        '// ignore: no_navigator\n// ignore: neon_lints/use_kit_widgets\n// ignore: unused_import\n',
+      );
+    final context = CheckContext(
+      root: dir.path,
+      config: CheckConfig.parse('plugin: plugin\nsource_dirs: [lib]'),
+      mode: ScopeMode.all,
+      changedFiles: const {},
+      deletedFiles: const {},
+      fix: false,
+      ci: true,
+    );
+    final result = await const IgnoreCommentsStep().run(context);
+    expect(result.findings.map((finding) => finding.line), [1, 2]);
+  });
+}

@@ -102,6 +102,58 @@ Plugin quick fixes are IDE-only. `dart fix --apply` does not apply them
 unknown (verified on Dart 3.12.2 with `analysis_server_plugin` 0.3.10). Bulk
 mechanical migrations need a codemod script instead.
 
+## Check runner (`checker/`)
+
+`neon_check` runs every repo-level check of an app in a fixed order, stops at
+the first failing step and prints failures only (`file:line rule: what to do`);
+a green run prints one summary line. Each app has a `neon_check.yaml` at its
+root (languages, paths, suites) and a `tool/check.sh` wrapper that runs
+`checker/bin/neon_check.dart`. Steps (`tool/check.sh --list`):
+
+| # | Step | Does | Auto-fix |
+| --- | --- | --- | --- |
+| 1 | `format` | `dart format --line-length 120` | yes |
+| 2 | `fix` | `dart fix --apply` (core fixes; plugin fixes are IDE-only) | yes |
+| 3 | `analyze` | `dart analyze` on the root (`--all`) or on file paths, then the ratchet | no |
+| 4 | `ignores` | no `// ignore:` for a `[NEON]` rule | no |
+| 5 | `translations_parity` | same keys in every language file | no |
+| 6 | `translations_dashes` | no `—` `–` `−` `--` in values | no |
+| 7 | `translations_missing` | every literal `tr('key')` exists | no |
+| 8 | `translations_unused` | keys no code uses (`--all` only) | `--prune-translations` |
+| 9 | `translations_order` | keys in the primary file's order | yes |
+| 10 | `assets` | registry paths exist; unused asset files (`--all`) | no |
+| 11 | `catalog_index` | widget catalog index regenerated | yes |
+| 12 | `catalog_previews` | every widget in `preview_required` has a preview | no |
+| 13 | `providers` | context getters match cubits provided in the router / shell | no |
+| 14 | `page_help` | every configured page has `onHelp` and its help keys | no |
+| 15 | `generated` | `*.g.dart` match their sources (build_runner) | yes |
+| 16 | `tests` | `flutter test`, suites selected by the changed files | no |
+
+**Scope.** Default `--changed`: files changed against the branch base
+(`branch.<name>.neonBase`, else `default_base`), plus uncommitted and
+untracked files. `--all` checks everything (CI), `--staged` the files staged
+for commit, `--files a b` an explicit list. `--ci` never changes a file: an
+auto-fix step that would change something fails instead.
+
+**Ratchet.** Every finding except compile errors, tool crashes and failing
+tests is counted per rule and file against `tool/lint_baseline.json`
+(`baseline` in the config). More than the baseline fails; fewer lowers the
+baseline automatically, so a fixed violation cannot come back. The baseline is
+written by `--update-baseline` (do this when a new rule lands) and never raised
+by hand.
+
+**Migrations.** `--zero <rule>[,<rule>]` demands no finding at all for those
+rules, baseline or not (whole project). `--rule <rule>` lists every finding of
+one rule with `file:line` and exits 0. `--max-failures <n>` caps the printed
+failures (for hooks). `--step <name>` runs one step alone.
+
+**Test suites.** `tests.default_suite` always runs and owns every test outside
+the other suites' folders; a changed source matching a suite's `sources`
+globs (or a changed test in its folder) adds that suite; a `shared` glob runs
+every suite; `--all` runs all suites plus `integration_command`.
+
+Run the runner's own tests with `cd checker && dart test`.
+
 ## Adding or changing rules
 
 Use the **`neon-rule-author`** agent: it holds the plugin API, the rule
