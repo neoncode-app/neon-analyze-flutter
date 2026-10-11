@@ -67,21 +67,32 @@ final class TestsStep extends CheckStep {
 
   /// Test paths of [suite]; the default suite owns everything in the test
   /// folder that no other suite claims.
-  List<String> _pathsOf(CheckContext context, String suite) {
+  ///
+  /// Only paths that hold a `_test.dart` file are returned: `flutter test`
+  /// given a folder without tests (the shared `test/support/` harness, an
+  /// empty suite folder) falls back to running the whole test directory.
+  List<String> pathsOf(CheckContext context, String suite) {
     final config = context.config;
     if (suite != config.defaultSuite) {
       return [
         for (final dir in config.suites[suite]?.tests ?? const <String>[])
-          if (FileSystemEntity.typeSync(context.absolute(dir)) != FileSystemEntityType.notFound) dir,
+          if (hasTests(context.absolute(dir))) dir,
       ];
     }
     final claimed = [for (final other in config.suites.values) ...other.tests];
     return [
       for (final entity in Directory(context.absolute(config.testDir)).listSync())
         if (!claimed.contains(context.relative(entity.path)) &&
-            (entity is Directory || entity.path.endsWith('_test.dart')))
+            ((entity is Directory && hasTests(entity.path)) || (entity is File && entity.path.endsWith('_test.dart'))))
           context.relative(entity.path),
     ]..sort();
+  }
+
+  /// Whether the folder at [absolutePath] holds at least one `_test.dart` file.
+  static bool hasTests(String absolutePath) {
+    final directory = Directory(absolutePath);
+    if (!directory.existsSync()) return false;
+    return directory.listSync(recursive: true).any((entity) => entity is File && entity.path.endsWith('_test.dart'));
   }
 
   @override
@@ -95,7 +106,7 @@ final class TestsStep extends CheckStep {
             shared: config.sharedSources,
             defaultSuite: config.defaultSuite,
           );
-    final paths = context.isAll ? [config.testDir] : [for (final suite in suites) ..._pathsOf(context, suite)];
+    final paths = context.isAll ? [config.testDir] : [for (final suite in suites) ...pathsOf(context, suite)];
     final findings = <Finding>[];
     if (paths.isNotEmpty) {
       final result = await runProcess(context.root, 'flutter', ['test', '--reporter', 'failures-only', ...paths]);

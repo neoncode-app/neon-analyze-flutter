@@ -229,6 +229,37 @@ void main() {
     });
   });
 
+  test('suite paths skip folders without a _test.dart file (the shared harness, an empty suite)', () {
+    final dir = Directory.systemTemp.createTempSync('neon_check');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    for (final path in [
+      'test/global/a_test.dart',
+      'test/neoncode/b_test.dart',
+      'test/support/harness.dart',
+      'test/vernak/c_test.dart'
+    ]) {
+      File('${dir.path}/$path').createSync(recursive: true);
+    }
+    Directory('${dir.path}/test/quest').createSync(recursive: true);
+    File('${dir.path}/test/flutter_test_config.dart').createSync();
+    final context = CheckContext(
+      root: dir.path,
+      config: CheckConfig.parse(
+        'tests:\n  default_suite: neoncode\n  suites:\n    vernak: {tests: [test/vernak]}\n    quest: {tests: [test/quest]}',
+      ),
+      mode: ScopeMode.changed,
+      changedFiles: const {},
+      deletedFiles: const {},
+      fix: false,
+      ci: true,
+    );
+    const step = TestsStep();
+    expect(step.pathsOf(context, 'neoncode'), ['test/global', 'test/neoncode']);
+    expect(step.pathsOf(context, 'vernak'), ['test/vernak']);
+    expect(step.pathsOf(context, 'quest'), isEmpty);
+    expect(TestsStep.hasTests('${dir.path}/test/support'), isFalse);
+  });
+
   test('NEON ignore comments are reported', () async {
     final dir = Directory.systemTemp.createTempSync('neon_check');
     addTearDown(() => dir.deleteSync(recursive: true));
