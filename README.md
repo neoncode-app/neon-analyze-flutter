@@ -110,6 +110,15 @@ Suppressing one occurrence: `// ignore: neon_lints/<rule>`.
 | `no_kisweb_in_ui` / `no_platform_in_ui` | lint (neoncode) | no `kIsWeb`, `Platform.isX`, `defaultTargetPlatform` in UI code |
 | `no_layout_builder_in_pages` | lint (neoncode) | `LayoutBuilder` only in `lib/global_widgets` |
 | `no_raw_breakpoint` | lint (neoncode) | no width compared with a numeric literal |
+| `no_raw_dimension` | lint (neoncode) | no numeric size / padding / radius / gap literal outside `lib/utils/ui/tokens/`, `*_dimens.dart`, `*_text_styles.dart` |
+| `dimens_private_to_widget` | lint (neoncode) | an app `<Widget>Dimens` is used only inside its widget's folder |
+| `page_dimens_spacing_only` | lint (neoncode) | pages use only `AppSpacing` of the scale and no widget dimens |
+| `no_app_dimens` | lint (neoncode) | no reference to the old `AppDimens` (ratchet during the migration) |
+| `component_takes_variant` | lint (neoncode) | `{@category Component}` constructors take no raw dimension parameters (primitives allow-listed) |
+| `no_raw_text_style` | lint (neoncode) | no `TextStyle(...)` / `copyWith(` other than `color:` outside the text style files |
+| `no_debug_print` | lint (neoncode) | no `debugPrint` outside `lib/utils/helpers/log_utils.dart` |
+| `no_hardcoded_ui_string` | lint (neoncode) | no literal text in `Text(...)` / `label:` / `title:` / ... in UI code |
+| `no_dash_in_strings` | lint (neoncode) | no `—` `–` `−` in string literals (logs and error messages allow-listed) |
 
 ### Banned-API rules (`use_kit_widgets`, `no_navigator`)
 

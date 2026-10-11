@@ -6,6 +6,7 @@ import 'package:neon_lints/src/avoid_bang.dart';
 import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
+import 'package:neon_lints/src/dimens_rules.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
@@ -25,6 +26,7 @@ import 'package:neon_lints/src/provider_in_router.dart';
 import 'package:neon_lints/src/responsive_rules.dart';
 import 'package:neon_lints/src/role_rules.dart';
 import 'package:neon_lints/src/state_is_sealed.dart';
+import 'package:neon_lints/src/text_rules.dart';
 import 'package:neon_lints/src/ui_callback_calls_cubit.dart';
 import 'package:neon_lints/src/use_context_getters.dart';
 import 'package:neon_lints/src/use_kit_widgets.dart';
@@ -88,5 +90,15 @@ class NeonLintsPlugin extends Plugin {
     registry.registerLintRule(NoPlatformInUi());
     registry.registerLintRule(NoLayoutBuilderInPages());
     registry.registerLintRule(NoRawBreakpoint());
+    // NCR0000021: per-widget dimens, design tokens, text style, UI strings.
+    registry.registerLintRule(NoRawDimension());
+    registry.registerLintRule(DimensPrivateToWidget());
+    registry.registerLintRule(PageDimensSpacingOnly());
+    registry.registerLintRule(NoAppDimens());
+    registry.registerLintRule(ComponentTakesVariant());
+    registry.registerLintRule(NoRawTextStyle());
+    registry.registerLintRule(NoDebugPrint());
+    registry.registerLintRule(NoHardcodedUiString());
+    registry.registerLintRule(NoDashInStrings());
   }
 }

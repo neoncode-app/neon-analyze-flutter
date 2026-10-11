@@ -157,7 +157,7 @@ const _plainWidgets = <String>[
   'SnackBar', 'AlertDialog', 'Dialog', 'SimpleDialog', 'BottomSheet', 'CupertinoAlertDialog',
   'Scaffold', 'AppBar', 'SliverAppBar', 'SafeArea',
   'NavigationRail', 'TabBar', 'TabBarView', 'Drawer', 'NavigationDrawer', 'ReorderableListView',
-  'Icon', 'Text', 'SizedBox', 'Column',
+  'Icon', 'Column',
 ];
 
 const _dialogFunctions = <String>[
@@ -222,6 +222,46 @@ class Image extends Widget {
 class NetworkImage {
   const NetworkImage(String url);
 }
+
+class Text extends Widget {
+  const Text(String data, {TextStyle? style});
+}
+
+class SizedBox extends Widget {
+  const SizedBox({double? width, double? height, Widget? child});
+}
+
+class EdgeInsets {
+  const EdgeInsets.all(double value);
+  const EdgeInsets.symmetric({double horizontal = 0, double vertical = 0});
+  const EdgeInsets.only({double left = 0, double top = 0, double right = 0, double bottom = 0});
+  static const zero = EdgeInsets.all(0);
+}
+
+class Radius {
+  const Radius.circular(double radius);
+}
+
+class BorderRadius {
+  const BorderRadius.all(Radius radius);
+  BorderRadius.circular(double radius);
+}
+
+class FontWeight {
+  const FontWeight._(this.value);
+  final int value;
+  static const bold = FontWeight._(700);
+}
+
+class TextStyle {
+  const TextStyle({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color});
+  TextStyle copyWith({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color}) =>
+      this;
+}
+
+typedef DebugPrintCallback = void Function(String? message, {int? wrapWidth});
+
+DebugPrintCallback debugPrint = (message, {wrapWidth}) {};
 
 class Size {
   const Size(this.width, this.height);

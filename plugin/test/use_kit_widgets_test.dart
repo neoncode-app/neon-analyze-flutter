@@ -284,7 +284,7 @@ Object f() => [
   MouseRegion(cursor: 1),
   Image.asset('a.png'),
   Icon(),
-  Text(),
+  Text('a'),
   SizedBox(),
   Column(),
 ];
