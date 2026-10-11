@@ -1,5 +1,5 @@
 name: neon_lints
-description: Neon Code custom analyzer rules (native plugin, run by flutter analyze).
+description: Neon Code custom analyzer rules (native plugin, run by dart analyze).
 publish_to: none
 version: 0.1.0
 
@@ -9,3 +9,7 @@ environment:
 dependencies:
   analyzer: ^10.0.0
   analysis_server_plugin: ^0.3.0
+dev_dependencies:
+  analyzer_testing: ^0.2.1
+  test: ^1.31.1
+  test_reflective_loader: ^0.6.0
