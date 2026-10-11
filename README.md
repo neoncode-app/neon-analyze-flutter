@@ -87,6 +87,15 @@ Suppressing one occurrence: `// ignore: neon_lints/<rule>`.
 | `alert_only_in_cubit` | lint (neoncode) | no `AlertCubit` in `lib/pages`, `lib/features`, `lib/global_widgets` |
 | `state_is_sealed` | lint (neoncode) | the state of a `BaseCubit<S>` is `sealed` (except `lib/bloc/<app>/app_wide/`) |
 | `no_status_enum_state` | lint (neoncode) | no `XStatus` enum field in a state class under `lib/bloc` |
+| `dialog_only_in_listener` | lint (neoncode) | `Utils.showCustomModalBottomSheet` only in a presentation listener or a `show*` function |
+| `no_dialog_result` | lint (neoncode) | the result of a dialog (`showCustomModalBottomSheet`, `show*` Future) is never used, no code after an awaited dialog |
+| `listener_is_mapping` | lint (neoncode) | a presentation listener only maps `event is X` to one call: no variables, cubit reads, awaits or other branching |
+| `no_navigation_in_ui` | lint (neoncode) | no go_router navigation in UI code; `context.pop()` only as a pure Cancel or for `CloseDialog` |
+| `ui_callback_calls_cubit` | lint (neoncode) | `on*:` in pages is a cubit tear-off, one cubit call or a forwarded callback |
+| `no_setstate_in_pages` | lint (neoncode) | no `setState` in `lib/pages`, `lib/features` |
+| `no_private_methods_in_page_state` | lint (neoncode) | a page `State` declares only lifecycle methods and `build` |
+| `stateful_page_only_for_controllers` | lint (neoncode) | a page `State` holds only controllers, focus nodes, timers, subscriptions, keys (by type name) |
+| `no_editor_controller_in_pages` | lint (neoncode) | no `*EditorController` and no `.validate()` in pages |
 
 ### Banned-API rules (`use_kit_widgets`, `no_navigator`)
 

@@ -1,9 +1,4 @@
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
-import 'package:analyzer/error/error.dart';
-// The diagnostic codes are not exported from a public library.
-// ignore: implementation_imports
-import 'package:analyzer/src/diagnostic/diagnostic.dart' as diag;
-import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
 import 'package:neon_lints/src/alert_only_in_cubit.dart';
 import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
@@ -15,8 +10,7 @@ import 'package:neon_lints/src/state_is_sealed.dart';
 import 'package:neon_lints/src/use_context_getters.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
 
-import 'support/expect.dart';
-import 'support/stub_packages.dart';
+import 'support/bloc_rule_base.dart';
 
 void main() {
   defineReflectiveSuite(() {
@@ -46,39 +40,8 @@ class CounterCubit extends BaseCubit<int> {
 }
 ''';
 
-/// Shared setup: Flutter, bloc and provider stubs plus BaseCubit / AlertCubit.
-abstract class _BlocRuleTest extends AnalysisRuleTest {
-  AnalysisRule get ruleUnderTest;
-
-  // The shared imports are not all used by every snippet.
-  @override
-  List<DiagnosticCode> get ignoredDiagnosticCodes => [...super.ignoredDiagnosticCodes, diag.unusedImport];
-
-  @override
-  void setUp() {
-    rule = ruleUnderTest;
-    addStubPackages(this);
-    addBlocPackages(this);
-    addAppBlocClasses(this);
-    super.setUp();
-  }
-
-  /// Writes [source] at `lib/<relativePath>` and checks the [flagged] texts.
-  Future<void> expectIn(
-    String relativePath,
-    String source,
-    List<String> flagged, {
-    List<Pattern> message = const [],
-    String? after,
-  }) {
-    final path = '$testPackageLibPath/$relativePath';
-    newFile(path, source);
-    return assertDiagnosticsInFile(path, lintsAt(this, source, flagged, messageContainsAll: message, after: after));
-  }
-}
-
 @reflectiveTest
-class UseContextGettersTest extends _BlocRuleTest {
+class UseContextGettersTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => UseContextGetters();
 
@@ -121,7 +84,7 @@ void f(BuildContext context) {
 }
 
 @reflectiveTest
-class CubitCreatedInProviderTest extends _BlocRuleTest {
+class CubitCreatedInProviderTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => CubitCreatedInProvider();
 
@@ -151,7 +114,7 @@ class CubitCreatedInProviderTest extends _BlocRuleTest {
 }
 
 @reflectiveTest
-class ProviderInRouterTest extends _BlocRuleTest {
+class ProviderInRouterTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => ProviderInRouter();
 
@@ -176,7 +139,7 @@ Widget d() => BlocProvider.value(value: c());
 }
 
 @reflectiveTest
-class NoCubitCallInLifecycleTest extends _BlocRuleTest {
+class NoCubitCallInLifecycleTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => NoCubitCallInLifecycle();
 
@@ -259,7 +222,7 @@ class Button extends StatelessWidget {
 }
 
 @reflectiveTest
-class NoProviderValueTest extends _BlocRuleTest {
+class NoProviderValueTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => NoProviderValue();
 
@@ -298,7 +261,7 @@ class _CounterPageState extends State<CounterPage> {
 }
 
 @reflectiveTest
-class CancelSubscriptionsInCloseTest extends _BlocRuleTest {
+class CancelSubscriptionsInCloseTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => CancelSubscriptionsInClose();
 
@@ -356,7 +319,7 @@ class NotACubit {
 }
 
 @reflectiveTest
-class AlertOnlyInCubitTest extends _BlocRuleTest {
+class AlertOnlyInCubitTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => AlertOnlyInCubit();
 
@@ -393,7 +356,7 @@ void f(BuildContext context) {
 }
 
 @reflectiveTest
-class StateIsSealedTest extends _BlocRuleTest {
+class StateIsSealedTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => StateIsSealed();
 
@@ -438,7 +401,7 @@ class CounterCubit extends BaseCubit<CounterState> {
 }
 
 @reflectiveTest
-class NoStatusEnumStateTest extends _BlocRuleTest {
+class NoStatusEnumStateTest extends BlocRuleTest {
   @override
   AnalysisRule get ruleUnderTest => NoStatusEnumState();
 

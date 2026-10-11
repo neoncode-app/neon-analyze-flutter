@@ -86,6 +86,36 @@ class MultiBlocProvider extends Widget {
 ''');
 }
 
+/// Writes minimal `bloc_presentation` and `go_router` packages and the app's
+/// dialog helper `Utils.showCustomModalBottomSheet` (lib/utils/utils.dart).
+void addPresentationPackages(AnalysisRuleTest test) {
+  test.newPackage('bloc_presentation').addFile('lib/bloc_presentation.dart', r'''
+import 'package:flutter/widgets.dart';
+
+class BlocPresentationListener<B, E> extends Widget {
+  const BlocPresentationListener({required void Function(BuildContext context, E event) listener, Widget? child});
+}
+''');
+  test.newPackage('go_router').addFile('lib/go_router.dart', r'''
+import 'package:flutter/widgets.dart';
+
+extension GoRouterHelper on BuildContext {
+  void go(String location) {}
+  void goNamed(String name) {}
+  Future<T?> push<T extends Object?>(String location) async => null;
+  void pop<T extends Object?>([T? result]) {}
+  bool canPop() => true;
+}
+''');
+  test.newFile('${test.testPackageLibPath}/utils/utils.dart', r'''
+import 'package:flutter/widgets.dart';
+
+class Utils {
+  static Future<T?> showCustomModalBottomSheet<T>({required BuildContext context, Object? builder}) async => null;
+}
+''');
+}
+
 /// App classes the architecture rules refer to: `BaseCubit` and `AlertCubit`.
 void addAppBlocClasses(AnalysisRuleTest test) {
   test.newFile('${test.testPackageLibPath}/bloc/global/base/base_cubit.dart', r'''
