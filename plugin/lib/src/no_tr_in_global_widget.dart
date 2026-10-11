@@ -13,18 +13,15 @@ import 'package:analyzer/src/dart/error/lint_codes.dart';
 ///
 /// Matches both `tr('key')` and `'key'.tr()`.
 class NoTrInGlobalWidget extends AnalysisRule {
-  NoTrInGlobalWidget()
-      : super(name: 'no_tr_in_global_widget', description: _desc);
+  NoTrInGlobalWidget() : super(name: 'no_tr_in_global_widget', description: _desc);
 
-  static const _desc =
-      'Global widgets must not call tr(); callers pass translated text.';
+  static const _desc = 'Global widgets must not call tr(); callers pass translated text.';
 
   static const LintCode _code = LintCode(
     'no_tr_in_global_widget',
     '[NEON] global widgets must not call tr(); '
         'callers pass already-translated text as parameters.',
-    correctionMessage:
-        'Remove the tr() call and accept the text via a constructor parameter.',
+    correctionMessage: 'Remove the tr() call and accept the text via a constructor parameter.',
     severity: DiagnosticSeverity.WARNING,
   );
 

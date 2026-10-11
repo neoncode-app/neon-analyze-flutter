@@ -1,13 +1,22 @@
 import 'package:analysis_server_plugin/plugin.dart';
 import 'package:analysis_server_plugin/registry.dart';
 
+import 'package:neon_lints/src/alert_only_in_cubit.dart';
 import 'package:neon_lints/src/avoid_bang.dart';
+import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
+import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
+import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_navigator.dart';
+import 'package:neon_lints/src/no_provider_value.dart';
 import 'package:neon_lints/src/no_raw_asset_path.dart';
 import 'package:neon_lints/src/no_raw_color.dart';
+import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/no_tr_in_global_widget.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
+import 'package:neon_lints/src/provider_in_router.dart';
+import 'package:neon_lints/src/state_is_sealed.dart';
+import 'package:neon_lints/src/use_context_getters.dart';
 import 'package:neon_lints/src/use_kit_widgets.dart';
 
 /// Entry point the Dart Analysis Server imports to load this plugin.
@@ -33,5 +42,15 @@ class NeonLintsPlugin extends Plugin {
     // apps sharing this plugin do not follow.
     registry.registerLintRule(UseKitWidgets());
     registry.registerLintRule(NoNavigator());
+    // NCR0000018: cubit lifecycle, providers, context getters, alerts, states.
+    registry.registerLintRule(UseContextGetters());
+    registry.registerLintRule(CubitCreatedInProvider());
+    registry.registerLintRule(ProviderInRouter());
+    registry.registerLintRule(NoCubitCallInLifecycle());
+    registry.registerLintRule(NoProviderValue());
+    registry.registerLintRule(CancelSubscriptionsInClose());
+    registry.registerLintRule(AlertOnlyInCubit());
+    registry.registerLintRule(StateIsSealed());
+    registry.registerLintRule(NoStatusEnumState());
   }
 }

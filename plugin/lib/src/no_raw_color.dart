@@ -26,15 +26,13 @@ import 'package:analyzer/src/dart/error/lint_codes.dart';
 class NoRawColor extends AnalysisRule {
   NoRawColor() : super(name: 'no_raw_color', description: _desc);
 
-  static const _desc =
-      'Do not use raw colors; resolve them through the theme.';
+  static const _desc = 'Do not use raw colors; resolve them through the theme.';
 
   static const LintCode _code = LintCode(
     'no_raw_color',
     '[NEON] do not use raw colors; resolve them through the theme '
         '(context.appColors / context.defaultColors).',
-    correctionMessage:
-        'Replace this raw color with a theme token from AppColors.',
+    correctionMessage: 'Replace this raw color with a theme token from AppColors.',
     severity: DiagnosticSeverity.WARNING,
   );
 
@@ -128,8 +126,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     // Bit-shift / bitwise expressions of literals stay hardcoded
     // (`Color(0xFF << 24 | 0x00FFFFFF)`).
     if (unwrapped is BinaryExpression) {
-      return _isIntLiteralExpression(unwrapped.leftOperand) &&
-          _isIntLiteralExpression(unwrapped.rightOperand);
+      return _isIntLiteralExpression(unwrapped.leftOperand) && _isIntLiteralExpression(unwrapped.rightOperand);
     }
     return false;
   }

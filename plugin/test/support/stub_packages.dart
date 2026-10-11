@@ -35,6 +35,76 @@ class LineChartData {
 ''');
 }
 
+/// Writes minimal `bloc`, `flutter_bloc` and `provider` packages (needs the
+/// flutter stubs of [addStubPackages] too).
+void addBlocPackages(AnalysisRuleTest test) {
+  test.newPackage('bloc').addFile('lib/bloc.dart', r'''
+abstract class BlocBase<S> {
+  BlocBase(S state);
+  S get state => throw 0;
+  Stream<S> get stream => throw 0;
+  bool get isClosed => false;
+  void emit(S state) {}
+  Future<void> close() async {}
+}
+
+abstract class Cubit<S> extends BlocBase<S> {
+  Cubit(super.state);
+}
+''');
+  test.newPackage('provider').addFile('lib/provider.dart', r'''
+import 'package:flutter/widgets.dart';
+
+extension ReadContext on BuildContext {
+  T read<T>() => throw 0;
+}
+
+extension WatchContext on BuildContext {
+  T watch<T>() => throw 0;
+}
+
+extension SelectContext on BuildContext {
+  R select<T, R>(R Function(T value) selector) => throw 0;
+}
+''');
+  test.newPackage('flutter_bloc').addFile('lib/flutter_bloc.dart', r'''
+import 'package:bloc/bloc.dart';
+import 'package:flutter/widgets.dart';
+
+export 'package:bloc/bloc.dart';
+export 'package:provider/provider.dart' show ReadContext, WatchContext, SelectContext;
+
+class BlocProvider<T extends BlocBase<Object?>> extends Widget {
+  const BlocProvider({required T Function(BuildContext context) create, Widget? child});
+  const BlocProvider.value({required T value, Widget? child});
+  static T of<T extends BlocBase<Object?>>(BuildContext context) => throw 0;
+}
+
+class MultiBlocProvider extends Widget {
+  const MultiBlocProvider({required List<Widget> providers, Widget? child});
+}
+''');
+}
+
+/// App classes the architecture rules refer to: `BaseCubit` and `AlertCubit`.
+void addAppBlocClasses(AnalysisRuleTest test) {
+  test.newFile('${test.testPackageLibPath}/bloc/global/base/base_cubit.dart', r'''
+import 'package:flutter_bloc/flutter_bloc.dart';
+
+abstract class BaseCubit<S> extends Cubit<S> {
+  BaseCubit(super.initialState);
+}
+''');
+  test.newFile('${test.testPackageLibPath}/bloc/global/alert/alert_cubit.dart', r'''
+import 'package:test/bloc/global/base/base_cubit.dart';
+
+class AlertCubit extends BaseCubit<void> {
+  AlertCubit() : super(null);
+  void showSuccess(String message) {}
+}
+''');
+}
+
 /// Widgets built with a generic constructor (`child`, `onTap`, `value`, ...).
 const _plainWidgets = <String>[
   'DecoratedBox', 'Card', 'ClipRRect', 'GestureDetector', 'InkWell', 'InkResponse', 'Material', //
@@ -67,6 +137,24 @@ abstract class BuildContext {}
 
 class Widget {
   const Widget();
+}
+
+abstract class StatelessWidget extends Widget {
+  const StatelessWidget();
+  Widget build(BuildContext context);
+}
+
+abstract class StatefulWidget extends Widget {
+  const StatefulWidget();
+}
+
+abstract class State<T extends StatefulWidget> {
+  BuildContext get context => throw 0;
+  void initState() {}
+  void didChangeDependencies() {}
+  void dispose() {}
+  void setState(void Function() fn) {}
+  Widget build(BuildContext context);
 }
 
 class IconData {

@@ -78,6 +78,15 @@ Suppressing one occurrence: `// ignore: neon_lints/<rule>`.
 | `no_tr_in_global_widget` | warning | no `tr()` under `lib/global_widgets/` |
 | `use_kit_widgets` | lint (neoncode) | raw Flutter widgets and APIs the admin widget kit replaces; the message names the kit widget to use |
 | `no_navigator` | lint (neoncode) | no `Navigator.*`; navigate with go_router (`context.pop` / `go` / `push`) |
+| `use_context_getters` | lint (neoncode) | `context.read/watch/select` and `BlocProvider.of` only in `lib/flavors/<f>/<f>_providers.dart` |
+| `cubit_created_in_provider` | lint (neoncode) | a bloc / cubit is constructed only in a provider's `create:` callback |
+| `provider_in_router` | lint (neoncode) | `BlocProvider` / `MultiBlocProvider` only in `lib/flavors/**` and `lib/utils/utils.dart` |
+| `no_cubit_call_in_lifecycle` | lint (neoncode) | no cubit method call directly in `initState`, `didChangeDependencies`, `build` |
+| `no_provider_value` | lint (neoncode) | no `BlocProvider.value` of a cubit held in a `State` field |
+| `cancel_subscriptions_in_close` | lint (neoncode) | `stream.listen` in a cubit stored in a field and cancelled in `close()` |
+| `alert_only_in_cubit` | lint (neoncode) | no `AlertCubit` in `lib/pages`, `lib/features`, `lib/global_widgets` |
+| `state_is_sealed` | lint (neoncode) | the state of a `BaseCubit<S>` is `sealed` (except `lib/bloc/<app>/app_wide/`) |
+| `no_status_enum_state` | lint (neoncode) | no `XStatus` enum field in a state class under `lib/bloc` |
 
 ### Banned-API rules (`use_kit_widgets`, `no_navigator`)
 
