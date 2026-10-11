@@ -93,3 +93,15 @@ AstNode? enclosingFunction(AstNode node) {
   }
   return null;
 }
+
+/// The `{@category X}` of [element]'s doc comment, if any.
+String? categoryOf(Element? element) {
+  final doc = element?.documentationComment;
+  if (doc == null) return null;
+  final matches = RegExp(r'\{@category\s+(\w+)\}').allMatches(doc).toList();
+  return matches.isEmpty ? null : matches.last.group(1);
+}
+
+/// Absolute path of the library an import directive resolves to.
+String? importedPath(ImportDirective node) =>
+    node.libraryImport?.importedLibrary?.firstFragment.source.fullName.replaceAll(r'\', '/');

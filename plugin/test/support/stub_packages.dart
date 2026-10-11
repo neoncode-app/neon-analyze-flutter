@@ -80,6 +80,10 @@ class BlocProvider<T extends BlocBase<Object?>> extends Widget {
   static T of<T extends BlocBase<Object?>>(BuildContext context) => throw 0;
 }
 
+class BlocBuilder<B extends BlocBase<S>, S> extends Widget {
+  const BlocBuilder({required Widget Function(BuildContext context, S state) builder});
+}
+
 class MultiBlocProvider extends Widget {
   const MultiBlocProvider({required List<Widget> providers, Widget? child});
 }
@@ -218,6 +222,37 @@ class Image extends Widget {
 class NetworkImage {
   const NetworkImage(String url);
 }
+
+class Size {
+  const Size(this.width, this.height);
+  final double width;
+  final double height;
+}
+
+class MediaQueryData {
+  Size get size => const Size(0, 0);
+}
+
+class MediaQuery extends Widget {
+  const MediaQuery();
+  static MediaQueryData of(BuildContext context) => MediaQueryData();
+  static Size sizeOf(BuildContext context) => const Size(0, 0);
+  static double widthOf(BuildContext context) => 0;
+}
+
+class BoxConstraints {
+  double get maxWidth => 0;
+}
+
+class LayoutBuilder extends Widget {
+  const LayoutBuilder({required Widget Function(BuildContext context, BoxConstraints constraints) builder});
+}
+
+const bool kIsWeb = false;
+
+enum TargetPlatform { android, iOS }
+
+TargetPlatform get defaultTargetPlatform => TargetPlatform.android;
 
 abstract final class Icons {
   static const IconData add = IconData(1);

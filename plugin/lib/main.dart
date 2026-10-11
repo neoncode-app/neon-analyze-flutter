@@ -7,6 +7,7 @@ import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
+import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
@@ -19,7 +20,10 @@ import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/no_tr_in_global_widget.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
 import 'package:neon_lints/src/page_state_rules.dart';
+import 'package:neon_lints/src/page_template_rules.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
+import 'package:neon_lints/src/responsive_rules.dart';
+import 'package:neon_lints/src/role_rules.dart';
 import 'package:neon_lints/src/state_is_sealed.dart';
 import 'package:neon_lints/src/ui_callback_calls_cubit.dart';
 import 'package:neon_lints/src/use_context_getters.dart';
@@ -68,5 +72,21 @@ class NeonLintsPlugin extends Plugin {
     registry.registerLintRule(NoPrivateMethodsInPageState());
     registry.registerLintRule(StatefulPageOnlyForControllers());
     registry.registerLintRule(NoEditorControllerInPages());
+    // NCR0000020: page templates, layering, route-level roles, responsiveness.
+    registry.registerLintRule(PageUsesTemplate());
+    registry.registerLintRule(PageHasTitleSubtitle());
+    registry.registerLintRule(GlobalWidgetsLayering());
+    registry.registerLintRule(ComponentHasNoStateAccess());
+    registry.registerLintRule(NoRepositoryInUi());
+    registry.registerLintRule(NoHttpInUi());
+    registry.registerLintRule(GlobalWidgetHasCategory());
+    registry.registerLintRule(KitSrcInternal());
+    registry.registerLintRule(NoRoleLiteral());
+    registry.registerLintRule(NoAccessGuardInPages());
+    registry.registerLintRule(NoMediaQuerySize());
+    registry.registerLintRule(NoKIsWebInUi());
+    registry.registerLintRule(NoPlatformInUi());
+    registry.registerLintRule(NoLayoutBuilderInPages());
+    registry.registerLintRule(NoRawBreakpoint());
   }
 }

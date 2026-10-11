@@ -96,6 +96,20 @@ Suppressing one occurrence: `// ignore: neon_lints/<rule>`.
 | `no_private_methods_in_page_state` | lint (neoncode) | a page `State` declares only lifecycle methods and `build` |
 | `stateful_page_only_for_controllers` | lint (neoncode) | a page `State` holds only controllers, focus nodes, timers, subscriptions, keys (by type name) |
 | `no_editor_controller_in_pages` | lint (neoncode) | no `*EditorController` and no `.validate()` in pages |
+| `page_uses_template` | lint (neoncode) | `build()` of a `*Page` returns, through bloc / presentation wrappers, a `{@category Template}` widget |
+| `page_has_title_subtitle` | lint (neoncode) | `AppContentPage` gets both `title:` and `subtitle:` |
+| `global_widgets_layering` | lint (neoncode) | `lib/global_widgets` never imports `lib/pages` or `lib/features` |
+| `component_has_no_state_access` | lint (neoncode) | a Component / Layout / Pattern file imports no bloc and reads no provider |
+| `no_repository_in_ui` | lint (neoncode) | no class from `lib/repository/` in UI code |
+| `no_http_in_ui` | lint (neoncode) | no `package:http` / `package:dio` import in UI code |
+| `global_widget_has_category` | lint (neoncode) | public kit / feature widgets end their doc comment with a valid `{@category}` |
+| `kit_src_internal` | lint (neoncode) | a kit's `src/` is imported only from inside that kit |
+| `no_role_literal` | lint (neoncode) | no backend role strings outside `lib/model/enum/` |
+| `no_access_guard_in_pages` | lint (neoncode) | no `RoleGuard` / access-denied widget in pages (access is on the route) |
+| `no_media_query_size` | lint (neoncode) | screen size only through `lib/utils/ui/app_responsive.dart` |
+| `no_kisweb_in_ui` / `no_platform_in_ui` | lint (neoncode) | no `kIsWeb`, `Platform.isX`, `defaultTargetPlatform` in UI code |
+| `no_layout_builder_in_pages` | lint (neoncode) | `LayoutBuilder` only in `lib/global_widgets` |
+| `no_raw_breakpoint` | lint (neoncode) | no width compared with a numeric literal |
 
 ### Banned-API rules (`use_kit_widgets`, `no_navigator`)
 
