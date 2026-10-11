@@ -77,28 +77,27 @@ final class FixStep extends CheckStep {
 
   @override
   Future<StepResult> run(CheckContext context) async {
-    final targets = context.isAll ? context.config.sourceDirs : context.dartFiles;
-    final findings = <Finding>[];
-    final fixed = <String>[];
-    for (final target in targets) {
-      if (!FileSystemEntity.isFileSync(context.absolute(target)) &&
-          !FileSystemEntity.isDirectorySync(context.absolute(target))) {
-        continue;
-      }
-      final result =
-          await runProcess(context.root, 'dart', ['fix', if (context.fix) '--apply' else '--dry-run', target]);
-      // Output lists one line per changed file followed by indented fixes.
-      for (final line in result.stdout.split('\n')) {
-        if (line.isEmpty || line.startsWith(' ') || !line.endsWith('.dart')) continue;
-        final file = target.endsWith('.dart') ? target : '$target/${line.trim()}';
-        if (context.fix) {
-          fixed.add(file);
-        } else {
-          findings.add(Finding(rule: 'dart_fix', file: file, message: 'dart fix has fixes; run tool/check.sh locally'));
-        }
-      }
+    // One dry run over the project (seconds, the analysis is shared), then
+    // only the files in scope that actually have fixes.
+    final dryRun = await runProcess(context.root, 'dart', ['fix', '--dry-run', '.']);
+    final inScope = context.dartFiles.toSet();
+    final withFixes = [
+      for (final line in dryRun.stdout.split('\n'))
+        if (line.isNotEmpty && !line.startsWith(' ') && line.endsWith('.dart') && inScope.contains(line.trim()))
+          line.trim(),
+    ];
+    if (!context.fix) {
+      return StepResult(
+        findings: [
+          for (final file in withFixes)
+            Finding(rule: 'dart_fix', file: file, message: 'dart fix has fixes; run tool/check.sh locally'),
+        ],
+      );
     }
-    return StepResult(findings: findings, fixed: fixed);
+    for (final file in withFixes) {
+      await runProcess(context.root, 'dart', ['fix', '--apply', file]);
+    }
+    return StepResult(fixed: withFixes);
   }
 }
 
