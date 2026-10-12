@@ -138,7 +138,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `widget_dimens` | `lib/**/*_dimens.dart` |
 | `legacy_dimens` | `lib/**/app_dimens.dart` |
 | `text_styles` | `lib/**/*_text_styles.dart`, `lib/utils/ui/app_style.dart` |
-| `colors` | `**/theme/`, `**/ui/app_icon.dart`, `**/ui/app_style.dart`, `lib/model/`, `**/color_editor*`, `**/color_editor*/` |
+| `colors` | `**/theme/`, `**/ui/app_icon.dart`, `**/ui/app_style.dart`, `lib/model/`, `**/color_editor*`, `**/color_editor*/`, `test/support/` |
 | `assets_registry` | `lib/**/app_assets.dart` |
 | `logger` | `lib/utils/helpers/log_utils.dart` |
 | `responsive` | `lib/utils/ui/app_responsive.dart` |
@@ -202,7 +202,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `translations_missing` | core | every literal `tr('key')` exists | no |
 | `translations_unused` | core | keys no code uses (`--all` only) | `--prune-translations` |
 | `translations_order` | core | keys in the primary file's order | yes |
-| `assets` | core | registry paths exist; unused asset files (`--all`) | no |
+| `assets` | core | registry paths exist (in the app, or in the dependency the registry names as their package); unused asset files (`--all`) | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |

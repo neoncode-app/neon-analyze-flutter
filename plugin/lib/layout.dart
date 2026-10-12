@@ -64,8 +64,10 @@ enum LayoutRole {
       '**/color_editor*/',
       // vernakapp: the contrast maths test needs arbitrary colour values.
       '**/test/readable_accent_test.dart',
+      // Test fixtures: colour values that are inputs of a test, not UI colours.
+      'test/support/',
     ],
-    'Files that may define raw colors (theme, serialization, the color picker).',
+    'Files that may define raw colors (theme, serialization, the color picker, test fixtures).',
   ),
   assetsRegistry('assets_registry', ['lib/**/app_assets.dart'], "The asset registry, the only place for 'assets/...'."),
   logger('logger', ['lib/utils/helpers/log_utils.dart'], 'The app logger, the only place for debugPrint.'),
