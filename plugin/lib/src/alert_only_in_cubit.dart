@@ -3,6 +3,7 @@ import 'package:analyzer/analysis_rule/rule_context.dart';
 import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
@@ -33,7 +34,9 @@ class AlertOnlyInCubit extends AnalysisRule {
     final visitor = _Visitor(this, RuleLayout.of(context));
     registry
       ..addNamedType(this, visitor)
-      ..addMethodInvocation(this, visitor);
+      ..addMethodInvocation(this, visitor)
+      ..addPrefixedIdentifier(this, visitor)
+      ..addPropertyAccess(this, visitor);
   }
 }
 
@@ -55,11 +58,26 @@ class _Visitor extends SimpleAstVisitor<void> {
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
-    // `context.alertCubit.showSuccess(...)`: AlertCubit used without naming
-    // the type. When the type is named in the target, visitNamedType reports.
+    // `alert.showSuccess(...)` on a variable that holds the AlertCubit. When
+    // the type is named in the target, visitNamedType reports; a getter target
+    // (`context.alertCubit.showSuccess`) is reported as the getter access.
     final target = node.realTarget;
-    if (target == null || !isSubtypeOf(target.staticType, 'AlertCubit')) return;
+    if (target == null || target is PrefixedIdentifier || target is PropertyAccess) return;
+    if (!isSubtypeOf(target.staticType, 'AlertCubit')) return;
     if (target.toSource().contains('AlertCubit') || !_inUi(node)) return;
     rule.reportAtNode(target);
+  }
+
+  // `context.alertCubit`: the AlertCubit reached through a getter, whether a
+  // method is called on it or it is handed to a cubit the widget builds.
+  @override
+  void visitPrefixedIdentifier(PrefixedIdentifier node) => _getterAccess(node, node.identifier.element);
+
+  @override
+  void visitPropertyAccess(PropertyAccess node) => _getterAccess(node, node.propertyName.element);
+
+  void _getterAccess(Expression node, Element? element) {
+    if (element is! PropertyAccessorElement || !isSubtypeOf(node.staticType, 'AlertCubit') || !_inUi(node)) return;
+    rule.reportAtNode(node);
   }
 }

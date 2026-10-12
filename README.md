@@ -131,6 +131,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `role_enums` | `lib/model/enum/` |
 | `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
 | `routing` | `lib/flavors/` |
+| `app_root` | `lib/app/bootstrap.dart` |
 | `routers` | `lib/flavors/{flavor}/{flavor}_router.dart` |
 | `dialog_helper` | `lib/utils/utils.dart` |
 | `tokens` | `lib/utils/ui/tokens/` |
@@ -204,7 +205,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `assets` | core | registry paths exist; unused asset files (`--all`) | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
-| `providers` | flavors | every typed context getter reads a cubit its router or shell provides | no |
+| `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
 | `page_help` | admin | every page has `onHelp` and its help keys (one entry per flavour with a help enum) | no |
 | `generated` | core | `*.g.dart` match their sources (build_runner) | yes |
 | `test_existence` | bloc, go_router | every cubit has `<name>_cubit_test.dart` (bloc), every GoRoute `<route>_route_test.dart` (go_router); ratchet `test_missing` | no |
@@ -349,8 +350,8 @@ Checks: `test_existence`, `coverage`.
 | Rule | What it enforces |
 | --- | --- |
 | `extend_base_cubit` | cubits extend `BaseCubit` |
-| `use_context_getters` | `context.read/watch/select` and `BlocProvider.of` only in `lib/flavors/<f>/<f>_providers.dart` |
-| `cubit_created_in_provider` | a bloc / cubit is constructed only in a provider's `create:` callback |
+| `use_context_getters` | `context.read/watch/select` and `BlocProvider.of` only in the providers files (`lib/flavors/<f>/<f>_providers.dart`, plus an app-wide one such as `lib/app/app_providers.dart` when the layout lists it) |
+| `cubit_created_in_provider` | a bloc / cubit is constructed only in a provider's `create:` callback, or in the app startup (`app_root`) for the app-wide cubits the router needs before it exists |
 | `no_cubit_call_in_lifecycle` | no cubit method call directly in `initState`, `didChangeDependencies`, `build` |
 | `no_provider_value` | no `BlocProvider.value` of a cubit held in a `State` field |
 | `cancel_subscriptions_in_close` | `stream.listen` in a cubit stored in a field and cancelled in `close()` |
@@ -383,7 +384,7 @@ Checks: `test_existence`.
 | Rule | What it enforces |
 | --- | --- |
 | `no_navigator` | no `Navigator.*`; navigate with go_router (`context.pop` / `go` / `push`) |
-| `provider_in_router` | `BlocProvider` / `MultiBlocProvider` only in `lib/flavors/**` and `lib/utils/utils.dart` |
+| `provider_in_router` | `BlocProvider` / `MultiBlocProvider` only in the routing files (`lib/flavors/**`), the app startup (`app_root`, `lib/app/bootstrap.dart`) and the dialog helper (`lib/utils/utils.dart`) |
 
 ### `responsive`
 

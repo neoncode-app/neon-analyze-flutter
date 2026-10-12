@@ -4,6 +4,7 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
+import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
@@ -155,7 +156,11 @@ class NoRepositoryInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addNamedType(this, _RepositoryVisitor(this, RuleLayout.of(context)));
+    final visitor = _RepositoryVisitor(this, RuleLayout.of(context));
+    registry
+      ..addNamedType(this, visitor)
+      ..addPrefixedIdentifier(this, visitor)
+      ..addPropertyAccess(this, visitor);
   }
 }
 
@@ -166,12 +171,28 @@ class _RepositoryVisitor extends SimpleAstVisitor<void> {
 
   final RuleLayout layout;
 
+  bool _isRepository(InterfaceElement element) =>
+      layout.isIn(element.library.firstFragment.source.fullName.replaceAll(r'\', '/'), LayoutRole.repository);
+
   @override
   void visitNamedType(NamedType node) {
     final element = node.element;
     if (element is! InterfaceElement || !layout.isUi(unitPath(node))) return;
-    final declaredIn = element.library.firstFragment.source.fullName.replaceAll(r'\', '/');
-    if (layout.isIn(declaredIn, LayoutRole.repository)) rule.reportAtNode(node, arguments: [element.name ?? '']);
+    if (_isRepository(element)) rule.reportAtNode(node, arguments: [element.name ?? '']);
+  }
+
+  // `context.neoApiRepository`: a repository reached through a getter.
+  @override
+  void visitPrefixedIdentifier(PrefixedIdentifier node) => _getterAccess(node, node.identifier.element);
+
+  @override
+  void visitPropertyAccess(PropertyAccess node) => _getterAccess(node, node.propertyName.element);
+
+  void _getterAccess(Expression node, Element? getter) {
+    final type = node.staticType;
+    final element = type is InterfaceType ? type.element : null;
+    if (getter is! PropertyAccessorElement || element == null || !layout.isUi(unitPath(node))) return;
+    if (_isRepository(element)) rule.reportAtNode(node, arguments: [element.name ?? '']);
   }
 }
 

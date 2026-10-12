@@ -104,6 +104,12 @@ class CubitCreatedInProviderTest extends BlocRuleTest {
         [],
       );
 
+  Future<void> test_app_startup_builds_the_app_wide_cubits() => expectIn(
+        'app/bootstrap.dart',
+        '$_imports$_cubit\nWidget a() {\n  final cubit = CounterCubit();\n  return BlocProvider<CounterCubit>.value(value: cubit);\n}\n',
+        [],
+      );
+
   Future<void> test_closure_inside_create_that_is_not_create_is_flagged() => expectIn(
         'pages/counter_page.dart',
         '$_imports$_cubit\nWidget a(void Function(Object) run) => BlocProvider(create: (_) {\n'
@@ -136,6 +142,8 @@ Widget d() => BlocProvider.value(value: c());
   Future<void> test_router_and_shell_own_providers() => expectIn('flavors/vernak/vernak_router.dart', _source, []);
 
   Future<void> test_dialog_helper_owns_providers() => expectIn('utils/utils.dart', _source, []);
+
+  Future<void> test_app_startup_owns_providers() => expectIn('app/bootstrap.dart', _source, []);
 }
 
 @reflectiveTest
@@ -334,7 +342,10 @@ extension on BuildContext {
 void f(BuildContext context) {
   context.read<AlertCubit>().showSuccess('ok');
   context.alertCubit.showSuccess('ok');
+  g(context.alertCubit);
 }
+
+void g(Object alert) {}
 ''';
 
   Future<void> test_alert_in_ui_folders_is_flagged() async {
@@ -342,7 +353,7 @@ void f(BuildContext context) {
       await expectIn(
         '$folder/x.dart',
         _source,
-        ['AlertCubit', 'AlertCubit', 'context.alertCubit'],
+        ['AlertCubit', 'AlertCubit', 'context.alertCubit', 'context.alertCubit'],
         message: ['inject AlertCubit into the cubit'],
         after: 'extension on BuildContext',
       );

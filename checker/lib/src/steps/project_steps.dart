@@ -189,8 +189,10 @@ final class CatalogPreviewsStep extends CheckStep {
 }
 
 /// Every typed context getter in a providers file (layout role `providers`)
-/// reads a cubit that a router or shell next to it provides (the routing
-/// files in the providers file's folder, or every routing file).
+/// reads a cubit that is provided somewhere it may be: a router or shell next
+/// to it (the routing files in the providers file's folder, or every routing
+/// file), the app startup (role `app_root`, the app-wide cubits that exist
+/// before the router) or a dialog helper call (`showCustomModalBottomSheet(create:)`).
 final class ProvidersStep extends CheckStep {
   const ProvidersStep();
 
@@ -205,12 +207,17 @@ final class ProvidersStep extends CheckStep {
 
   bool _isRouting(CheckContext context, String file) => context.config.layout.matches(LayoutRole.routing, file);
 
+  bool _isAppRoot(CheckContext context, String file) => context.config.layout.matches(LayoutRole.appRoot, file);
+
   @override
   bool appliesTo(CheckContext context) =>
       context.config.providersFiles.isNotEmpty &&
       (context.isAll ||
           [...context.changedFiles, ...context.deletedFiles].any(
-            (file) => _isRouting(context, file) || context.config.layout.matches(LayoutRole.providers, file),
+            (file) =>
+                _isRouting(context, file) ||
+                _isAppRoot(context, file) ||
+                context.config.layout.matches(LayoutRole.providers, file),
           ));
 
   @override
@@ -218,15 +225,26 @@ final class ProvidersStep extends CheckStep {
     final findings = <Finding>[];
     final getter = RegExp(r'(\w+)\s+get\s+\w+\s*=>');
     final provided = RegExp(r'BlocProvider<(\w+)>|create:\s*\([^)]*\)\s*=>\s*(\w+)\(');
+    final dialogCreate = RegExp(r'showCustomModalBottomSheet\b[^;]*?create:\s*\([^)]*\)\s*=>\s*(\w+)\(', dotAll: true);
     final routing = [
       for (final file in context.allLibDartFiles)
         if (_isRouting(context, file) && !context.config.layout.matches(LayoutRole.providers, file)) file,
     ];
+    final appRoot = [
+      for (final file in context.allLibDartFiles)
+        if (_isAppRoot(context, file)) file,
+    ];
+    final inDialogs = <String>{
+      for (final file in context.allLibDartFiles)
+        for (final match in dialogCreate.allMatches(File(context.absolute(file)).readAsStringSync()))
+          match.group(1) ?? '',
+    };
     for (final providersPath in context.config.providersFiles) {
       final folder = providersPath.substring(0, providersPath.lastIndexOf('/') + 1);
       final nearby = routing.where((file) => file.startsWith(folder)).toList();
-      final sources = nearby.isEmpty ? routing : nearby;
+      final sources = [...nearby.isEmpty ? routing : nearby, ...appRoot];
       final providedTypes = <String>{
+        ...inDialogs,
         for (final file in sources)
           for (final match in provided.allMatches(File(context.absolute(file)).readAsStringSync()))
             match.group(1) ?? match.group(2) ?? '',
@@ -241,8 +259,8 @@ final class ProvidersStep extends CheckStep {
             rule: 'provider_missing',
             file: providersPath,
             line: i + 1,
-            message: '`$type` is never provided in ${nearby.isEmpty ? 'the routing files' : folder}; '
-                'provide it in the router or shell',
+            message: '`$type` is never provided in ${nearby.isEmpty ? 'the routing files' : folder}, '
+                'the app startup or a dialog helper call; provide it in the router or shell',
           ),
         );
       }

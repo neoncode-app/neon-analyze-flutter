@@ -9,8 +9,10 @@ import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// `BlocProvider` / `MultiBlocProvider` only in the router and shell (layout
-/// role `routing`, default `lib/flavors/**`) and inside the dialog helper
-/// (role `dialog_helper`, `Utils.showCustomModalBottomSheet(create:)`).
+/// role `routing`, default `lib/flavors/**`), in the app startup that provides
+/// the app-wide cubits above the router (role `app_root`, default
+/// `lib/app/bootstrap.dart`) and inside the dialog helper (role
+/// `dialog_helper`, `Utils.showCustomModalBottomSheet(create:)`).
 ///
 /// Pages never provide cubits themselves (NCR0000014 decisions 1, 2 and 4).
 class ProviderInRouter extends AnalysisRule {
@@ -47,8 +49,12 @@ class _Visitor extends SimpleAstVisitor<void> {
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || layout.isIn(path, LayoutRole.routing) || layout.isIn(path, LayoutRole.dialogHelper))
+    if (!isAppSource(path) ||
+        layout.isIn(path, LayoutRole.routing) ||
+        layout.isIn(path, LayoutRole.appRoot) ||
+        layout.isIn(path, LayoutRole.dialogHelper)) {
       return;
+    }
     final element = node.constructorName.element?.enclosingElement;
     if (element == null ||
         !ProviderInRouter._providers.contains(element.name) ||

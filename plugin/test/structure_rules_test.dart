@@ -243,6 +243,14 @@ class NoRepositoryInUiTest extends _StructureTest {
       message: ['Inject the repository'], after: 'void f(');
 
   Future<void> test_cubits_own_repositories() => expectIn('bloc/x/x_cubit.dart', _source, []);
+
+  Future<void> test_repository_through_a_getter_is_flagged() => expectIn(
+        'pages/x_page.dart',
+        "import 'package:test/repository/neo_api_repository.dart';\n"
+            'class Holder {\n  Object get api => throw 0;\n  NeoApiRepository get neoApi => throw 0;\n}\n'
+            'void f(Holder holder) {\n  g(holder.neoApi);\n  g(holder.api);\n}\nvoid g(Object value) {}\n',
+        ['NeoApiRepository', 'holder.neoApi'],
+      );
 }
 
 @reflectiveTest

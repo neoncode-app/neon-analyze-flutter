@@ -38,6 +38,11 @@ enum LayoutRole {
   roleEnums('role_enums', ['lib/model/enum/'], 'Role enums, the only place backend role strings appear.'),
   providers('providers', ['lib/flavors/{flavor}/{flavor}_providers.dart'], 'Typed context getters (context.xCubit).'),
   routing('routing', ['lib/flavors/'], 'Routing and shells: the only place cubits are provided.'),
+  appRoot(
+    'app_root',
+    ['lib/app/bootstrap.dart'],
+    'The app startup: builds the app-wide cubits and repositories the router needs and provides them above it.',
+  ),
   routers('routers', ['lib/flavors/{flavor}/{flavor}_router.dart'], 'Files that declare the GoRoutes.'),
   dialogHelper('dialog_helper', ['lib/utils/utils.dart'], 'The one dialog helper (Utils.showCustomModalBottomSheet).'),
   tokens('tokens', ['lib/utils/ui/tokens/'], 'The dimension scale (AppSpacing, AppRadius, ...).'),
