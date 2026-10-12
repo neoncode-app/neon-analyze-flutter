@@ -18,7 +18,10 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// The one exception is the app startup (layout role `app_root`, default
 /// `lib/app/bootstrap.dart`): the app-wide cubits the router's redirect reads
 /// (session, alert, auth) exist before the router does, so the startup builds
-/// them and provides them above it with `BlocProvider<X>.value`.
+/// them and provides them above it with `BlocProvider<X>.value`. A cubit's own
+/// static factory (`static Future<X> create(...)`, which builds the instance
+/// asynchronously) is not a construction site either: whoever calls the
+/// factory is.
 class CubitCreatedInProvider extends AnalysisRule {
   CubitCreatedInProvider() : super(name: 'cubit_created_in_provider', description: _desc);
 
@@ -52,8 +55,15 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final path = unitPath(node);
     if (!isAppSource(path) || layout.isIn(path, LayoutRole.appRoot) || !isBloc(node.staticType)) return;
-    if (_insideCreate(node)) return;
+    if (_insideCreate(node) || _insideOwnClass(node)) return;
     rule.reportAtNode(node.constructorName, arguments: [node.constructorName.type.name.lexeme]);
+  }
+
+  /// Whether [node] constructs the class it is written in (its own factory).
+  static bool _insideOwnClass(InstanceCreationExpression node) {
+    final constructed = node.constructorName.type.element;
+    final declaration = node.thisOrAncestorOfType<ClassDeclaration>();
+    return constructed != null && declaration?.declaredFragment?.element == constructed;
   }
 
   /// Whether [node] is (part of) the result of a function passed as `create:`.

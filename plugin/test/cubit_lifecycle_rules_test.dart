@@ -110,6 +110,15 @@ class CubitCreatedInProviderTest extends BlocRuleTest {
         [],
       );
 
+  Future<void> test_own_async_factory_is_not_a_construction_site() => expectIn(
+        'bloc/session/session_cubit.dart',
+        '$_imports\nclass SessionCubit extends BaseCubit<int> {\n  SessionCubit._() : super(0);\n'
+            '  static Future<SessionCubit> create() async => SessionCubit._();\n}\n'
+            'class Other extends BaseCubit<int> {\n  Other() : super(0);\n  SessionCubit make() => SessionCubit._();\n}\n',
+        ['SessionCubit._'],
+        after: 'SessionCubit make',
+      );
+
   Future<void> test_closure_inside_create_that_is_not_create_is_flagged() => expectIn(
         'pages/counter_page.dart',
         '$_imports$_cubit\nWidget a(void Function(Object) run) => BlocProvider(create: (_) {\n'
