@@ -11,7 +11,9 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// The state type of a `BaseCubit<S>` is a `sealed` class hierarchy
 /// (`Initial / Loading / Loaded / Error`), so `switch (state)` in the UI is
-/// exhaustive. Cubits in an app-wide folder (layout role `app_wide_cubits`,
+/// exhaustive. The convention (README, "The state convention"): the sealed
+/// base holds the data every state shows plus derived getters, `Loading` and
+/// `Error` keep the last data, busy markers live only on `Loaded`. Cubits in an app-wide folder (layout role `app_wide_cubits`,
 /// default `lib/bloc/<app>/app_wide/`:
 /// rules, session, alert, upgrade, publish, notifications) are exempt.
 class StateIsSealed extends AnalysisRule {
@@ -22,7 +24,8 @@ class StateIsSealed extends AnalysisRule {
   static const LintCode code = LintCode(
     'state_is_sealed',
     '[NEON] the state `{0}` of this cubit is not a sealed class; declare '
-        '`sealed class {0}` with Initial / Loading / Loaded / Error subclasses.',
+        '`sealed class {0}` holding the data every state shows, with final Initial / Loading / Loaded / Error '
+        'subclasses (Loading and Error keep the last data, busy markers only on Loaded).',
     correctionMessage:
         'Make the state a sealed class hierarchy, or move an app-wide cubit to lib/bloc/<app>/app_wide/.',
     severity: DiagnosticSeverity.WARNING,

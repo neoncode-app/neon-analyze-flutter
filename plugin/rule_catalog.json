@@ -94,7 +94,7 @@
     "state_is_sealed": {
       "kind": "lint",
       "description": "Page cubit states are sealed class hierarchies.",
-      "message": "the state `{0}` of this cubit is not a sealed class; declare `sealed class {0}` with Initial / Loading / Loaded / Error subclasses.",
+      "message": "the state `{0}` of this cubit is not a sealed class; declare `sealed class {0}` holding the data every state shows, with final Initial / Loading / Loaded / Error subclasses (Loading and Error keep the last data, busy markers only on Loaded).",
       "correction": "Make the state a sealed class hierarchy, or move an app-wide cubit to lib/bloc/<app>/app_wide/."
     },
     "no_status_enum_state": {
@@ -102,6 +102,12 @@
       "description": "States use sealed subclasses, not a status enum field.",
       "message": "state field `{0}` is a status enum ({1}); make each status a subclass of a sealed state (XLoading, XLoaded(data), XError(message)).",
       "correction": "Replace the enum field with sealed state subclasses."
+    },
+    "no_state_enum_branching": {
+      "kind": "lint",
+      "description": "The UI switches on the state type, never on an enum field of a cubit state.",
+      "message": "the UI branches on `{0}.{1}`, an enum field of a cubit state; make each value a subclass of the sealed state and switch on the state itself.",
+      "correction": "Replace the enum field with sealed state subclasses (one per value the UI shows)."
     },
     "dialog_only_in_listener": {
       "kind": "lint",

@@ -17,6 +17,7 @@ import 'package:neon_lints/src/no_navigator.dart';
 import 'package:neon_lints/src/no_provider_value.dart';
 import 'package:neon_lints/src/no_raw_asset_path.dart';
 import 'package:neon_lints/src/no_raw_color.dart';
+import 'package:neon_lints/src/no_state_enum_branching.dart';
 import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/no_tr_in_global_widget.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
@@ -64,6 +65,7 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(AlertOnlyInCubit())
       ..registerLintRule(StateIsSealed())
       ..registerLintRule(NoStatusEnumState())
+      ..registerLintRule(NoStateEnumBranching())
       // NCR0000019: presentation events, dialogs, navigation, no logic in UI.
       ..registerLintRule(DialogOnlyInListener())
       ..registerLintRule(NoDialogResult())

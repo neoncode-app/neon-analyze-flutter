@@ -358,6 +358,37 @@ Checks: `test_existence`, `coverage`.
 | `alert_only_in_cubit` | no `AlertCubit` in `lib/pages`, `lib/features`, `lib/global_widgets` |
 | `state_is_sealed` | the state of a `BaseCubit<S>` is `sealed` (except `lib/bloc/<app>/app_wide/`) |
 | `no_status_enum_state` | no `XStatus` enum field in a state class under `lib/bloc` |
+| `no_state_enum_branching` | UI code never branches (`switch`, `==`) on an enum field of a cubit state; each value is a state subclass |
+
+**The state convention** these rules converge on (one shape for every page
+cubit, so the UI is always `switch (state)` over a closed set):
+
+```dart
+sealed class XState {               // the data every state shows + derived getters
+  final List<Item> items;
+  const XState({this.items = const []});
+  bool get isEmpty => items.isEmpty;
+}
+final class XInitial extends XState { const XInitial(); }
+final class XLoading extends XState { const XLoading({super.items}); }  // previous data stays visible
+final class XLoaded extends XState {
+  final bool isSaving;              // busy markers only on Loaded
+  const XLoaded({required super.items, this.isSaving = false});
+}
+final class XError extends XState {
+  final String message;             // the last data stays visible
+  const XError(this.message, {super.items});
+}
+```
+
+- A page with modes (tabs, a list and an archive) has one subclass per mode,
+  not an enum the UI switches on (`no_state_enum_branching`).
+- A value the user picks (a period, a filter) may stay a field, as long as the
+  UI only shows it and passes it back.
+- Sections that load independently get a nested sealed field
+  (`sealed class XHistory` with `Loading` / `Loaded(items)` / `Error`).
+- App-wide cubits (`lib/bloc/<app>/app_wide/`) are exempt from
+  `state_is_sealed`: a session or the rules are one long-lived value.
 
 ### `presentation`
 

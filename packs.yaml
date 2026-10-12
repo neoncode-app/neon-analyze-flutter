@@ -61,6 +61,7 @@ bloc:
     - alert_only_in_cubit
     - state_is_sealed
     - no_status_enum_state
+    - no_state_enum_branching
   steps:
     - test_existence
     - coverage
@@ -69,6 +70,7 @@ bloc:
     cancel_subscriptions_in_close: [bloc]
     state_is_sealed: [bloc]
     no_status_enum_state: [bloc]
+    no_state_enum_branching: [ui]
     no_cubit_call_in_lifecycle: [ui]
     no_provider_value: [ui]
     alert_only_in_cubit: [ui]

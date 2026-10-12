@@ -4,6 +4,7 @@ import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_provider_value.dart';
+import 'package:neon_lints/src/no_state_enum_branching.dart';
 import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
 import 'package:neon_lints/src/state_is_sealed.dart';
@@ -23,6 +24,7 @@ void main() {
     defineReflectiveTests(AlertOnlyInCubitTest);
     defineReflectiveTests(StateIsSealedTest);
     defineReflectiveTests(NoStatusEnumStateTest);
+    defineReflectiveTests(NoStateEnumBranchingTest);
   });
 }
 
@@ -469,4 +471,50 @@ class InvoicesFilter {
         'enum XStatus { a }\nclass XState {\n  const XState(this.status);\n  final XStatus status;\n}\n',
         [],
       );
+}
+
+@reflectiveTest
+class NoStateEnumBranchingTest extends BlocRuleTest {
+  @override
+  AnalysisRule get ruleUnderTest => NoStateEnumBranching();
+
+  @override
+  void setUp() {
+    super.setUp();
+    newFile('$testPackageLibPath/bloc/promo/promo_state.dart', '''
+enum PromoTab { pending, done }
+enum Shade { light, dark }
+class PromoState {
+  final PromoTab tab;
+  final int count;
+  const PromoState(this.tab, this.count);
+}
+''');
+  }
+
+  static const _source = '''
+import 'package:test/bloc/promo/promo_state.dart';
+class Style {
+  final Shade shade;
+  const Style(this.shade);
+}
+String f(PromoState state, Style style) {
+  if (state.tab == PromoTab.done) return 'done';
+  if (style.shade == Shade.dark) return 'dark';
+  if (state.count == 1) return 'one';
+  return switch (state.tab) {
+    PromoTab.pending => 'pending',
+    PromoTab.done => 'done',
+  };
+}
+''';
+
+  Future<void> test_branching_on_a_state_enum_in_ui_is_flagged() => expectIn(
+        'pages/promo_page.dart',
+        _source,
+        ['state.tab', 'state.tab'],
+        message: ['PromoState.tab', 'sealed state'],
+      );
+
+  Future<void> test_cubits_may_read_their_own_enums() => expectIn('bloc/promo/promo_cubit.dart', _source, []);
 }
