@@ -5,6 +5,8 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids raw colors in widget code: `Color(0x...)` literals and
 /// `Colors.<named>` references. Colors must be resolved through the theme
 /// (e.g. `context.appColors`, `context.defaultColors`).
@@ -24,37 +26,15 @@ import 'package:analyzer/error/error.dart';
 class NoRawColor extends AnalysisRule {
   NoRawColor() : super(name: 'no_raw_color', description: _desc);
 
-  static const _desc =
-      'Do not use raw colors; resolve them through the theme.';
+  static const _desc = 'Do not use raw colors; resolve them through the theme.';
 
   static const LintCode _code = LintCode(
     'no_raw_color',
     '[NEON] do not use raw colors; resolve them through the theme '
         '(context.appColors / context.defaultColors).',
-    correctionMessage:
-        'Replace this raw color with a theme token from AppColors.',
+    correctionMessage: 'Replace this raw color with a theme token from AppColors.',
     severity: DiagnosticSeverity.WARNING,
   );
-
-  // Locations that legitimately define raw color values (the token source):
-  // the whole theme/ directory (app_colors, vernak_colors, *_text_styles, ...)
-  // plus the icon and theme-assembly setup files. Also the model /
-  // serialization layer (lib/model/**), which has no BuildContext:
-  // JsonConverters, Hive TypeAdapters and plain data-model default colors.
-  static const _allowedPathFragments = <String>[
-    '/theme/',
-    '/ui/app_icon.dart',
-    '/ui/app_style.dart',
-    '/lib/model/',
-    // The color-editor tool computes arbitrary picker/spectrum colors; a color
-    // picker is a color-definition surface, so raw colors are inherent here.
-    // No trailing slash: the picker parts are `part of color_editor_dialog.dart`,
-    // so the analyzer reports that library file's path as the defining unit.
-    '/color_editor',
-    // Contrast-math tests exercise arbitrary colour values by design — there
-    // is no theme in scope inside a unit test of colour arithmetic.
-    '/test/readable_accent_test.dart',
-  ];
 
   // Semantic named colors that carry meaning beyond the palette.
   static const _allowedNamed = <String>{
@@ -90,7 +70,13 @@ class NoRawColor extends AnalysisRule {
     // Skip generated files: json_serializable / hive emit raw `Color(...)`,
     // and the plugin does not honour the analyzer `exclude` glob.
     if (path.endsWith('.g.dart')) return;
-    if (_allowedPathFragments.any(path.contains)) return;
+    // Locations that legitimately define raw color values (layout role
+    // `colors`): the theme/ folders (app_colors, *_text_styles, ...), the icon
+    // and theme-assembly files, the model / serialization layer (no
+    // BuildContext: JsonConverters, Hive adapters, default colors of data) and
+    // the color picker, a color-definition surface. The picker parts are
+    // `part of color_editor_dialog.dart`, so the defining unit is that file.
+    if (RuleLayout.of(context).isIn(path, LayoutRole.colors)) return;
     final visitor = _Visitor(this);
     registry
       ..addInstanceCreationExpression(this, visitor)
@@ -130,8 +116,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     // Bit-shift / bitwise expressions of literals stay hardcoded
     // (`Color(0xFF << 24 | 0x00FFFFFF)`).
     if (unwrapped is BinaryExpression) {
-      return _isIntLiteralExpression(unwrapped.leftOperand) &&
-          _isIntLiteralExpression(unwrapped.rightOperand);
+      return _isIntLiteralExpression(unwrapped.leftOperand) && _isIntLiteralExpression(unwrapped.rightOperand);
     }
     return false;
   }

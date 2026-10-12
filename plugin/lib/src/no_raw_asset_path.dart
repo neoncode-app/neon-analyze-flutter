@@ -5,6 +5,8 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids raw asset path string literals (`'assets/...'`). Asset paths must be
 /// referenced through the generated `AppAssets` tokens so a moved/renamed asset
 /// is a single-point change.
@@ -16,8 +18,7 @@ import 'package:analyzer/error/error.dart';
 class NoRawAssetPath extends AnalysisRule {
   NoRawAssetPath() : super(name: 'no_raw_asset_path', description: _desc);
 
-  static const _desc =
-      'Do not hardcode asset path strings; use AppAssets tokens.';
+  static const _desc = 'Do not hardcode asset path strings; use AppAssets tokens.';
 
   static const LintCode _code = LintCode(
     'no_raw_asset_path',
@@ -25,10 +26,6 @@ class NoRawAssetPath extends AnalysisRule {
     correctionMessage: 'Reference this asset via a constant in AppAssets.',
     severity: DiagnosticSeverity.WARNING,
   );
-
-  static const _allowedSuffixes = <String>[
-    '/app_assets.dart',
-  ];
 
   // Configured-once roots that are not per-widget asset references.
   static const _allowedExact = <String>{
@@ -43,8 +40,12 @@ class NoRawAssetPath extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
+    final layout = RuleLayout.of(context);
     final path = context.definingUnit.file.path;
-    if (_allowedSuffixes.any(path.endsWith)) return;
+    // App code only: tests and tools read files (fixtures, translations)
+    // through dart:io; they reference no bundled asset. The registry (layout
+    // role `assets_registry`) is where the paths are declared.
+    if (!layout.isAppSource(path) || layout.isIn(path, LayoutRole.assetsRegistry)) return;
     registry.addSimpleStringLiteral(this, _Visitor(this));
   }
 }

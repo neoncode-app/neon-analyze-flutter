@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# No check; runs the app's own post-rewrite hook (.githooks/ or tool/git-hooks/), if any.
+exec "$(dirname "$0")/_run.sh" post-rewrite -- "$@"

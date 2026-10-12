@@ -18,8 +18,7 @@ class AvoidBang extends AnalysisRule {
     'avoid_bang',
     '[NEON] avoid the null-assertion operator `!` — it bypasses null safety '
         'and can crash at runtime.',
-    correctionMessage:
-        'Use an explicit null check (if (x != null)) or a null-aware pattern.',
+    correctionMessage: 'Use an explicit null check (if (x != null)) or a null-aware pattern.',
     severity: DiagnosticSeverity.WARNING,
   );
 

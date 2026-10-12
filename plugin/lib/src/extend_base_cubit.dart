@@ -17,8 +17,7 @@ class ExtendBaseCubit extends AnalysisRule {
   static const LintCode _code = LintCode(
     'extend_base_cubit',
     '[NEON] cubits must extend BaseCubit, not Cubit directly.',
-    correctionMessage:
-        'Change `extends Cubit<...>` to `extends BaseCubit<...>`.',
+    correctionMessage: 'Change `extends Cubit<...>` to `extends BaseCubit<...>`.',
     severity: DiagnosticSeverity.WARNING,
   );
 

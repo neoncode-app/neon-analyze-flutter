@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# The `push` trigger of neon_check.yaml (no steps by default: CI and /done run
+# the whole check). A failure refuses the push.
+exec "$(dirname "$0")/_run.sh" pre-push push -- "$@"

@@ -5,24 +5,23 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids `tr()` translation calls inside global/reusable widgets
-/// (files under `lib/global_widgets/`). Reusable widgets must stay
+/// (layout role `global_widgets`, default `lib/global_widgets/`). Reusable widgets must stay
 /// translation-agnostic: callers pass already-translated text as parameters.
 ///
 /// Matches both `tr('key')` and `'key'.tr()`.
 class NoTrInGlobalWidget extends AnalysisRule {
-  NoTrInGlobalWidget()
-      : super(name: 'no_tr_in_global_widget', description: _desc);
+  NoTrInGlobalWidget() : super(name: 'no_tr_in_global_widget', description: _desc);
 
-  static const _desc =
-      'Global widgets must not call tr(); callers pass translated text.';
+  static const _desc = 'Global widgets must not call tr(); callers pass translated text.';
 
   static const LintCode _code = LintCode(
     'no_tr_in_global_widget',
     '[NEON] global widgets must not call tr(); '
         'callers pass already-translated text as parameters.',
-    correctionMessage:
-        'Remove the tr() call and accept the text via a constructor parameter.',
+    correctionMessage: 'Remove the tr() call and accept the text via a constructor parameter.',
     severity: DiagnosticSeverity.WARNING,
   );
 
@@ -34,8 +33,7 @@ class NoTrInGlobalWidget extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
-    final path = context.definingUnit.file.path;
-    if (!path.contains('/lib/global_widgets/')) return;
+    if (!RuleLayout.of(context).isIn(context.definingUnit.file.path, LayoutRole.globalWidgets)) return;
     registry.addMethodInvocation(this, _Visitor(this));
   }
 }

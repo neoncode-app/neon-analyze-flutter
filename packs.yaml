@@ -1,0 +1,172 @@
+# Packs: named groups of lint rules (the neon_lints plugin) and checks (the
+# neon-check steps) that belong together. An app switches whole packs on
+# through its preset (presets/*.yaml) and its neon_check.yaml:
+#
+#   packs: [core, bloc, ...]     replaces the preset's list
+#   skip_packs: [catalog]        drops packs from it
+#   rules: { no_app_dimens: false, use_kit_widgets: error }   one rule
+#
+# The `config_sync` step writes the result into the app's
+# analysis_options.yaml (`plugins: neon_lints: diagnostics:`), because the
+# analyzer reads nothing else. Every rule of the plugin is in exactly one
+# pack and every step in at least one (checker/test/config_test.dart).
+#
+# `where:` says which code a rule is about (layout roles, `ui` = pages +
+# features + global_widgets; default all app code). The rule brief the AI
+# gets before it edits a file lists the rules of that file's roles; the
+# texts come from plugin/rule_catalog.json, generated from the rules.
+
+core:
+  description: Every Flutter app. Formatting, analyzer, translations, assets, generated code, unit tests, and the rules any code base follows.
+  rules:
+    - avoid_bang
+    - no_widget_builder_method
+    - no_raw_color
+    - no_raw_asset_path
+    - no_debug_print
+    - no_dash_in_strings
+    - no_hardcoded_ui_string
+    - no_repository_in_ui
+    - no_http_in_ui
+  steps:
+    - config_sync
+    - format
+    - fix
+    - analyze
+    - ignores
+    - rule_docs
+    - translations_parity
+    - translations_dashes
+    - translations_missing
+    - translations_unused
+    - translations_order
+    - assets
+    - generated
+    - tests
+  where:
+    no_widget_builder_method: [ui]
+    no_hardcoded_ui_string: [ui]
+    no_repository_in_ui: [ui]
+    no_http_in_ui: [ui]
+
+bloc:
+  description: Cubits. BaseCubit, sealed states, cubits only in providers, typed context getters, alerts from cubits, a test for every cubit, coverage of changed cubit code.
+  rules:
+    - extend_base_cubit
+    - use_context_getters
+    - cubit_created_in_provider
+    - no_cubit_call_in_lifecycle
+    - no_provider_value
+    - cancel_subscriptions_in_close
+    - alert_only_in_cubit
+    - state_is_sealed
+    - no_status_enum_state
+  steps:
+    - test_existence
+    - coverage
+  where:
+    extend_base_cubit: [bloc]
+    cancel_subscriptions_in_close: [bloc]
+    state_is_sealed: [bloc]
+    no_status_enum_state: [bloc]
+    no_cubit_call_in_lifecycle: [ui]
+    no_provider_value: [ui]
+    alert_only_in_cubit: [ui]
+
+presentation:
+  description: No logic in UI. Dialogs and navigation through presentation events, no setState in pages, page State holds controllers only.
+  rules:
+    - dialog_only_in_listener
+    - no_dialog_result
+    - listener_is_mapping
+    - no_navigation_in_ui
+    - ui_callback_calls_cubit
+    - no_setstate_in_pages
+    - no_private_methods_in_page_state
+    - stateful_page_only_for_controllers
+    - no_editor_controller_in_pages
+  where:
+    dialog_only_in_listener: [ui]
+    no_dialog_result: [ui]
+    listener_is_mapping: [ui]
+    no_navigation_in_ui: [ui]
+    ui_callback_calls_cubit: [pages]
+    no_setstate_in_pages: [pages, features]
+    no_private_methods_in_page_state: [pages]
+    stateful_page_only_for_controllers: [pages]
+    no_editor_controller_in_pages: [pages]
+
+go_router:
+  description: Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
+  rules:
+    - no_navigator
+    - provider_in_router
+  steps:
+    - test_existence
+
+responsive:
+  description: Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platform or numeric breakpoints in UI.
+  rules:
+    - no_media_query_size
+    - no_kisweb_in_ui
+    - no_platform_in_ui
+    - no_layout_builder_in_pages
+    - no_raw_breakpoint
+  where:
+    no_kisweb_in_ui: [ui]
+    no_platform_in_ui: [ui]
+    no_layout_builder_in_pages: [pages, features]
+
+kit:
+  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, dimension tokens, named text styles, no tr() in the kit.
+  rules:
+    - use_kit_widgets
+    - no_tr_in_global_widget
+    - global_widgets_layering
+    - component_has_no_state_access
+    - global_widget_has_category
+    - kit_src_internal
+    - no_raw_dimension
+    - dimens_private_to_widget
+    - page_dimens_spacing_only
+    - no_app_dimens
+    - component_takes_variant
+    - no_raw_text_style
+  where:
+    no_tr_in_global_widget: [global_widgets]
+    global_widgets_layering: [global_widgets]
+    component_has_no_state_access: [global_widgets]
+    global_widget_has_category: [global_widgets, features]
+    page_dimens_spacing_only: [pages]
+    component_takes_variant: [global_widgets]
+
+catalog:
+  description: The widget catalog page. Its generated index is current and every kit widget has a live preview.
+  steps:
+    - catalog_index
+    - catalog_previews
+
+admin:
+  description: Administration pages. Every page stands on a template with title and subtitle, access is declared on the route, roles through enums, a help dialog per page.
+  rules:
+    - page_uses_template
+    - page_has_title_subtitle
+    - no_access_guard_in_pages
+    - no_role_literal
+  steps:
+    - page_help
+  where:
+    page_uses_template: [pages]
+    page_has_title_subtitle: [pages]
+    no_access_guard_in_pages: [pages]
+
+flavors:
+  description: Several flavours in one code base. Every typed context getter reads a cubit its flavour's router or shell provides.
+  steps:
+    - providers
+
+integration:
+  description: Integration tests of the real app. The flows the change affects run on the configured driver, and every page has a flow.
+  steps:
+    - integration_pages
+    - integration

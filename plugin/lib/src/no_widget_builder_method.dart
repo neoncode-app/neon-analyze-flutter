@@ -13,19 +13,16 @@ import 'package:analyzer/error/error.dart';
 /// return type. Overrides (e.g. `Widget build(...)`) and public factory-style
 /// methods are left alone.
 class NoWidgetBuilderMethod extends AnalysisRule {
-  NoWidgetBuilderMethod()
-      : super(name: 'no_widget_builder_method', description: _desc);
+  NoWidgetBuilderMethod() : super(name: 'no_widget_builder_method', description: _desc);
 
-  static const _desc =
-      'Do not use private helper methods that return a Widget; '
+  static const _desc = 'Do not use private helper methods that return a Widget; '
       'extract a Widget subclass instead.';
 
   static const LintCode _code = LintCode(
     'no_widget_builder_method',
     '[NEON] do not build widgets in private helper methods; '
         'extract a Widget subclass instead.',
-    correctionMessage:
-        'Replace this `Widget _build...()` helper with a dedicated Widget class.',
+    correctionMessage: 'Replace this `Widget _build...()` helper with a dedicated Widget class.',
     severity: DiagnosticSeverity.WARNING,
   );
 

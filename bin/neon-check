@@ -1,0 +1,27 @@
+#!/usr/bin/env bash
+# The one entry point of neon-check for every app that carries
+# neon-analyze-flutter as a submodule. Run it from anywhere inside the app:
+#
+#   neon-analyze-flutter/bin/neon-check                 the `stop` trigger: changed files, all steps
+#   neon-analyze-flutter/bin/neon-check --all           the whole project
+#   neon-analyze-flutter/bin/neon-check --trigger ci    what CI and /done run
+#   neon-analyze-flutter/bin/neon-check explain         what it detected and will check
+#   neon-analyze-flutter/bin/neon-check --help          everything else
+#
+# The app root is the folder that holds this checkout (override with
+# NEON_CHECK_ROOT); its neon_check.yaml says what to check.
+set -euo pipefail
+
+tool="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+root="${NEON_CHECK_ROOT:-$(cd "$tool/.." && pwd)}"
+checker="$tool/checker"
+
+if [ ! -f "$checker/.dart_tool/package_config.json" ] \
+  || [ "$checker/pubspec.yaml" -nt "$checker/.dart_tool/package_config.json" ] \
+  || [ "$tool/plugin/pubspec.yaml" -nt "$checker/.dart_tool/package_config.json" ]; then
+  (cd "$checker" && dart pub get >/dev/null)
+fi
+
+cd "$root"
+exec dart --packages="$checker/.dart_tool/package_config.json" "$checker/bin/neon_check.dart" \
+  --root "$root" --tool "$tool" "$@"

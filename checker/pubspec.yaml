@@ -1,0 +1,17 @@
+name: neon_check
+description: Shared check runner for the Neon Code Flutter apps (format, fix, analyze, ratchet, translations, assets, catalog, tests).
+publish_to: none
+version: 0.1.0
+
+environment:
+  sdk: ^3.6.0
+
+dependencies:
+  args: ^2.6.0
+  yaml: ^3.1.2
+  # The layout roles and their defaults, shared with the analyzer plugin.
+  neon_lints:
+    path: ../plugin
+
+dev_dependencies:
+  test: ^1.25.0
