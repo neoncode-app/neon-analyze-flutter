@@ -507,6 +507,8 @@ String f(PromoState state, Style style) {
     PromoTab.done => 'done',
   };
 }
+bool changed(PromoState a, PromoState b) => a.tab != b.tab;
+bool selected(PromoTab tab, PromoState state) => tab == state.tab;
 ''';
 
   Future<void> test_branching_on_a_state_enum_in_ui_is_flagged() => expectIn(

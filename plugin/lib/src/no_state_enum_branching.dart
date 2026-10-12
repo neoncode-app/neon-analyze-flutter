@@ -65,22 +65,38 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitBinaryExpression(BinaryExpression node) {
     final operator = node.operator.type;
     if (operator != TokenType.EQ_EQ && operator != TokenType.BANG_EQ) return;
-    _check(node.leftOperand) || _check(node.rightOperand);
+    // Only a comparison with a constant is a branch on the value;
+    // `previous.tab != current.tab` (a listenWhen) and `tier == state.tier`
+    // (marking the selected entry of a list) are not.
+    if (_isEnumConstant(node.rightOperand)) {
+      _check(node.leftOperand);
+    } else if (_isEnumConstant(node.leftOperand)) {
+      _check(node.rightOperand);
+    }
+  }
+
+  static bool _isEnumConstant(Expression expression) {
+    final element = switch (expression) {
+      PrefixedIdentifier(:final identifier) => identifier.element,
+      PropertyAccess(:final propertyName) => propertyName.element,
+      _ => null,
+    };
+    final variable = element is PropertyAccessorElement ? element.variable : element;
+    return variable is FieldElement && variable.isEnumConstant;
   }
 
   /// Reports [expression] when it reads an enum field of a cubit state.
-  bool _check(Expression expression) {
+  void _check(Expression expression) {
     final (target, property) = switch (expression) {
       PrefixedIdentifier(:final prefix, :final identifier) => (prefix, identifier),
       PropertyAccess(:final realTarget, :final propertyName) => (realTarget, propertyName),
       _ => (null, null),
     };
-    if (target == null || property == null || !layout.isUi(unitPath(expression))) return false;
-    if (property.staticType?.element is! EnumElement) return false;
+    if (target == null || property == null || !layout.isUi(unitPath(expression))) return;
+    if (property.staticType?.element is! EnumElement) return;
     final owner = target.staticType?.element;
-    if (owner is! InterfaceElement || !_isCubitState(owner)) return false;
+    if (owner is! InterfaceElement || !_isCubitState(owner)) return;
     rule.reportAtNode(expression, arguments: [owner.name ?? '', property.name]);
-    return true;
   }
 
   /// A class named `*State` (or extending one) declared in the cubits' folder;
