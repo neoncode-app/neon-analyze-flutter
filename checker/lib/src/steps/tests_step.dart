@@ -58,9 +58,9 @@ Set<String> selectSuites({
   return selected;
 }
 
-/// Step 17: `flutter test`, failures only. `--all` runs every suite (and the
-/// integration command, if configured); otherwise the suites selected by the
-/// changed files, the default suite always.
+/// `flutter test`, failures only. `--all` runs every suite; otherwise the
+/// suites selected by the changed files, the default suite always. The
+/// integration flows are their own step (`IntegrationStep`).
 final class TestsStep extends CheckStep {
   const TestsStep();
 
@@ -71,7 +71,7 @@ final class TestsStep extends CheckStep {
   String get description => 'flutter test, suites selected by the changed files';
 
   @override
-  Set<String> get rules => const {'test_failure', 'integration_failure'};
+  Set<String> get rules => const {'test_failure'};
 
   @override
   bool appliesTo(CheckContext context) =>
@@ -130,20 +130,6 @@ final class TestsStep extends CheckStep {
         ...paths,
       ]);
       if (result.exitCode != 0) findings.addAll(_failures(result.stdout, result.stderr));
-    }
-    final integration = config.integrationCommand;
-    if (context.isAll && integration.isNotEmpty) {
-      final result = await runProcess(context.root, integration.first, integration.sublist(1));
-      if (result.exitCode != 0) {
-        findings.add(
-          Finding(
-            rule: 'integration_failure',
-            file: 'integration_test',
-            message: _tail('${result.stdout}\n${result.stderr}'),
-            hard: true,
-          ),
-        );
-      }
     }
     return StepResult(findings: findings);
   }

@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// The `build()` of a page (`*Page` widget, or its `*PageState`, in
 /// `lib/pages`) returns, through the allowed wrappers, a widget whose class
@@ -43,20 +44,22 @@ class PageUsesTemplate extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodDeclaration(this, _TemplateVisitor(this));
+    registry.addMethodDeclaration(this, _TemplateVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _TemplateVisitor extends SimpleAstVisitor<void> {
-  _TemplateVisitor(this.rule);
+  _TemplateVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
     if (node.name.lexeme != 'build') return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'pages/')) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
     final className = enclosingClass(node)?.name.lexeme ?? '';
     final bare = className.startsWith('_') ? className.substring(1) : className;
     if (!bare.endsWith('Page') && !bare.endsWith('PageState')) return;

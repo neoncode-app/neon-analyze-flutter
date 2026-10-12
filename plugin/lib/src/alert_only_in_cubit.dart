@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// UI code (`lib/pages`, `lib/features`, `lib/global_widgets`) never touches
 /// `AlertCubit`: the cubit method that knows the outcome shows the alert
@@ -24,14 +25,12 @@ class AlertOnlyInCubit extends AnalysisRule {
     severity: DiagnosticSeverity.WARNING,
   );
 
-  static const uiFolders = ['pages/', 'features/', 'global_widgets/'];
-
   @override
   DiagnosticCode get diagnosticCode => code;
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _Visitor(this);
+    final visitor = _Visitor(this, RuleLayout.of(context));
     registry
       ..addNamedType(this, visitor)
       ..addMethodInvocation(this, visitor);
@@ -39,14 +38,13 @@ class AlertOnlyInCubit extends AnalysisRule {
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
-  bool _inUi(AstNode node) {
-    final path = unitPath(node);
-    return isAppSource(path) && AlertOnlyInCubit.uiFolders.any((folder) => isUnderLib(path, folder));
-  }
+  final RuleLayout layout;
+
+  bool _inUi(AstNode node) => layout.isUi(unitPath(node));
 
   @override
   void visitNamedType(NamedType node) {

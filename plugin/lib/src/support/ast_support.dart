@@ -14,10 +14,6 @@ String unitPath(AstNode node) {
 /// App code: a file under `lib/` that is not generated.
 bool isAppSource(String path) => path.contains('/lib/') && !path.endsWith('.g.dart') && !path.endsWith('.freezed.dart');
 
-/// Whether [path] is under `lib/<relative>` (a folder ends with `/`).
-bool isUnderLib(String path, String relative) =>
-    relative.endsWith('/') ? path.contains('/lib/$relative') : path.endsWith('/lib/$relative');
-
 /// Whether [element] is declared in [package].
 bool isFromPackage(Element? element, String package) =>
     element?.library?.uri.toString().startsWith('package:$package/') ?? false;
@@ -47,11 +43,6 @@ InterfaceType? supertypeNamed(ClassDeclaration declaration, String name) {
   }
   return null;
 }
-
-/// Folders of UI code (pages, features, global widgets).
-const uiFolders = ['pages/', 'features/', 'global_widgets/'];
-
-bool isUiSource(String path) => isAppSource(path) && uiFolders.any((folder) => isUnderLib(path, folder));
 
 /// `context.read<X>()`, `context.watch<X>()`, `context.select<X, R>(...)` or
 /// `BlocProvider.of<X>(context)`.

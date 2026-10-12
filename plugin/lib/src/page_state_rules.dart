@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Rules on `State` classes and widgets in pages: no local UI state, no
 /// logic, no editor plumbing. Selection, filters and search live in the
@@ -48,20 +49,22 @@ class NoSetStateInPages extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodInvocation(this, _SetStateVisitor(this));
+    registry.addMethodInvocation(this, _SetStateVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _SetStateVisitor extends SimpleAstVisitor<void> {
-  _SetStateVisitor(this.rule);
+  _SetStateVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
     if (node.methodName.name != 'setState') return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !(isUnderLib(path, 'pages/') || isUnderLib(path, 'features/'))) return;
+    if (!isAppSource(path) || !(layout.isIn(path, LayoutRole.pages) || layout.isIn(path, LayoutRole.features))) return;
     final owner = node.methodName.element?.enclosingElement;
     if (owner?.name != 'State' || !isFromPackage(owner, 'flutter')) return;
     rule.reportAtNode(node.methodName);
@@ -88,20 +91,22 @@ class NoPrivateMethodsInPageState extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodDeclaration(this, _MethodVisitor(this));
+    registry.addMethodDeclaration(this, _MethodVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _MethodVisitor extends SimpleAstVisitor<void> {
-  _MethodVisitor(this.rule);
+  _MethodVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitMethodDeclaration(MethodDeclaration node) {
     if (node.isStatic || _lifecycle.contains(node.name.lexeme)) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'pages/')) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
     final owner = enclosingClass(node);
     if (owner == null || !_isFlutterState(owner)) return;
     rule.reportAtToken(node.name, arguments: [node.name.lexeme]);
@@ -137,19 +142,21 @@ class StatefulPageOnlyForControllers extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addClassDeclaration(this, _StatefulVisitor(this));
+    registry.addClassDeclaration(this, _StatefulVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _StatefulVisitor extends SimpleAstVisitor<void> {
-  _StatefulVisitor(this.rule);
+  _StatefulVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'pages/') || !_isFlutterState(node)) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages) || !_isFlutterState(node)) return;
     final element = node.declaredFragment?.element;
     if (element == null) return;
     final fields = element.fields.where((field) => !field.isStatic && field.isOriginDeclaration).toList();
@@ -187,7 +194,7 @@ class NoEditorControllerInPages extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _EditorVisitor(this);
+    final visitor = _EditorVisitor(this, RuleLayout.of(context));
     registry
       ..addNamedType(this, visitor)
       ..addMethodInvocation(this, visitor);
@@ -195,13 +202,15 @@ class NoEditorControllerInPages extends AnalysisRule {
 }
 
 class _EditorVisitor extends SimpleAstVisitor<void> {
-  _EditorVisitor(this.rule);
+  _EditorVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
+  final RuleLayout layout;
+
   bool _inPages(AstNode node) {
     final path = unitPath(node);
-    return isAppSource(path) && isUnderLib(path, 'pages/');
+    return isAppSource(path) && layout.isIn(path, LayoutRole.pages);
   }
 
   @override

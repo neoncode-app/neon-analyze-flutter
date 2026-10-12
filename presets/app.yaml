@@ -1,0 +1,13 @@
+# A single mobile app (one flavour or none): cubits, presentation events,
+# responsiveness and integration flows on a device or emulator. Used by
+# vernakapp. Add `kit` once the app uses the shared widget kit, `go_router`
+# once it navigates with go_router.
+
+packs: [core, bloc, presentation, responsive, integration]
+
+tests:
+  coverage:
+    sources: [lib/bloc]
+
+integration:
+  driver: device

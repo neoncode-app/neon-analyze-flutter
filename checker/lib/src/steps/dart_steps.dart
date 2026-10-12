@@ -5,7 +5,7 @@ import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/process.dart';
 import 'package:neon_check/src/step.dart';
 
-/// Step 1: `dart format --line-length <n>`. Fixes in place; with `--ci` it
+/// `dart format --line-length <n>`. Fixes in place; with `--ci` it
 /// only checks and fails on files that need formatting.
 final class FormatStep extends CheckStep {
   const FormatStep();
@@ -44,7 +44,8 @@ final class FormatStep extends CheckStep {
         if (context.fix) {
           fixed.add(file);
         } else {
-          findings.add(Finding(rule: 'format', file: file, message: 'not formatted; run tool/check.sh locally'));
+          findings.add(Finding(
+              rule: 'format', file: file, message: 'not formatted; run neon-analyze-flutter/bin/neon-check locally'));
         }
       }
       if (result.exitCode != 0 && result.exitCode != 1) {
@@ -55,7 +56,7 @@ final class FormatStep extends CheckStep {
   }
 }
 
-/// Step 2: `dart fix --apply` (core analyzer fixes; plugin fixes cannot be
+/// `dart fix --apply` (core analyzer fixes; plugin fixes cannot be
 /// applied from the command line). With `--ci` it only checks.
 final class FixStep extends CheckStep {
   const FixStep();
@@ -90,7 +91,10 @@ final class FixStep extends CheckStep {
       return StepResult(
         findings: [
           for (final file in withFixes)
-            Finding(rule: 'dart_fix', file: file, message: 'dart fix has fixes; run tool/check.sh locally'),
+            Finding(
+                rule: 'dart_fix',
+                file: file,
+                message: 'dart fix has fixes; run neon-analyze-flutter/bin/neon-check locally'),
         ],
       );
     }
@@ -101,7 +105,7 @@ final class FixStep extends CheckStep {
   }
 }
 
-/// Step 3: `dart analyze` (never `flutter analyze`, which skips the plugin).
+/// `dart analyze` (never `flutter analyze`, which skips the plugin).
 ///
 /// Runs on the package root in `--all` and on explicit file paths otherwise
 /// (`dart analyze lib` would silently skip the plugin). Compile errors are
@@ -175,7 +179,7 @@ final class AnalyzeStep extends CheckStep {
   }
 }
 
-/// Step 5: no `// ignore:` / `// ignore_for_file:` for a neon_lints rule. A
+/// No `// ignore:` / `// ignore_for_file:` for a neon_lints rule. A
 /// rule that reports a false positive is fixed in the plugin, never silenced.
 final class IgnoreCommentsStep extends CheckStep {
   const IgnoreCommentsStep();

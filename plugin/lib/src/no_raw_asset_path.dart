@@ -7,6 +7,8 @@ import 'package:analyzer/error/error.dart';
 // LintCode is not in the public API surface yet.
 import 'package:analyzer/src/dart/error/lint_codes.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids raw asset path string literals (`'assets/...'`). Asset paths must be
 /// referenced through the generated `AppAssets` tokens so a moved/renamed asset
 /// is a single-point change.
@@ -27,10 +29,6 @@ class NoRawAssetPath extends AnalysisRule {
     severity: DiagnosticSeverity.WARNING,
   );
 
-  static const _allowedSuffixes = <String>[
-    '/app_assets.dart',
-  ];
-
   // Configured-once roots that are not per-widget asset references.
   static const _allowedExact = <String>{
     'assets/translations',
@@ -44,11 +42,12 @@ class NoRawAssetPath extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
-    final path = context.definingUnit.file.path.replaceAll(r'\', '/');
-    if (_allowedSuffixes.any(path.endsWith)) return;
+    final layout = RuleLayout.of(context);
+    final path = context.definingUnit.file.path;
     // App code only: tests and tools read files (fixtures, translations)
-    // through dart:io; they reference no bundled asset.
-    if (!path.contains('/lib/')) return;
+    // through dart:io; they reference no bundled asset. The registry (layout
+    // role `assets_registry`) is where the paths are declared.
+    if (!layout.isAppSource(path) || layout.isIn(path, LayoutRole.assetsRegistry)) return;
     registry.addSimpleStringLiteral(this, _Visitor(this));
   }
 }

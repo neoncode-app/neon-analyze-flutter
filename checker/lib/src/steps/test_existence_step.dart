@@ -32,7 +32,7 @@ final class TestExistenceStep extends CheckStep {
   @override
   bool appliesTo(CheckContext context) {
     final config = context.config;
-    if (!config.hasTestExistence) return false;
+    if (!config.hasTestExistence || !(config.packEnabled('bloc') || config.packEnabled('go_router'))) return false;
     return context.isAll || context.touches(['${config.cubitsDir}/', ...config.routeRouters, '${config.testDir}/']);
   }
 
@@ -49,8 +49,9 @@ final class TestExistenceStep extends CheckStep {
     final testBasenames = {for (final file in testFiles) file.split('/').last};
     final findings = <Finding>[];
 
+    // Cubit tests belong to the bloc pack, route tests to the go_router pack.
     final cubitsDir = Directory(context.absolute(config.cubitsDir));
-    if (cubitsDir.existsSync()) {
+    if (config.packEnabled('bloc') && cubitsDir.existsSync()) {
       final cubits = [
         for (final entity in cubitsDir.listSync(recursive: true))
           if (entity is File && entity.path.endsWith(config.cubitSuffix)) context.relative(entity.path),
@@ -70,7 +71,7 @@ final class TestExistenceStep extends CheckStep {
     }
 
     final routePattern = RegExp(r'path:\s*Routes\.(\w+)\.absolutePath');
-    for (final router in config.routeRouters) {
+    for (final router in config.packEnabled('go_router') ? config.routeRouters : const <String>[]) {
       final file = File(context.absolute(router));
       if (!file.existsSync()) continue;
       final lines = file.readAsLinesSync();

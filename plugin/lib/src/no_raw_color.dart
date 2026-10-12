@@ -7,6 +7,8 @@ import 'package:analyzer/error/error.dart';
 // LintCode is not in the public API surface yet.
 import 'package:analyzer/src/dart/error/lint_codes.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids raw colors in widget code: `Color(0x...)` literals and
 /// `Colors.<named>` references. Colors must be resolved through the theme
 /// (e.g. `context.appColors`, `context.defaultColors`).
@@ -35,23 +37,6 @@ class NoRawColor extends AnalysisRule {
     correctionMessage: 'Replace this raw color with a theme token from AppColors.',
     severity: DiagnosticSeverity.WARNING,
   );
-
-  // Locations that legitimately define raw color values (the token source):
-  // the whole theme/ directory (app_colors, vernak_colors, *_text_styles, ...)
-  // plus the icon and theme-assembly setup files. Also the model /
-  // serialization layer (lib/model/**), which has no BuildContext:
-  // JsonConverters, Hive TypeAdapters and plain data-model default colors.
-  static const _allowedPathFragments = <String>[
-    '/theme/',
-    '/ui/app_icon.dart',
-    '/ui/app_style.dart',
-    '/lib/model/',
-    // The color-editor tool computes arbitrary picker/spectrum colors; a color
-    // picker is a color-definition surface, so raw colors are inherent here.
-    // No trailing slash: the picker parts are `part of color_editor_dialog.dart`,
-    // so the analyzer reports that library file's path as the defining unit.
-    '/color_editor',
-  ];
 
   // Semantic named colors that carry meaning beyond the palette.
   static const _allowedNamed = <String>{
@@ -87,7 +72,13 @@ class NoRawColor extends AnalysisRule {
     // Skip generated files: json_serializable / hive emit raw `Color(...)`,
     // and the plugin does not honour the analyzer `exclude` glob.
     if (path.endsWith('.g.dart')) return;
-    if (_allowedPathFragments.any(path.contains)) return;
+    // Locations that legitimately define raw color values (layout role
+    // `colors`): the theme/ folders (app_colors, *_text_styles, ...), the icon
+    // and theme-assembly files, the model / serialization layer (no
+    // BuildContext: JsonConverters, Hive adapters, default colors of data) and
+    // the color picker, a color-definition surface. The picker parts are
+    // `part of color_editor_dialog.dart`, so the defining unit is that file.
+    if (RuleLayout.of(context).isIn(path, LayoutRole.colors)) return;
     final visitor = _Visitor(this);
     registry.addInstanceCreationExpression(this, visitor);
     registry.addPrefixedIdentifier(this, visitor);

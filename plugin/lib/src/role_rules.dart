@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Roles are enums (`AppRole`, `NeoncodeRole`, `VernakRole` in
 /// `lib/model/enum/`); their backend strings appear nowhere else.
@@ -38,20 +39,22 @@ class NoRoleLiteral extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addSimpleStringLiteral(this, _RoleVisitor(this));
+    registry.addSimpleStringLiteral(this, _RoleVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _RoleVisitor extends SimpleAstVisitor<void> {
-  _RoleVisitor(this.rule);
+  _RoleVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitSimpleStringLiteral(SimpleStringLiteral node) {
     if (!NoRoleLiteral.roles.contains(node.value)) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || isUnderLib(path, 'model/enum/')) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.roleEnums)) return;
     if (node.parent is Directive || node.parent is Configuration) return;
     rule.reportAtNode(node, arguments: [node.value]);
   }
@@ -79,21 +82,23 @@ class NoAccessGuardInPages extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addInstanceCreationExpression(this, _GuardVisitor(this));
+    registry.addInstanceCreationExpression(this, _GuardVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _GuardVisitor extends SimpleAstVisitor<void> {
-  _GuardVisitor(this.rule);
+  _GuardVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final name = node.constructorName.element?.enclosingElement.name ?? '';
     if (name != 'RoleGuard' && !name.contains('AccessDenied')) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'pages/')) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
     rule.reportAtNode(node.constructorName, arguments: ['`$name`']);
   }
 }

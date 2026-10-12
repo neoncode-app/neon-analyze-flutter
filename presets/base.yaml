@@ -1,0 +1,97 @@
+# Defaults every app gets before its preset and its own neon_check.yaml are
+# merged over them (maps merge key by key, a list or a value replaces).
+# Facts the tool can find out itself (flavours, languages, platforms, the
+# project name) are detected and never need to be written down.
+#
+# A preset never sets `layout:`: the analyzer plugin reads the layout from
+# the app's neon_check.yaml only, so a layout written here would split the
+# two. Layout defaults live in plugin/lib/layout.dart.
+
+packs: [core]
+line_length: 120
+source_dirs: [lib, test, tool, integration_test, test_driver]
+baseline: tool/lint_baseline.json
+plugin: neon-analyze-flutter/plugin
+
+translations:
+  dir: assets/translations
+  primary: cs
+  allowed_unused: [api_error.*]
+
+assets:
+  registries: [lib/utils/ui/app_assets.dart]
+  dirs: [assets/icons, assets/images, assets/videos]
+
+generated:
+  enabled: true
+
+# The rules of the ESME context layer, exported by the session-start hook.
+# Each one that governs app code names the checks that enforce it (step
+# rule_docs).
+rule_docs:
+  dir: .claude/rules/shared
+
+tests:
+  dir: test
+  # default_suite: the project name (pubspec.yaml `name:`) unless set.
+  shared: [lib/utils, lib/model, lib/repository, lib/bloc/global, lib/app, lib/main.dart, lib/main_*.dart]
+  existence:
+    cubits:
+      suffix: _cubit.dart
+      exempt: [lib/bloc/global/base/base_cubit.dart]
+    routes:
+      tests_folder: routes
+  coverage:
+    min_percent: 90
+    lcov: coverage/lcov.info
+
+integration:
+  dir: integration_test
+  # web-server (Chrome through chromedriver), device (flutter test on a
+  # device or emulator, `device:`), or none.
+  driver: none
+  device: ''
+  # Optional, never committed: a JSON or .env file of --dart-defines
+  # (credentials of TEST accounts), passed as --dart-define-from-file.
+  defines_file: integration_test/defines.json
+  # Every page needs a flow that opens it (rule integration_missing).
+  require_flow_for_pages: false
+  exempt_pages: []
+
+# The burndown (`neon-check burndown start`, then `neon-check next`): how
+# many findings one batch holds, how many turns the Stop hook drives per
+# session, and the integration mode of the stop trigger meanwhile (flows run
+# with `--trigger ci` at the end of a phase and before the PR).
+burndown:
+  batch: 40
+  max_turns_per_session: 30
+  stop_integration: off
+
+# When the checks run, and which. `scope`: files (the edited file), changed
+# (against the branch base), staged (the commit), all. `steps`: `all`,
+# `static` (everything but tests, coverage and integration) or a list of step
+# names. `ci`: check only, never change a file or lower the baseline.
+# `integration`: off, affected (the flows of the suites the change touches)
+# or all.
+triggers:
+  edit:
+    scope: files
+    steps: [analyze, ignores]
+    ci: true
+  stop:
+    scope: changed
+    steps: all
+    integration: affected
+  commit:
+    scope: staged
+    steps: [config_sync, format, fix, analyze, ignores, translations_parity, translations_dashes, translations_missing, translations_order]
+    ci: true
+  push:
+    scope: changed
+    steps: []
+    ci: true
+  ci:
+    scope: all
+    steps: all
+    ci: true
+    integration: all

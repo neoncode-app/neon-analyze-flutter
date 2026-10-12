@@ -7,13 +7,13 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Architecture layering of the widget kit and the UI (ADMINISTRATION.md 1a
 /// and 1g).
 
-const _uiImportRoots = ['/lib/pages/', '/lib/features/'];
-
-/// `lib/global_widgets/` never imports `lib/pages/` or `lib/features/`.
+/// The widget kit (layout role `global_widgets`) never imports pages or
+/// features (roles `pages`, `features`).
 class GlobalWidgetsLayering extends AnalysisRule {
   GlobalWidgetsLayering() : super(name: 'global_widgets_layering', description: _desc);
 
@@ -32,31 +32,34 @@ class GlobalWidgetsLayering extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addImportDirective(this, _LayeringVisitor(this));
+    registry.addImportDirective(this, _LayeringVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _LayeringVisitor extends SimpleAstVisitor<void> {
-  _LayeringVisitor(this.rule);
+  _LayeringVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitImportDirective(ImportDirective node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'global_widgets/')) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.globalWidgets)) return;
     final target = importedPath(node) ?? '';
-    final root = path.substring(0, path.indexOf('/lib/'));
-    for (final ui in _uiImportRoots) {
-      if (target.startsWith('$root$ui')) {
-        rule.reportAtNode(node.uri, arguments: [ui.substring('/lib/'.length)]);
+    for (final role in const [LayoutRole.pages, LayoutRole.features]) {
+      if (layout.isIn(target, role)) {
+        rule.reportAtNode(node.uri, arguments: ['${role.key}/']);
+        return;
       }
     }
   }
 }
 
 /// A `{@category Component | Layout | Pattern}` widget draws from its
-/// parameters and the theme only: its file imports no `lib/bloc/`,
+/// parameters and the theme only: its file imports no cubit (layout role
+/// `bloc`),
 /// `package:bloc` or `package:flutter_bloc`, and it reads no provider.
 class ComponentHasNoStateAccess extends AnalysisRule {
   ComponentHasNoStateAccess() : super(name: 'component_has_no_state_access', description: _desc);
@@ -78,14 +81,16 @@ class ComponentHasNoStateAccess extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addCompilationUnit(this, _StateAccessVisitor(this));
+    registry.addCompilationUnit(this, _StateAccessVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _StateAccessVisitor extends SimpleAstVisitor<void> {
-  _StateAccessVisitor(this.rule);
+  _StateAccessVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitCompilationUnit(CompilationUnit node) {
@@ -98,13 +103,12 @@ class _StateAccessVisitor extends SimpleAstVisitor<void> {
     };
     if (tiers.isEmpty) return;
     final tier = tiers.first;
-    final root = path.substring(0, path.indexOf('/lib/'));
     for (final directive in node.directives.whereType<ImportDirective>()) {
       final uri = directive.uri.stringValue ?? '';
       final target = importedPath(directive) ?? '';
       if (uri.startsWith('package:flutter_bloc/') ||
           uri.startsWith('package:bloc/') ||
-          target.startsWith('$root/lib/bloc/')) {
+          layout.isIn(target, LayoutRole.bloc)) {
         rule.reportAtNode(directive.uri, arguments: ['an import of `$uri`', tier]);
       }
     }
@@ -131,8 +135,8 @@ class _ReadFinder extends RecursiveAstVisitor<void> {
   }
 }
 
-/// UI code (`lib/pages`, `lib/features`, `lib/global_widgets`) never uses a
-/// repository (a class declared under `lib/repository/`): data comes from the
+/// UI code (pages, features, the widget kit) never uses a repository (a class
+/// declared in the layout role `repository`): data comes from the
 /// cubit.
 class NoRepositoryInUi extends AnalysisRule {
   NoRepositoryInUi() : super(name: 'no_repository_in_ui', description: _desc);
@@ -151,21 +155,23 @@ class NoRepositoryInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addNamedType(this, _RepositoryVisitor(this));
+    registry.addNamedType(this, _RepositoryVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _RepositoryVisitor extends SimpleAstVisitor<void> {
-  _RepositoryVisitor(this.rule);
+  _RepositoryVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitNamedType(NamedType node) {
     final element = node.element;
-    if (element is! InterfaceElement || !isUiSource(unitPath(node))) return;
+    if (element is! InterfaceElement || !layout.isUi(unitPath(node))) return;
     final declaredIn = element.library.firstFragment.source.fullName.replaceAll(r'\', '/');
-    if (declaredIn.contains('/lib/repository/')) rule.reportAtNode(node, arguments: [element.name ?? '']);
+    if (layout.isIn(declaredIn, LayoutRole.repository)) rule.reportAtNode(node, arguments: [element.name ?? '']);
   }
 }
 
@@ -188,19 +194,21 @@ class NoHttpInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addImportDirective(this, _HttpVisitor(this));
+    registry.addImportDirective(this, _HttpVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _HttpVisitor extends SimpleAstVisitor<void> {
-  _HttpVisitor(this.rule);
+  _HttpVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitImportDirective(ImportDirective node) {
     final uri = node.uri.stringValue ?? '';
-    if (!(uri.startsWith('package:http/') || uri.startsWith('package:dio/')) || !isUiSource(unitPath(node))) return;
+    if (!(uri.startsWith('package:http/') || uri.startsWith('package:dio/')) || !layout.isUi(unitPath(node))) return;
     rule.reportAtNode(node.uri, arguments: [uri]);
   }
 }
@@ -229,19 +237,22 @@ class GlobalWidgetHasCategory extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addClassDeclaration(this, _CategoryVisitor(this));
+    registry.addClassDeclaration(this, _CategoryVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _CategoryVisitor extends SimpleAstVisitor<void> {
-  _CategoryVisitor(this.rule);
+  _CategoryVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || !(isUnderLib(path, 'global_widgets/') || isUnderLib(path, 'features/'))) return;
+    if (!isAppSource(path) || !(layout.isIn(path, LayoutRole.globalWidgets) || layout.isIn(path, LayoutRole.features)))
+      return;
     if (path.contains('/src/') || path.contains('/widget_catalog/previews/')) return;
     final name = node.name.lexeme;
     if (name.startsWith('_')) return;
@@ -279,22 +290,23 @@ class KitSrcInternal extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addImportDirective(this, _SrcVisitor(this));
+    registry.addImportDirective(this, _SrcVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _SrcVisitor extends SimpleAstVisitor<void> {
-  _SrcVisitor(this.rule);
+  _SrcVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitImportDirective(ImportDirective node) {
     final path = unitPath(node);
     if (!isAppSource(path)) return;
     final target = importedPath(node) ?? '';
-    final root = path.substring(0, path.indexOf('/lib/'));
-    if (!target.startsWith('$root/lib/global_widgets/')) return;
+    if (!layout.isIn(target, LayoutRole.globalWidgets)) return;
     final src = target.indexOf('/src/');
     if (src < 0) return;
     final kit = target.substring(0, src + 1);

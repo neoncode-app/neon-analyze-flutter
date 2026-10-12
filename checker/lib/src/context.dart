@@ -2,6 +2,8 @@ import 'dart:io';
 
 import 'package:neon_check/src/config.dart';
 
+export 'package:neon_check/src/config.dart' show IntegrationMode;
+
 /// Which files a run looks at.
 enum ScopeMode {
   /// Everything (`--all`, CI).
@@ -28,7 +30,9 @@ final class CheckContext {
     required this.fix,
     required this.ci,
     this.base,
-  });
+    this.integration = IntegrationMode.off,
+    String? toolRoot,
+  }) : toolRoot = toolRoot ?? '$root/neon-analyze-flutter';
 
   /// Absolute app root, without a trailing slash.
   final String root;
@@ -52,6 +56,13 @@ final class CheckContext {
   /// The branch the work is compared against (`--base`, else
   /// `branch.<name>.neonBase`, else `default_base`); `null` when none resolves.
   final String? base;
+
+  /// Which integration flows this run executes.
+  final IntegrationMode integration;
+
+  /// The neon-analyze-flutter checkout (`packs.yaml`, `presets/`,
+  /// `integration/`).
+  final String toolRoot;
 
   bool get isAll => mode == ScopeMode.all;
 
@@ -121,6 +132,8 @@ String? mergeBase(String root, String base) {
 }
 
 /// Resolves the changed / staged files of the git checkout at [root].
+/// [base] is the branch the work is compared against (`--base`, else
+/// `branch.<name>.neonBase`, else the app's `default_base`).
 ({Set<String> existing, Set<String> deleted}) gitScope(String root, ScopeMode mode, {String? base}) {
   List<String> git(List<String> args) {
     final result = Process.runSync('git', args, workingDirectory: root);
@@ -134,17 +147,20 @@ String? mergeBase(String root, String base) {
     existing.addAll(git(['diff', '--cached', '--name-only', '--diff-filter=ACMR']));
     deleted.addAll(git(['diff', '--cached', '--name-only', '--diff-filter=D']));
   } else {
-    final branch = git(['rev-parse', '--abbrev-ref', 'HEAD']).first;
-    final recorded = Process.runSync('git', ['config', 'branch.$branch.neonBase'], workingDirectory: root);
-    final baseBranch = base ?? (recorded.exitCode == 0 ? (recorded.stdout as String).trim() : null);
+    final baseBranch = base ?? recordedBase(root);
     if (baseBranch == null || baseBranch.isEmpty) {
-      throw StateError('No base branch: branch.$branch.neonBase is not set. Pass --base <branch> or use --all.');
+      throw StateError(
+        'No base branch: the branch records no neonBase and neon_check.yaml has no default_base. '
+        'Set `default_base:`, pass --base <branch> or use --all.',
+      );
     }
-    final mergeBase = git(['merge-base', 'HEAD', baseBranch]).first;
+    final mergeBaseSha = mergeBase(root, baseBranch);
+    if (mergeBaseSha == null)
+      throw StateError('The base branch `$baseBranch` does not exist here (nor origin/$baseBranch).');
     existing
-      ..addAll(git(['diff', '--name-only', '--diff-filter=ACMR', mergeBase]))
+      ..addAll(git(['diff', '--name-only', '--diff-filter=ACMR', mergeBaseSha]))
       ..addAll(git(['ls-files', '--others', '--exclude-standard']));
-    deleted.addAll(git(['diff', '--name-only', '--diff-filter=D', mergeBase]));
+    deleted.addAll(git(['diff', '--name-only', '--diff-filter=D', mergeBaseSha]));
   }
   existing.removeWhere((file) => !File('$root/$file').existsSync());
   return (existing: existing, deleted: deleted);

@@ -8,6 +8,7 @@ import 'package:analyzer/dart/element/type.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// An `on*:` callback in a page (`lib/pages`) carries no logic. It is one of:
 /// * a cubit-method tear-off: `onTap: cubit.save`,
@@ -35,19 +36,21 @@ class UiCallbackCallsCubit extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addNamedExpression(this, _Visitor(this));
+    registry.addNamedExpression(this, _Visitor(this, RuleLayout.of(context)));
   }
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitNamedExpression(NamedExpression node) {
     final name = node.name.label.name;
-    if (!RegExp(r'^on[A-Z]').hasMatch(name) || !isUnderLib(unitPath(node), 'pages/')) return;
+    if (!RegExp(r'^on[A-Z]').hasMatch(name) || !layout.isIn(unitPath(node), LayoutRole.pages)) return;
     if (!isAppSource(unitPath(node))) return;
     final problem = _problem(node.expression);
     if (problem != null) rule.reportAtNode(node, arguments: [name, problem]);

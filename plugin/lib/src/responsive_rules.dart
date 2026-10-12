@@ -8,11 +8,11 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
-/// Responsiveness goes through `lib/utils/ui/app_responsive.dart` only
+/// Responsiveness goes through `app_responsive.dart` only (layout role
+/// `responsive`)
 /// (`context.screenSize`, `ResponsiveBuilder`, `context.responsiveValue`).
-
-const _responsive = 'utils/ui/app_responsive.dart';
 
 const _replacement =
     'context.screenSize / ResponsiveBuilder / context.responsiveValue (lib/utils/ui/app_responsive.dart)';
@@ -36,7 +36,7 @@ class NoMediaQuerySize extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _MediaQueryVisitor(this);
+    final visitor = _MediaQueryVisitor(this, RuleLayout.of(context));
     registry
       ..addMethodInvocation(this, visitor)
       ..addPropertyAccess(this, visitor)
@@ -45,13 +45,15 @@ class NoMediaQuerySize extends AnalysisRule {
 }
 
 class _MediaQueryVisitor extends SimpleAstVisitor<void> {
-  _MediaQueryVisitor(this.rule);
+  _MediaQueryVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
+  final RuleLayout layout;
+
   bool _applies(AstNode node) {
     final path = unitPath(node);
-    return isAppSource(path) && !isUnderLib(path, _responsive);
+    return isAppSource(path) && !layout.isIn(path, LayoutRole.responsive);
   }
 
   @override
@@ -95,19 +97,21 @@ class NoKIsWebInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addSimpleIdentifier(this, _KIsWebVisitor(this));
+    registry.addSimpleIdentifier(this, _KIsWebVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _KIsWebVisitor extends SimpleAstVisitor<void> {
-  _KIsWebVisitor(this.rule);
+  _KIsWebVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     if (node.name != 'kIsWeb' || node.parent is Combinator) return;
-    if (!isFromPackage(node.element, 'flutter') || !isUiSource(unitPath(node))) return;
+    if (!isFromPackage(node.element, 'flutter') || !layout.isUi(unitPath(node))) return;
     rule.reportAtNode(node);
   }
 }
@@ -131,7 +135,7 @@ class NoPlatformInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _PlatformVisitor(this);
+    final visitor = _PlatformVisitor(this, RuleLayout.of(context));
     registry
       ..addPrefixedIdentifier(this, visitor)
       ..addSimpleIdentifier(this, visitor);
@@ -139,22 +143,24 @@ class NoPlatformInUi extends AnalysisRule {
 }
 
 class _PlatformVisitor extends SimpleAstVisitor<void> {
-  _PlatformVisitor(this.rule);
+  _PlatformVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitPrefixedIdentifier(PrefixedIdentifier node) {
     final prefix = node.prefix.element;
     if (prefix is! ClassElement || prefix.name != 'Platform') return;
-    if (prefix.library.uri.toString() != 'dart:io' || !isUiSource(unitPath(node))) return;
+    if (prefix.library.uri.toString() != 'dart:io' || !layout.isUi(unitPath(node))) return;
     rule.reportAtNode(node, arguments: [node.toSource()]);
   }
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
     if (node.name != 'defaultTargetPlatform' || node.parent is Combinator) return;
-    if (!isFromPackage(node.element, 'flutter') || !isUiSource(unitPath(node))) return;
+    if (!isFromPackage(node.element, 'flutter') || !layout.isUi(unitPath(node))) return;
     rule.reportAtNode(node, arguments: [node.name]);
   }
 }
@@ -179,21 +185,23 @@ class NoLayoutBuilderInPages extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addInstanceCreationExpression(this, _LayoutBuilderVisitor(this));
+    registry.addInstanceCreationExpression(this, _LayoutBuilderVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _LayoutBuilderVisitor extends SimpleAstVisitor<void> {
-  _LayoutBuilderVisitor(this.rule);
+  _LayoutBuilderVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final widget = node.constructorName.element?.enclosingElement;
     if (widget?.name != 'LayoutBuilder' || !isFromPackage(widget, 'flutter')) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || isUnderLib(path, 'global_widgets/')) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.globalWidgets)) return;
     rule.reportAtNode(node.constructorName);
   }
 }
@@ -217,14 +225,16 @@ class NoRawBreakpoint extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addBinaryExpression(this, _BreakpointVisitor(this));
+    registry.addBinaryExpression(this, _BreakpointVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _BreakpointVisitor extends SimpleAstVisitor<void> {
-  _BreakpointVisitor(this.rule);
+  _BreakpointVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   static const _comparisons = {TokenType.LT, TokenType.LT_EQ, TokenType.GT, TokenType.GT_EQ};
 
@@ -237,7 +247,7 @@ class _BreakpointVisitor extends SimpleAstVisitor<void> {
     final hasWidth = _isWidth(left) || _isWidth(right);
     if (!hasNumber || !hasWidth) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || isUnderLib(path, _responsive)) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.responsive)) return;
     rule.reportAtNode(node, arguments: [node.toSource()]);
   }
 

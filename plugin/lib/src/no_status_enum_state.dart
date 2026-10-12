@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// A cubit state carries no `XStatus` enum field next to nullable data:
 /// each status is its own subclass of a sealed state (`XLoading`,
@@ -30,18 +31,20 @@ class NoStatusEnumState extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addFieldDeclaration(this, _Visitor(this));
+    registry.addFieldDeclaration(this, _Visitor(this, RuleLayout.of(context)));
   }
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
+  final RuleLayout layout;
+
   @override
   void visitFieldDeclaration(FieldDeclaration node) {
-    if (node.isStatic || !isUnderLib(unitPath(node), 'bloc/')) return;
+    if (node.isStatic || !layout.isIn(unitPath(node), LayoutRole.bloc)) return;
     final stateClass = enclosingClass(node)?.declaredFragment?.element;
     if (stateClass == null || !_isState(stateClass)) return;
     for (final variable in node.fields.variables) {

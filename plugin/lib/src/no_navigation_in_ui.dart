@@ -7,6 +7,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// UI code (`lib/pages`, `lib/features`, `lib/global_widgets`) does not
 /// navigate with go_router itself: a tap calls a cubit method, the cubit
@@ -34,18 +35,20 @@ class NoNavigationInUi extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodInvocation(this, _Visitor(this));
+    registry.addMethodInvocation(this, _Visitor(this, RuleLayout.of(context)));
   }
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
+  final RuleLayout layout;
+
   @override
   void visitMethodInvocation(MethodInvocation node) {
-    if (!isUiSource(unitPath(node))) return;
+    if (!layout.isUi(unitPath(node))) return;
     final method = node.methodName.element;
     final owner = method?.enclosingElement;
     if (owner is! ExtensionElement || owner.name != 'GoRouterHelper' || !isFromPackage(owner, 'go_router')) return;

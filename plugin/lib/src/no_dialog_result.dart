@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// A dialog returns nothing: the result of opening it is never used. No
 /// `final x = await show...`, no `if (await show...)`, no `.then(...)`, and no
@@ -33,14 +34,16 @@ class NoDialogResult extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodInvocation(this, _Visitor(this));
+    registry.addMethodInvocation(this, _Visitor(this, RuleLayout.of(context)));
   }
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   static bool _opensDialog(MethodInvocation node) {
     if (isDialogHelperCall(node)) return true;
@@ -52,7 +55,7 @@ class _Visitor extends SimpleAstVisitor<void> {
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || isUnderLib(path, 'utils/utils.dart') || !_opensDialog(node)) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.dialogHelper) || !_opensDialog(node)) return;
     final name = node.methodName.name;
     AstNode expression = node;
     var parent = node.parent;

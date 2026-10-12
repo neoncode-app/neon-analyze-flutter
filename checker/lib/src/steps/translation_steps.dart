@@ -74,7 +74,7 @@ List<TranslationFile> _load(CheckContext context) => [
 
 bool _touchesTranslations(CheckContext context) => context.touches([context.config.translationsDir]);
 
-/// Step 6: every language file has the same keys.
+/// Every language file has the same keys.
 final class TranslationParityStep extends CheckStep {
   const TranslationParityStep();
 
@@ -109,7 +109,7 @@ final class TranslationParityStep extends CheckStep {
   }
 }
 
-/// Step 7: no em dash, en dash, minus sign or `--` in translated texts.
+/// No em dash, en dash, minus sign or `--` in translated texts.
 final class TranslationDashesStep extends CheckStep {
   const TranslationDashesStep();
 
@@ -216,7 +216,7 @@ final class KeyUsage {
       _literal.contains(key) || allStrings.contains(key) || dynamicPatterns.any((pattern) => pattern.hasMatch(key));
 }
 
-/// Step 8: every literal key passed to `tr()` exists.
+/// Every literal key passed to `tr()` exists.
 final class TranslationMissingStep extends CheckStep {
   const TranslationMissingStep();
 
@@ -251,7 +251,7 @@ final class TranslationMissingStep extends CheckStep {
   }
 }
 
-/// Step 9: keys no code uses. Reported, and deleted from every language file
+/// Keys no code uses. Reported, and deleted from every language file
 /// only with `--prune-translations` (a key used in a way the scan cannot see
 /// would otherwise disappear silently).
 final class TranslationUnusedStep extends CheckStep {
@@ -315,7 +315,7 @@ final class TranslationUnusedStep extends CheckStep {
   }
 }
 
-/// Step 10: every language file lists its keys in the primary file's order.
+/// Every language file lists its keys in the primary file's order.
 /// Auto-fix: reorders the other files.
 final class TranslationOrderStep extends CheckStep {
   const TranslationOrderStep();
@@ -353,7 +353,7 @@ final class TranslationOrderStep extends CheckStep {
           Finding(
             rule: 'translation_order',
             file: file.path,
-            message: 'keys are not in the order of ${primary.path}; run tool/check.sh locally',
+            message: 'keys are not in the order of ${primary.path}; run neon-analyze-flutter/bin/neon-check locally',
           ),
         );
       }

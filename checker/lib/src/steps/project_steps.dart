@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:neon_check/src/context.dart';
+import 'package:neon_lints/layout.dart';
 import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/process.dart';
 import 'package:neon_check/src/step.dart';
@@ -13,7 +14,7 @@ int _lineOf(List<String> lines, Pattern pattern) {
   return 1;
 }
 
-/// Step 11: every asset path the registry names exists, and every asset file
+/// Every asset path the registry names exists, and every asset file
 /// is used somewhere.
 final class AssetsStep extends CheckStep {
   const AssetsStep();
@@ -86,7 +87,7 @@ final class AssetsStep extends CheckStep {
   }
 }
 
-/// Step 12: the widget catalog index is regenerated from the sources.
+/// The widget catalog index is regenerated from the sources.
 /// Auto-fix: keeps the regenerated index; with `--ci` restores it and fails.
 final class CatalogIndexStep extends CheckStep {
   const CatalogIndexStep();
@@ -139,7 +140,7 @@ final class CatalogIndexStep extends CheckStep {
   }
 }
 
-/// Step 13: every widget in the folders that require one has a live preview
+/// Every widget in the folders that require one has a live preview
 /// on the catalog page.
 final class CatalogPreviewsStep extends CheckStep {
   const CatalogPreviewsStep();
@@ -187,9 +188,9 @@ final class CatalogPreviewsStep extends CheckStep {
   }
 }
 
-/// Step 14: every typed context getter (`lib/flavors/<f>/<f>_providers.dart`)
-/// reads a cubit that the flavour's router or shell actually provides.
-/// Passes trivially while no providers file exists.
+/// Every typed context getter in a providers file (layout role `providers`)
+/// reads a cubit that a router or shell next to it provides (the routing
+/// files in the providers file's folder, or every routing file).
 final class ProvidersStep extends CheckStep {
   const ProvidersStep();
 
@@ -202,25 +203,35 @@ final class ProvidersStep extends CheckStep {
   @override
   Set<String> get rules => const {'provider_missing'};
 
+  bool _isRouting(CheckContext context, String file) => context.config.layout.matches(LayoutRole.routing, file);
+
   @override
   bool appliesTo(CheckContext context) =>
-      context.config.providerFlavors.isNotEmpty && context.touches(['lib/flavors/']);
+      context.config.providersFiles.isNotEmpty &&
+      (context.isAll ||
+          [...context.changedFiles, ...context.deletedFiles].any(
+            (file) => _isRouting(context, file) || context.config.layout.matches(LayoutRole.providers, file),
+          ));
 
   @override
   Future<StepResult> run(CheckContext context) async {
     final findings = <Finding>[];
     final getter = RegExp(r'(\w+)\s+get\s+\w+\s*=>');
     final provided = RegExp(r'BlocProvider<(\w+)>|create:\s*\([^)]*\)\s*=>\s*(\w+)\(');
-    for (final flavor in context.config.providerFlavors) {
-      final providersPath = 'lib/flavors/$flavor/${flavor}_providers.dart';
-      final providersFile = File(context.absolute(providersPath));
-      if (!providersFile.existsSync()) continue;
+    final routing = [
+      for (final file in context.allLibDartFiles)
+        if (_isRouting(context, file) && !context.config.layout.matches(LayoutRole.providers, file)) file,
+    ];
+    for (final providersPath in context.config.providersFiles) {
+      final folder = providersPath.substring(0, providersPath.lastIndexOf('/') + 1);
+      final nearby = routing.where((file) => file.startsWith(folder)).toList();
+      final sources = nearby.isEmpty ? routing : nearby;
       final providedTypes = <String>{
-        for (final entity in Directory(context.absolute('lib/flavors/$flavor')).listSync(recursive: true))
-          if (entity is File && entity.path.endsWith('.dart') && !entity.path.endsWith('_providers.dart'))
-            for (final match in provided.allMatches(entity.readAsStringSync())) match.group(1) ?? match.group(2) ?? '',
+        for (final file in sources)
+          for (final match in provided.allMatches(File(context.absolute(file)).readAsStringSync()))
+            match.group(1) ?? match.group(2) ?? '',
       };
-      final lines = providersFile.readAsLinesSync();
+      final lines = File(context.absolute(providersPath)).readAsLinesSync();
       for (var i = 0; i < lines.length; i++) {
         final match = getter.firstMatch(lines[i]);
         final type = match?.group(1);
@@ -230,17 +241,22 @@ final class ProvidersStep extends CheckStep {
             rule: 'provider_missing',
             file: providersPath,
             line: i + 1,
-            message: '`$type` is never provided in lib/flavors/$flavor; provide it in the router or shell',
+            message: '`$type` is never provided in ${nearby.isEmpty ? 'the routing files' : folder}; '
+                'provide it in the router or shell',
           ),
         );
       }
     }
-    return StepResult(findings: findings, findingsScope: (file) => file.startsWith('lib/flavors/'));
+    return StepResult(
+      findings: findings,
+      findingsScope: (file) => context.config.layout.matches(LayoutRole.providers, file),
+    );
   }
 }
 
-/// Step 15: every page of the configured folder has a help dialog (`onHelp`)
-/// and every help entry has all its translation keys.
+/// Every page of a configured folder has a help dialog (`onHelp`) and every
+/// help entry has all its translation keys; one entry per flavour whose help
+/// enum exists (`page_help:` with `{flavor}`).
 final class PageHelpStep extends CheckStep {
   const PageHelpStep();
 
@@ -248,7 +264,7 @@ final class PageHelpStep extends CheckStep {
   String get name => 'page_help';
 
   @override
-  String get description => 'every Vernak page has onHelp and its help translation keys';
+  String get description => 'every page has onHelp and its help translation keys';
 
   @override
   Set<String> get rules => const {'page_help_missing', 'page_help_key_missing'};
@@ -256,65 +272,70 @@ final class PageHelpStep extends CheckStep {
   @override
   bool appliesTo(CheckContext context) =>
       context.config.hasPageHelp &&
-      context.touches([context.config.pageHelpPages, context.config.translationsDir, context.config.pageHelpEnum]);
+      context.touches([
+        context.config.translationsDir,
+        for (final entry in context.config.pageHelpEntries) ...[entry.pages, entry.enumFile],
+      ]);
 
   @override
   Future<StepResult> run(CheckContext context) async {
     final config = context.config;
     final findings = <Finding>[];
-    for (final entity in Directory(context.absolute(config.pageHelpPages)).listSync()) {
-      final file = context.relative(entity.path);
-      final name = file.split('/').last;
-      if (entity is! File ||
-          !name.startsWith(config.pageHelpPagePrefix) ||
-          !name.endsWith('_page.dart') ||
-          config.pageHelpExempt.contains(name)) {
-        continue;
-      }
-      if (!entity.readAsStringSync().contains('onHelp')) {
-        findings.add(
-          Finding(
-            rule: 'page_help_missing',
-            file: file,
-            message: 'the page has no "?" help; pass onHelp to AppContentPage (VernakPageHelp)',
-          ),
-        );
-      }
-    }
-    // Keys of every standard help entry: `<prefix><name>_title`, `_subtitle`,
-    // `_ov<n>_title/_desc` per icon, `_faq_q/a<n>`, `_step_t/d<n>`.
-    final source = File(context.absolute(config.pageHelpEnum)).readAsStringSync();
-    final entry = RegExp(
-      r'^\s{2}(\w+)\(\s*icons:\s*\[(.*?)\],\s*faqCount:\s*(\d+),\s*stepCount:\s*(\d+),?\s*\)',
-      multiLine: true,
-      dotAll: true,
-    );
-    final enumLines = source.split('\n');
     final languages = [for (final language in config.languages) TranslationFile.load(context, language)];
-    for (final match in entry.allMatches(source)) {
-      final page = match.group(1) ?? '';
-      final icons = (match.group(2) ?? '').split(',').where((icon) => icon.trim().isNotEmpty).length;
-      final faq = int.parse(match.group(3) ?? '0');
-      final steps = int.parse(match.group(4) ?? '0');
-      final key = '${config.pageHelpKeyPrefix}$page';
-      final required = [
-        '${key}_title',
-        '${key}_subtitle',
-        for (var i = 1; i <= icons; i++) ...['${key}_ov${i}_title', '${key}_ov${i}_desc'],
-        for (var i = 1; i <= faq; i++) ...['${key}_faq_q$i', '${key}_faq_a$i'],
-        for (var i = 1; i <= steps; i++) ...['${key}_step_t$i', '${key}_step_d$i'],
-      ];
-      for (final language in languages) {
-        for (final requiredKey in required) {
-          if (language.values.containsKey(requiredKey)) continue;
+    for (final help in config.pageHelpEntries) {
+      for (final entity in Directory(context.absolute(help.pages)).listSync()) {
+        final file = context.relative(entity.path);
+        final name = file.split('/').last;
+        if (entity is! File ||
+            !name.startsWith(help.pagePrefix) ||
+            !name.endsWith('_page.dart') ||
+            help.exempt.contains(name)) {
+          continue;
+        }
+        if (!entity.readAsStringSync().contains('onHelp')) {
           findings.add(
             Finding(
-              rule: 'page_help_key_missing',
-              file: config.pageHelpEnum,
-              line: _lineOf(enumLines, RegExp('^\\s{2}$page\\(')),
-              message: '`$requiredKey` is missing in ${language.path}',
+              rule: 'page_help_missing',
+              file: file,
+              message: 'the page has no "?" help; pass onHelp to AppContentPage (${help.enumFile.split('/').last})',
             ),
           );
+        }
+      }
+      // Keys of every standard help entry: `<prefix><name>_title`, `_subtitle`,
+      // `_ov<n>_title/_desc` per icon, `_faq_q/a<n>`, `_step_t/d<n>`.
+      final source = File(context.absolute(help.enumFile)).readAsStringSync();
+      final entry = RegExp(
+        r'^\s{2}(\w+)\(\s*icons:\s*\[(.*?)\],\s*faqCount:\s*(\d+),\s*stepCount:\s*(\d+),?\s*\)',
+        multiLine: true,
+        dotAll: true,
+      );
+      final enumLines = source.split('\n');
+      for (final match in entry.allMatches(source)) {
+        final page = match.group(1) ?? '';
+        final icons = (match.group(2) ?? '').split(',').where((icon) => icon.trim().isNotEmpty).length;
+        final faq = int.parse(match.group(3) ?? '0');
+        final steps = int.parse(match.group(4) ?? '0');
+        final key = '${help.keyPrefix}$page';
+        final required = [
+          '${key}_title',
+          '${key}_subtitle',
+          for (var i = 1; i <= icons; i++) ...['${key}_ov${i}_title', '${key}_ov${i}_desc'],
+          for (var i = 1; i <= faq; i++) ...['${key}_faq_q$i', '${key}_faq_a$i'],
+          for (var i = 1; i <= steps; i++) ...['${key}_step_t$i', '${key}_step_d$i'],
+        ];
+        for (final language in languages) {
+          for (final requiredKey in required) {
+            if (language.values.containsKey(requiredKey)) continue;
+            findings.add(
+              Finding(
+                rule: 'page_help_key_missing',
+                file: help.enumFile,
+                line: _lineOf(enumLines, RegExp('^\\s{2}$page\\(')),
+                message: '`$requiredKey` is missing in ${language.path}',
+              ),
+            );
+          }
         }
       }
     }
@@ -322,7 +343,7 @@ final class PageHelpStep extends CheckStep {
   }
 }
 
-/// Step 16: generated code (`*.g.dart`) matches its sources. Runs
+/// Generated code (`*.g.dart`) matches its sources. Runs
 /// build_runner; with `--ci` restores the files and fails on a difference.
 final class GeneratedCodeStep extends CheckStep {
   const GeneratedCodeStep();

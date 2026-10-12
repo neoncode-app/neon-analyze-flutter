@@ -7,17 +7,20 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
-/// The dimensions design of NCR0000014: a small scale in
-/// `lib/utils/ui/tokens/` (AppSpacing, AppRadius, AppIconSize, AppBorder,
+/// The dimensions design of NCR0000014: a small scale in the layout role
+/// `tokens` (default `lib/utils/ui/tokens/`: AppSpacing, AppRadius, AppIconSize, AppBorder,
 /// AppControlSize, AppBreakpoints, AppDialogSizes) plus one
 /// `<widget>_dimens.dart` (`<Widget>Dimens`) next to each widget. The old
 /// `AppDimens` is dissolved.
 
 /// Where dimension values may be literals: the scale, the per-widget dimens
 /// files (the old `app_dimens.dart` included) and the text style files.
-bool _ownsDimensions(String path) =>
-    isUnderLib(path, 'utils/ui/tokens/') || path.endsWith('_dimens.dart') || path.endsWith('_text_styles.dart');
+bool _ownsDimensions(RuleLayout layout, String path) =>
+    layout.isIn(path, LayoutRole.tokens) ||
+    layout.isIn(path, LayoutRole.widgetDimens) ||
+    path.endsWith('_text_styles.dart');
 
 /// The library file of [element]'s declaration.
 String _declaredIn(Element element) => element.library?.firstFragment.source.fullName.replaceAll(r'\', '/') ?? '';
@@ -30,9 +33,9 @@ bool _isWidgetDimens(Element? element) =>
     _declaredIn(element).endsWith('_dimens.dart') &&
     !_declaredIn(element).endsWith('/app_dimens.dart');
 
-/// A class of the scale (`lib/utils/ui/tokens/`).
-bool _isScaleToken(Element? element) =>
-    element is InterfaceElement && _declaredIn(element).contains('/lib/utils/ui/tokens/');
+/// A class of the scale (layout role `tokens`).
+bool _isScaleToken(RuleLayout layout, Element? element) =>
+    element is InterfaceElement && layout.isIn(_declaredIn(element), LayoutRole.tokens);
 
 /// The class whose static member [node] reads (`AppSpacing.s16` -> AppSpacing).
 InterfaceElement? _staticOwner(AstNode node) {
@@ -104,7 +107,7 @@ class NoRawDimension extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _RawDimensionVisitor(this);
+    final visitor = _RawDimensionVisitor(this, RuleLayout.of(context));
     registry
       ..addIntegerLiteral(this, visitor)
       ..addDoubleLiteral(this, visitor);
@@ -112,9 +115,11 @@ class NoRawDimension extends AnalysisRule {
 }
 
 class _RawDimensionVisitor extends SimpleAstVisitor<void> {
-  _RawDimensionVisitor(this.rule);
+  _RawDimensionVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitIntegerLiteral(IntegerLiteral node) {
@@ -146,7 +151,7 @@ class _RawDimensionVisitor extends SimpleAstVisitor<void> {
         NoRawDimension.geometryClasses.contains(className) && isFromPackage(_elementOf(invocation), 'flutter');
     if (!isNamedDimension && !isGeometry) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || _ownsDimensions(path)) return;
+    if (!isAppSource(path) || _ownsDimensions(layout, path)) return;
     rule.reportAtNode(literal, arguments: [literal.toSource()]);
   }
 
@@ -176,15 +181,19 @@ class DimensPrivateToWidget extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addNamedType(this, _PrivateDimensVisitor(this));
-    registry.addPrefixedIdentifier(this, _PrivateDimensVisitor(this));
+    final visitor = _PrivateDimensVisitor(this, RuleLayout.of(context));
+    registry
+      ..addNamedType(this, visitor)
+      ..addPrefixedIdentifier(this, visitor);
   }
 }
 
 class _PrivateDimensVisitor extends SimpleAstVisitor<void> {
-  _PrivateDimensVisitor(this.rule);
+  _PrivateDimensVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   void _check(AstNode node, Element? element) {
     if (!_isWidgetDimens(element) || element == null) return;
@@ -192,7 +201,7 @@ class _PrivateDimensVisitor extends SimpleAstVisitor<void> {
     if (!isAppSource(path)) return;
     final declared = _declaredIn(element);
     // Only the app's own dimens; a dependency's *Dimens is not a kit widget's.
-    if (!declared.startsWith(path.substring(0, path.indexOf('/lib/') + 5))) return;
+    if (!layout.isAppSource(declared)) return;
     final folder = declared.substring(0, declared.lastIndexOf('/') + 1);
     if (!path.startsWith(folder)) rule.reportAtNode(node, arguments: [element.name ?? '']);
   }
@@ -204,7 +213,7 @@ class _PrivateDimensVisitor extends SimpleAstVisitor<void> {
   void visitPrefixedIdentifier(PrefixedIdentifier node) => _check(node.prefix, node.prefix.element);
 }
 
-/// Pages (`lib/pages`) take only `AppSpacing` (gaps between blocks); every
+/// Pages (layout role `pages`) take only `AppSpacing` (gaps between blocks); every
 /// other size belongs to a component and its dimens.
 class PageDimensSpacingOnly extends AnalysisRule {
   PageDimensSpacingOnly() : super(name: 'page_dimens_spacing_only', description: _desc);
@@ -224,7 +233,7 @@ class PageDimensSpacingOnly extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _PageDimensVisitor(this);
+    final visitor = _PageDimensVisitor(this, RuleLayout.of(context));
     registry
       ..addPrefixedIdentifier(this, visitor)
       ..addPropertyAccess(this, visitor);
@@ -232,16 +241,18 @@ class PageDimensSpacingOnly extends AnalysisRule {
 }
 
 class _PageDimensVisitor extends SimpleAstVisitor<void> {
-  _PageDimensVisitor(this.rule);
+  _PageDimensVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   void _check(Expression node) {
     final owner = _staticOwner(node);
     if (owner == null || owner.name == 'AppSpacing') return;
-    if (!_isScaleToken(owner) && !_isWidgetDimens(owner)) return;
+    if (!_isScaleToken(layout, owner) && !_isWidgetDimens(owner)) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !isUnderLib(path, 'pages/')) return;
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
     rule.reportAtNode(node, arguments: [node.toSource()]);
   }
 
@@ -273,7 +284,7 @@ class NoAppDimens extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _AppDimensVisitor(this);
+    final visitor = _AppDimensVisitor(this, RuleLayout.of(context));
     registry
       ..addPrefixedIdentifier(this, visitor)
       ..addPropertyAccess(this, visitor);
@@ -281,15 +292,17 @@ class NoAppDimens extends AnalysisRule {
 }
 
 class _AppDimensVisitor extends SimpleAstVisitor<void> {
-  _AppDimensVisitor(this.rule);
+  _AppDimensVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   void _check(Expression node) {
     final owner = _staticOwner(node);
     if (owner?.name != 'AppDimens' || owner == null || !_declaredIn(owner).endsWith('/app_dimens.dart')) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || path.endsWith('/app_dimens.dart')) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.legacyDimens)) return;
     rule.reportAtNode(node, arguments: [node.toSource()]);
   }
 

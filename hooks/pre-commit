@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+# The `commit` trigger of neon_check.yaml on the staged files, check only: a
+# failure refuses the commit. Fix with `neon-analyze-flutter/bin/neon-check`.
+exec "$(dirname "$0")/_run.sh" pre-commit commit -- "$@"

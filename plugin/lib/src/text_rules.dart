@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Text style, logging and user-visible string rules.
 
@@ -26,14 +27,12 @@ class NoRawTextStyle extends AnalysisRule {
     severity: DiagnosticSeverity.WARNING,
   );
 
-  static bool isOwner(String path) => path.endsWith('_text_styles.dart') || isUnderLib(path, 'utils/ui/app_style.dart');
-
   @override
   DiagnosticCode get diagnosticCode => code;
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _TextStyleVisitor(this);
+    final visitor = _TextStyleVisitor(this, RuleLayout.of(context));
     registry
       ..addInstanceCreationExpression(this, visitor)
       ..addMethodInvocation(this, visitor);
@@ -41,13 +40,15 @@ class NoRawTextStyle extends AnalysisRule {
 }
 
 class _TextStyleVisitor extends SimpleAstVisitor<void> {
-  _TextStyleVisitor(this.rule);
+  _TextStyleVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
+  final RuleLayout layout;
+
   bool _applies(AstNode node) {
     final path = unitPath(node);
-    return isAppSource(path) && !NoRawTextStyle.isOwner(path);
+    return isAppSource(path) && !layout.isIn(path, LayoutRole.textStyles);
   }
 
   @override
@@ -91,7 +92,7 @@ class NoDebugPrint extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _DebugPrintVisitor(this);
+    final visitor = _DebugPrintVisitor(this, RuleLayout.of(context));
     registry
       ..addMethodInvocation(this, visitor)
       ..addFunctionExpressionInvocation(this, visitor);
@@ -99,14 +100,16 @@ class NoDebugPrint extends AnalysisRule {
 }
 
 class _DebugPrintVisitor extends SimpleAstVisitor<void> {
-  _DebugPrintVisitor(this.rule);
+  _DebugPrintVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   void _check(SimpleIdentifier name) {
     if (name.name != 'debugPrint' || !isFromPackage(name.element, 'flutter')) return;
     final path = unitPath(name);
-    if (!isAppSource(path) || isUnderLib(path, 'utils/helpers/log_utils.dart')) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.logger)) return;
     rule.reportAtNode(name);
   }
 
@@ -162,14 +165,16 @@ class NoHardcodedUiString extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addSimpleStringLiteral(this, _UiStringVisitor(this));
+    registry.addSimpleStringLiteral(this, _UiStringVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _UiStringVisitor extends SimpleAstVisitor<void> {
-  _UiStringVisitor(this.rule);
+  _UiStringVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitSimpleStringLiteral(SimpleStringLiteral node) {
@@ -185,7 +190,7 @@ class _UiStringVisitor extends SimpleAstVisitor<void> {
     };
     if (!isTextArgument) return;
     final path = unitPath(node);
-    if (!isUiSource(path) || path.contains('/widget_catalog/previews/')) return;
+    if (!layout.isUi(path) || layout.isIn(path, LayoutRole.catalogPreviews)) return;
     final shown = node.value.length > 40 ? '${node.value.substring(0, 40)}...' : node.value;
     rule.reportAtNode(node, arguments: [shown]);
   }

@@ -1,0 +1,95 @@
+# The order in which `neon-check next` brings the baseline to zero, in phases.
+# A phase comes first when later ones build on it: local and mechanical fixes
+# first, then where cubits live, then the logic that moves out of the UI, then
+# the page structure, and the missing tests last, once the code they test has
+# its final shape. A rule not listed here comes after every phase, smallest
+# count first. Each rule lists its own fix in plugin/rule_catalog.json.
+
+phases:
+  - name: local
+    why: one-line fixes that touch nothing else; they shrink the noise for the rest
+    rules:
+      - avoid_bang
+      - no_debug_print
+      - no_dash_in_strings
+      - translation_dash
+      - no_raw_color
+      - no_raw_asset_path
+      - asset_missing
+      - asset_unused
+      - translation_unused
+      - no_widget_builder_method
+      - extend_base_cubit
+
+  - name: tokens
+    why: dimensions and text styles from the scale, so the kit and pages can be reshaped on top of it
+    rules:
+      - no_raw_text_style
+      - no_raw_dimension
+      - dimens_private_to_widget
+      - component_takes_variant
+      - page_dimens_spacing_only
+      - no_app_dimens
+
+  - name: kit
+    why: kit widgets and texts in place before pages are restructured around them
+    rules:
+      - use_kit_widgets
+      - no_navigator
+      - no_tr_in_global_widget
+      - no_hardcoded_ui_string
+      - global_widgets_layering
+      - component_has_no_state_access
+      - kit_src_internal
+      - global_widget_has_category
+      - catalog_preview_missing
+
+  - name: cubits
+    why: cubits are created by the routes and read through typed getters; everything after assumes it
+    rules:
+      - provider_in_router
+      - cubit_created_in_provider
+      - no_provider_value
+      - no_cubit_call_in_lifecycle
+      - use_context_getters
+      - provider_missing
+      - alert_only_in_cubit
+      - cancel_subscriptions_in_close
+      - state_is_sealed
+      - no_status_enum_state
+      - no_repository_in_ui
+      - no_http_in_ui
+
+  - name: ui_logic
+    why: the logic left in widgets moves into the cubits, dialogs and navigation into presentation events
+    rules:
+      - dialog_only_in_listener
+      - no_dialog_result
+      - listener_is_mapping
+      - no_navigation_in_ui
+      - ui_callback_calls_cubit
+      - no_setstate_in_pages
+      - no_private_methods_in_page_state
+      - stateful_page_only_for_controllers
+      - no_editor_controller_in_pages
+
+  - name: pages
+    why: every page on its template, access on the route, responsiveness through the screen sizes
+    rules:
+      - page_uses_template
+      - page_has_title_subtitle
+      - page_help_missing
+      - page_help_key_missing
+      - no_access_guard_in_pages
+      - no_role_literal
+      - no_media_query_size
+      - no_kisweb_in_ui
+      - no_platform_in_ui
+      - no_layout_builder_in_pages
+      - no_raw_breakpoint
+
+  - name: tests
+    why: the missing cubit, route and integration tests, written against the final code
+    rules:
+      - test_missing
+      - integration_missing

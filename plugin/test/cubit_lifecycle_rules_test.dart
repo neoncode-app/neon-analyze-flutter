@@ -64,7 +64,7 @@ void f(BuildContext context) {
           'context.select<CounterCubit, int>((cubit) => cubit.state)',
           'BlocProvider.of<CounterCubit>(context)',
         ],
-        message: ['lib/flavors/<flavor>/<flavor>_providers.dart'],
+        message: ['lib/flavors/{flavor}/{flavor}_providers.dart'],
       );
 
   Future<void> test_providers_file_owns_the_reads() => expectIn('flavors/vernak/vernak_providers.dart', _source, []);

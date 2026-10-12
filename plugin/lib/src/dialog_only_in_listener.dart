@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// `Utils.showCustomModalBottomSheet` is called only inside a
 /// `BlocPresentationListener`'s `listener:` or inside a `show*` function or
@@ -33,19 +34,21 @@ class DialogOnlyInListener extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addMethodInvocation(this, _Visitor(this));
+    registry.addMethodInvocation(this, _Visitor(this, RuleLayout.of(context)));
   }
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule);
+  _Visitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitMethodInvocation(MethodInvocation node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || isUnderLib(path, 'utils/utils.dart') || !isDialogHelperCall(node)) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.dialogHelper) || !isDialogHelperCall(node)) return;
     for (AstNode? current = node.parent; current != null; current = current.parent) {
       if (current is FunctionExpression && isPresentationListener(current)) return;
       final name = switch (current) {

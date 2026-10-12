@@ -1,0 +1,31 @@
+# An administration built from the Neon Code widget kit: several flavours,
+# go_router, the widget catalog, a help dialog on every page, integration
+# flows in Chrome. Used by neoncode.
+
+packs: [core, bloc, presentation, go_router, responsive, kit, catalog, admin, flavors, integration]
+
+catalog:
+  generator: tool/generate_widget_catalog.dart
+  index: lib/model/widget_catalog/widget_catalog_index.g.dart
+  previews: lib/pages/neoncode/widgets/widget_catalog/previews
+  inputs: [lib/global_widgets, lib/features, lib/pages, tool/widget_catalog]
+  preview_required: [lib/global_widgets]
+
+# One entry per flavour whose help enum exists ({flavor} is replaced):
+# every <flavor>_*_page.dart in pages has onHelp and every help entry has
+# its translation keys.
+page_help:
+  pages: lib/pages/{flavor}
+  page_prefix: '{flavor}_'
+  enum: lib/pages/{flavor}/help/{flavor}_page_help.dart
+  key_prefix: '{flavor}_help_'
+  exempt: []
+
+tests:
+  shared: [lib/global_widgets/global, lib/utils, lib/bloc/global, lib/model, lib/repository, lib/flavors, lib/features/account, lib/app, lib/main_*.dart]
+  coverage:
+    sources: [lib/bloc]
+
+integration:
+  driver: web-server
+  require_flow_for_pages: true

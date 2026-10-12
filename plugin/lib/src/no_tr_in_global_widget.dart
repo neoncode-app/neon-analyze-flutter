@@ -7,8 +7,10 @@ import 'package:analyzer/error/error.dart';
 // LintCode is not in the public API surface yet.
 import 'package:analyzer/src/dart/error/lint_codes.dart';
 
+import 'package:neon_lints/src/support/rule_layout.dart';
+
 /// Forbids `tr()` translation calls inside global/reusable widgets
-/// (files under `lib/global_widgets/`). Reusable widgets must stay
+/// (layout role `global_widgets`, default `lib/global_widgets/`). Reusable widgets must stay
 /// translation-agnostic: callers pass already-translated text as parameters.
 ///
 /// Matches both `tr('key')` and `'key'.tr()`.
@@ -33,8 +35,7 @@ class NoTrInGlobalWidget extends AnalysisRule {
     RuleVisitorRegistry registry,
     RuleContext context,
   ) {
-    final path = context.definingUnit.file.path;
-    if (!path.contains('/lib/global_widgets/')) return;
+    if (!RuleLayout.of(context).isIn(context.definingUnit.file.path, LayoutRole.globalWidgets)) return;
     registry.addMethodInvocation(this, _Visitor(this));
   }
 }
