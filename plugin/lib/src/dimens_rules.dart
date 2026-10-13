@@ -346,8 +346,17 @@ class ComponentTakesVariant extends AnalysisRule {
     'iconSize',
   };
 
-  /// Generic primitives that are the place raw dimensions are applied.
-  static const primitives = {'RoundedContainer', 'SkeletonBox', 'SkeletonLine', 'SkeletonCircle', 'AppGap'};
+  /// Generic primitives that are the place raw dimensions are applied: the
+  /// box and the remote image of the four basic building blocks, the skeleton
+  /// shapes and the gap.
+  static const primitives = {
+    'RoundedContainer',
+    'AppNetworkImage',
+    'SkeletonBox',
+    'SkeletonLine',
+    'SkeletonCircle',
+    'AppGap',
+  };
 
   @override
   DiagnosticCode get diagnosticCode => code;
