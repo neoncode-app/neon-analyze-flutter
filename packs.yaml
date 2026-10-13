@@ -120,7 +120,7 @@ responsive:
     no_layout_builder_in_pages: [pages, features]
 
 kit:
-  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, dimension tokens, named text styles, no tr() in the kit.
+  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the scale only in dimens files, named text styles, no tr() in the kit.
   rules:
     - use_kit_widgets
     - no_tr_in_global_widget
@@ -130,17 +130,20 @@ kit:
     - kit_src_internal
     - no_raw_dimension
     - dimens_private_to_widget
-    - page_dimens_spacing_only
+    - scale_only_in_dimens
     - no_app_dimens
     - component_takes_variant
+    - piece_in_own_folder
+    - piece_has_skeleton
     - no_raw_text_style
   where:
     no_tr_in_global_widget: [global_widgets]
     global_widgets_layering: [global_widgets]
     component_has_no_state_access: [global_widgets]
     global_widget_has_category: [global_widgets, features]
-    page_dimens_spacing_only: [pages]
     component_takes_variant: [global_widgets]
+    piece_in_own_folder: [ui]
+    piece_has_skeleton: [ui]
 
 catalog:
   description: The widget catalog page. Its generated index is current and every kit widget has a live preview.

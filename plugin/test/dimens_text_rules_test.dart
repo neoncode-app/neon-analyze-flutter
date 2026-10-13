@@ -9,7 +9,7 @@ void main() {
   defineReflectiveSuite(() {
     defineReflectiveTests(NoRawDimensionTest);
     defineReflectiveTests(DimensPrivateToWidgetTest);
-    defineReflectiveTests(PageDimensSpacingOnlyTest);
+    defineReflectiveTests(ScaleOnlyInDimensTest);
     defineReflectiveTests(NoAppDimensTest);
     defineReflectiveTests(ComponentTakesVariantTest);
     defineReflectiveTests(NoRawTextStyleTest);
@@ -101,9 +101,9 @@ class DimensPrivateToWidgetTest extends _DimensTest {
 }
 
 @reflectiveTest
-class PageDimensSpacingOnlyTest extends _DimensTest {
+class ScaleOnlyInDimensTest extends _DimensTest {
   @override
-  AnalysisRule get ruleUnderTest => PageDimensSpacingOnly();
+  AnalysisRule get ruleUnderTest => ScaleOnlyInDimens();
 
   static const _source = '''
 import 'package:test/utils/ui/tokens/app_spacing.dart';
@@ -115,15 +115,33 @@ final radius = AppRadius.card;
 final height = AppTextFieldDimens.standard;
 ''';
 
-  Future<void> test_pages_using_more_than_spacing_are_flagged() => expectIn(
-        'pages/x_page.dart',
+  Future<void> test_scale_in_a_page_is_flagged() => expectIn(
+        'pages/x_page/x_page.dart',
         _source,
-        ['AppRadius.card', 'AppTextFieldDimens.standard'],
-        message: ['pages use only AppSpacing'],
+        ['AppSpacing.s16', 'AppRadius.card'],
+        message: ['outside a dimens file'],
         after: 'final gap',
       );
 
-  Future<void> test_components_may_use_the_scale() => expectIn('global_widgets/global/x.dart', _source, []);
+  Future<void> test_scale_in_a_component_is_flagged() => expectIn(
+        'global_widgets/global/app_text_field/app_text_field.dart',
+        _source,
+        ['AppSpacing.s16', 'AppRadius.card'],
+        after: 'final gap',
+      );
+
+  Future<void> test_scale_in_infrastructure_is_flagged() =>
+      expectIn('utils/ui/app_style.dart', _source, ['AppSpacing.s16', 'AppRadius.card'], after: 'final gap');
+
+  Future<void> test_dimens_files_and_the_scale_read_it() async {
+    await expectIn('global_widgets/global/app_pill/app_pill_dimens.dart', _source, []);
+    await expectIn('pages/x_page/x_page_dimens.dart', _source, []);
+    await expectIn(
+      'utils/ui/tokens/app_gap.dart',
+      "import 'package:test/utils/ui/tokens/app_spacing.dart';\nfinal gap = AppSpacing.s16;\n",
+      [],
+    );
+  }
 }
 
 @reflectiveTest

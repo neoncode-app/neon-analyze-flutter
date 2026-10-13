@@ -23,6 +23,7 @@ import 'package:neon_lints/src/no_tr_in_global_widget.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
 import 'package:neon_lints/src/page_state_rules.dart';
 import 'package:neon_lints/src/page_template_rules.dart';
+import 'package:neon_lints/src/piece_rules.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
 import 'package:neon_lints/src/responsive_rules.dart';
 import 'package:neon_lints/src/role_rules.dart';
@@ -95,9 +96,12 @@ class NeonLintsPlugin extends Plugin {
       // NCR0000021: per-widget dimens, design tokens, text style, UI strings.
       ..registerLintRule(NoRawDimension())
       ..registerLintRule(DimensPrivateToWidget())
-      ..registerLintRule(PageDimensSpacingOnly())
+      ..registerLintRule(ScaleOnlyInDimens())
       ..registerLintRule(NoAppDimens())
       ..registerLintRule(ComponentTakesVariant())
+      // NCC0000054: one folder per piece, with its dimens and skeleton.
+      ..registerLintRule(PieceInOwnFolder())
+      ..registerLintRule(PieceHasSkeleton())
       ..registerLintRule(NoRawTextStyle())
       ..registerLintRule(NoDebugPrint())
       ..registerLintRule(NoHardcodedUiString())

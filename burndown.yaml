@@ -21,15 +21,25 @@ phases:
       - no_widget_builder_method
       - extend_base_cubit
 
+  - name: folders
+    why: every piece moves into its own folder first, so its dimens and skeleton have a place beside it
+    rules:
+      - piece_in_own_folder
+
   - name: tokens
-    why: dimensions and text styles from the scale, so the kit and pages can be reshaped on top of it
+    why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
     rules:
       - no_raw_text_style
       - no_raw_dimension
       - dimens_private_to_widget
       - component_takes_variant
-      - page_dimens_spacing_only
+      - scale_only_in_dimens
       - no_app_dimens
+
+  - name: skeletons
+    why: every piece with a look gets its skeleton from the same dimens, and page skeletons are composed from them
+    rules:
+      - piece_has_skeleton
 
   - name: kit
     why: kit widgets and texts in place before pages are restructured around them

@@ -432,7 +432,7 @@ Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platfo
 
 ### `kit`
 
-The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, dimension tokens, named text styles, no tr() in the kit.
+The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the scale only in dimens files, named text styles, no tr() in the kit.
 
 | Rule | What it enforces |
 | --- | --- |
@@ -444,9 +444,11 @@ The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, 
 | `kit_src_internal` | a kit's `src/` is imported only from inside that kit |
 | `no_raw_dimension` | no numeric size / padding / radius / gap literal outside `lib/utils/ui/tokens/`, `*_dimens.dart`, `*_text_styles.dart` |
 | `dimens_private_to_widget` | an app `<Widget>Dimens` is used only inside its widget's folder |
-| `page_dimens_spacing_only` | pages use only `AppSpacing` of the scale and no widget dimens |
+| `scale_only_in_dimens` | the scale (`AppSpacing`, `AppRadius`, ... in `lib/utils/ui/tokens/`) is read only by `*_dimens.dart` files; every other file uses its own dimens |
 | `no_app_dimens` | no reference to the old `AppDimens` (ratchet during the migration) |
 | `component_takes_variant` | `{@category Component}` constructors take no raw dimension parameters (primitives allow-listed) |
+| `piece_in_own_folder` | every public widget of the kit, features and pages lives in `<name>/<name>.dart`; parts go into subfolders of their piece's folder |
+| `piece_has_skeleton` | every piece except layouts, behaviors and skeletons has `<name>_skeleton.dart` declaring `<Name>Skeleton` beside it |
 | `no_raw_text_style` | no `TextStyle(...)` / `copyWith(` other than `color:` outside the text style files |
 
 ### `catalog`
