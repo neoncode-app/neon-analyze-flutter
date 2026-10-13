@@ -56,16 +56,24 @@ class PieceInOwnFolderTest extends BlocRuleTest {
   Future<void> test_a_page_and_a_layout_need_a_folder_too() async {
     await expectIn('pages/vernak/vernak_company_page.dart', _widget('VernakCompanyPage'), ['VernakCompanyPage'],
         after: 'class');
-    await expectIn('global_widgets/global/two_panel_layout.dart', _widget('TwoPanelLayout', 'Layout'),
-        ['TwoPanelLayout'],
+    await expectIn(
+        'global_widgets/global/two_panel_layout.dart', _widget('TwoPanelLayout', 'Layout'), ['TwoPanelLayout'],
         after: 'class');
   }
 
+  Future<void> test_the_file_name_may_join_words_of_the_class() async {
+    await expectIn('pages/neoncode/neoncode_doordrop_stats_page/neoncode_doordrop_stats_page.dart',
+        _widget('NeoncodeDoorDropStatsPage'), []);
+    await expectIn('pages/neoncode/neoncode_doordrop_settings_page.dart', _widget('NeoncodeDoorDropSettingsPage'),
+        ['NeoncodeDoorDropSettingsPage'],
+        message: ['neoncode_doordrop_settings_page/neoncode_doordrop_settings_page.dart'], after: 'class');
+  }
+
   Future<void> test_a_part_in_a_subfolder_is_clean() async {
-    newFile('$testPackageLibPath/pages/vernak/vernak_company_page/vernak_company_page.dart',
-        _widget('VernakCompanyPage'));
-    await expectIn('pages/vernak/vernak_company_page/widgets/company_users_block.dart',
-        _widget('CompanyUsersBlock'), []);
+    newFile(
+        '$testPackageLibPath/pages/vernak/vernak_company_page/vernak_company_page.dart', _widget('VernakCompanyPage'));
+    await expectIn(
+        'pages/vernak/vernak_company_page/widgets/company_users_block.dart', _widget('CompanyUsersBlock'), []);
   }
 
   Future<void> test_the_skeleton_file_is_part_of_its_piece() => expectIn(
@@ -105,8 +113,7 @@ class PieceHasSkeletonTest extends BlocRuleTest {
 
   Future<void> test_a_skeleton_file_without_the_class_is_flagged() async {
     newFile('$testPackageLibPath/global_widgets/global/app_switch/app_switch_skeleton.dart', '// empty\n');
-    await expectIn('global_widgets/global/app_switch/app_switch.dart', _widget('AppSwitch', 'Component'),
-        ['AppSwitch'],
+    await expectIn('global_widgets/global/app_switch/app_switch.dart', _widget('AppSwitch', 'Component'), ['AppSwitch'],
         after: 'class');
   }
 
@@ -119,8 +126,8 @@ class PieceHasSkeletonTest extends BlocRuleTest {
       );
 
   Future<void> test_layouts_behaviors_and_skeletons_need_none() async {
-    await expectIn('global_widgets/global/two_panel_layout/two_panel_layout.dart', _widget('TwoPanelLayout', 'Layout'),
-        []);
+    await expectIn(
+        'global_widgets/global/two_panel_layout/two_panel_layout.dart', _widget('TwoPanelLayout', 'Layout'), []);
     await expectIn('global_widgets/global/app_safe_area/app_safe_area.dart', _widget('AppSafeArea', 'Behavior'), []);
     await expectIn('global_widgets/global/skeleton_card/skeleton_card.dart', _widget('SkeletonCard', 'Skeleton'), []);
     await expectIn(

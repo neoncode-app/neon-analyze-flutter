@@ -63,7 +63,13 @@ final class _Piece {
   /// Its `{@category}`, `Skeleton` for a `*Skeleton` class, or null.
   final String? category;
 
-  String get snake => snakeCase(name);
+  /// The file name of the piece: its current one when that already spells
+  /// the class (underscores aside, so `doordrop` names `DoorDrop`), otherwise
+  /// the class in snake case.
+  String get snake {
+    final stem = _stem(path);
+    return stem.replaceAll('_', '') == name.toLowerCase() ? stem : snakeCase(name);
+  }
 
   /// Whether it already is the entry file of its own folder.
   bool get inOwnFolder => _stem(path) == snake && _baseName(_dirOf(path)) == snake;

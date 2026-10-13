@@ -56,7 +56,8 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'MouseRegion for hover or a cursor',
-      replacement: 'AppTapArea (onHoverChanged / cursor) or RoundedContainer(onTap:) with hoverColor / hoverBorderColor',
+      replacement:
+          'AppTapArea (onHoverChanged / cursor) or RoundedContainer(onTap:) with hoverColor / hoverBorderColor',
       types: {'MouseRegion'},
       owners: ['$_kit/app_tap_area.dart', '$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
     ),
@@ -173,7 +174,8 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'CircularProgressIndicator',
-      replacement: 'a skeleton (the piece\'s own, SkeletonBox, CardListSkeleton, ...), AppSpinner, or CustomButton(isLoading:)',
+      replacement:
+          'a skeleton (the piece\'s own, SkeletonBox, CardListSkeleton, ...), AppSpinner, or CustomButton(isLoading:)',
       types: {'CircularProgressIndicator', 'CupertinoActivityIndicator'},
       owners: ['$_kit/app_spinner.dart', '$_kit/custom_button.dart'],
     ),
