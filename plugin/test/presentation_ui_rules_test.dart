@@ -443,6 +443,7 @@ class _EmptyState extends State<Empty> {
         '''
 ${_imports}class TextEditingController {}
 class FocusNode {}
+class TapGestureRecognizer {}
 
 class Page extends StatefulWidget {
   const Page();
@@ -451,6 +452,7 @@ class Page extends StatefulWidget {
 class _PageState extends State<Page> {
   final _search = TextEditingController();
   final _focus = FocusNode();
+  final _link = TapGestureRecognizer();
 
   @override
   Widget build(BuildContext context) => Widget();
