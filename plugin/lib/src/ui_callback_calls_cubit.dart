@@ -18,6 +18,8 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// * a dialog's pure Cancel: `onCancel: () => context.pop()`,
 /// * `null`.
 /// No `if`, no `await`, no second statement, no other function call.
+/// A named argument that is not a function (`onAccentColor: colors.onPrimary`,
+/// a colour named after its role) is no callback and is not checked.
 class UiCallbackCallsCubit extends AnalysisRule {
   UiCallbackCallsCubit() : super(name: 'ui_callback_calls_cubit', description: _desc);
 
@@ -52,8 +54,17 @@ class _Visitor extends SimpleAstVisitor<void> {
     final name = node.name.label.name;
     if (!RegExp(r'^on[A-Z]').hasMatch(name) || !layout.isIn(unitPath(node), LayoutRole.pages)) return;
     if (!isAppSource(unitPath(node))) return;
+    if (!_isCallbackParameter(node)) return;
     final problem = _problem(node.expression);
     if (problem != null) rule.reportAtNode(node, arguments: [name, problem]);
+  }
+
+  /// The argument fills a function-typed parameter (or one the analyzer could
+  /// not resolve, which stays checked).
+  static bool _isCallbackParameter(NamedExpression node) {
+    final type = node.element?.type;
+    if (type == null) return true;
+    return type is FunctionType || type is DynamicType;
   }
 
   /// Why [value] is not an allowed callback, or null when it is.

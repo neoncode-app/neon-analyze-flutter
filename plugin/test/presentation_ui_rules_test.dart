@@ -315,7 +315,13 @@ class Row {
     Button(onTap: () => context.pop()),
     Button(onTap: () => unawaited(cubit.load())),
     Button(onTap: null),
+    Mark(onAccent: 0xFFFFFFFF),
   ];
+}
+
+class Mark {
+  const Mark({required this.onAccent});
+  final int onAccent;
 }
 ''';
 
