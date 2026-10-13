@@ -123,7 +123,10 @@ class _ReturnCollector extends RecursiveAstVisitor<void> {
 }
 
 /// Where a page uses `AppContentPage`, it passes both `title:` and
-/// `subtitle:` (every content page has both, ADMINISTRATION.md 1b).
+/// `subtitle:` (every content page has both, ADMINISTRATION.md 1b). Only in
+/// the pages of layout role `subtitled_pages` (default `lib/pages/`; an app
+/// whose administrations differ narrows it), and never in the widget catalog
+/// previews, which show the template rather than a page.
 class PageHasTitleSubtitle extends AnalysisRule {
   PageHasTitleSubtitle() : super(name: 'page_has_title_subtitle', description: _desc);
 
@@ -142,19 +145,23 @@ class PageHasTitleSubtitle extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addInstanceCreationExpression(this, _TitleVisitor(this));
+    registry.addInstanceCreationExpression(this, _TitleVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _TitleVisitor extends SimpleAstVisitor<void> {
-  _TitleVisitor(this.rule);
+  _TitleVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     if (node.constructorName.element?.enclosingElement.name != 'AppContentPage') return;
-    if (!isAppSource(unitPath(node))) return;
+    final path = unitPath(node);
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.subtitledPages)) return;
+    if (layout.isIn(path, LayoutRole.catalogPreviews)) return;
     final given = {
       for (final argument in node.argumentList.arguments)
         if (argument is NamedExpression && argument.expression is! NullLiteral) argument.name.label.name,

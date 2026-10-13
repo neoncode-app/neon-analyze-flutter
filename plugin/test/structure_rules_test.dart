@@ -171,6 +171,14 @@ class PageHasTitleSubtitleTest extends _StructureTest {
 
   Future<void> test_both_given_is_clean() =>
       expectIn('pages/x_page.dart', "${_imports}Object a() => const AppContentPage(title: 'x', subtitle: 'y');\n", []);
+
+  Future<void> test_pages_outside_subtitled_pages_and_catalog_previews_are_not_checked() async {
+    newFile('$testPackageRootPath/neon_check.yaml', 'layout:\n  subtitled_pages: lib/pages/neoncode/\n');
+    const source = "${_imports}Object a() => const AppContentPage(title: 'x');\n";
+    await expectIn('pages/vernak/x_page.dart', source, []);
+    await expectIn('pages/neoncode/widgets/widget_catalog/previews/previews_x.dart', source, []);
+    await expectIn('pages/neoncode/x_page.dart', source, ['AppContentPage'], after: 'Object a()');
+  }
 }
 
 @reflectiveTest

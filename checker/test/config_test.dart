@@ -328,7 +328,7 @@ tests:
     test('the brief of a page lists its kind, its rules, its gates and its written rules', () {
       final config = CheckConfig.load(dir.path, toolRoot: _tool);
       final text = brief(config, _tool, 'lib/pages/shop/shop_orders_page.dart');
-      expect(text, contains('it is `pages` (UI code)'));
+      expect(text, contains('it is `pages`, `subtitled_pages` (UI code)'));
       expect(text, contains('- page_uses_template: '));
       expect(text, contains('- no_setstate_in_pages: '));
       expect(text, isNot(contains('- state_is_sealed:')), reason: 'a bloc rule is not about a page');

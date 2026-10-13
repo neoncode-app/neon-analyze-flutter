@@ -29,6 +29,11 @@ import 'package:yaml/yaml.dart';
 /// A kind of code whose location the rules and the checks depend on.
 enum LayoutRole {
   pages('pages', ['lib/pages/'], 'Pages: one screen each, composed from templates.'),
+  subtitledPages(
+    'subtitled_pages',
+    ['lib/pages/'],
+    'Pages whose AppContentPage carries a subtitle under the title (page_has_title_subtitle).',
+  ),
   features('features', ['lib/features/'], 'Feature widgets: read state (cubit, repository) or drive a flow.'),
   globalWidgets('global_widgets', ['lib/global_widgets/'], 'The widget kit: draws from parameters and the theme.'),
   bloc('bloc', ['lib/bloc/'], 'Cubits and their states.'),

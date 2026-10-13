@@ -122,6 +122,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | Role | Default |
 | --- | --- |
 | `pages` | `lib/pages/` |
+| `subtitled_pages` | `lib/pages/` |
 | `features` | `lib/features/` |
 | `global_widgets` | `lib/global_widgets/` |
 | `bloc` | `lib/bloc/` |
