@@ -44,9 +44,9 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'InkWell / InkResponse',
-      replacement: 'RoundedContainer(onTap:)',
+      replacement: 'RoundedContainer(onTap:), or AppMaterialSurface(onTap:) on an elevated surface',
       types: {'InkWell', 'InkResponse'},
-      owners: ['$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
+      owners: ['$_kit/rounded_container.dart', '$_kit/custom_button.dart', '$_kit/app_material_surface.dart'],
     ),
     BannedApi(
       label: 'Material',
