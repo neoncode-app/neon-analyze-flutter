@@ -144,6 +144,12 @@ class XPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const TwoPanelLayout();
 }
+
+class BrandedPage extends StatelessWidget {
+  const BrandedPage();
+  @override
+  Widget build(BuildContext context) => const XPage();
+}
 ''',
         [],
       );
