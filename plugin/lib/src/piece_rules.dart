@@ -26,10 +26,14 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// piece and has no folder of its own. The skeleton file of a piece is part
 /// of it too.
 
-/// Tiers that draw nothing of their own and so have no skeleton: a behavior
-/// adds behaviour, a layout is rendered with its children's skeletons by the
-/// page skeleton, and a skeleton is the placeholder itself.
-const _withoutSkeleton = {'Layout', 'Behavior', 'Skeleton'};
+/// Tiers that have no skeleton of their own: a behavior adds nothing to draw,
+/// a layout and a template are rendered as they are around the skeletons of
+/// their children, and a skeleton is the placeholder itself.
+const _withoutSkeleton = {'Layout', 'Behavior', 'Template', 'Skeleton'};
+
+/// Name suffixes of pieces that are never shown as a loading placeholder: a
+/// dialog or a sheet opens over a page that is already loaded.
+const _overlaySuffixes = ['Dialog', 'Sheet'];
 
 /// `AppSwitch` -> `app_switch`, `AppHTMLView` -> `app_html_view`.
 String snakeCase(String name) => name
@@ -67,7 +71,8 @@ final class _Piece {
   /// The folder it belongs in (absolute).
   String get folder => inOwnFolder ? _dirOf(path) : '${_dirOf(path)}/$snake';
 
-  bool get needsSkeleton => !_withoutSkeleton.contains(category);
+  bool get needsSkeleton =>
+      !_withoutSkeleton.contains(category) && !_overlaySuffixes.any((suffix) => name.endsWith(suffix));
 }
 
 /// The piece [node] declares, or null when it is no piece (private, not a
@@ -146,7 +151,8 @@ class _FolderVisitor extends SimpleAstVisitor<void> {
 }
 
 /// Every piece with a look of its own has `<name>_skeleton.dart` declaring
-/// `<Name>Skeleton` in its folder; layouts, behaviors and skeletons have none.
+/// `<Name>Skeleton` in its folder; layouts, behaviors, templates, skeletons,
+/// dialogs and sheets have none.
 class PieceHasSkeleton extends AnalysisRule {
   PieceHasSkeleton() : super(name: 'piece_has_skeleton', description: _desc);
 

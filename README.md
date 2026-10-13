@@ -448,7 +448,7 @@ The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, 
 | `no_app_dimens` | no reference to the old `AppDimens` (ratchet during the migration) |
 | `component_takes_variant` | `{@category Component}` constructors take no raw dimension parameters (primitives allow-listed) |
 | `piece_in_own_folder` | every public widget of the kit, features and pages lives in `<name>/<name>.dart`; parts go into subfolders of their piece's folder |
-| `piece_has_skeleton` | every piece except layouts, behaviors and skeletons has `<name>_skeleton.dart` declaring `<Name>Skeleton` beside it |
+| `piece_has_skeleton` | every piece except layouts, behaviors, templates, skeletons, dialogs and sheets has `<name>_skeleton.dart` declaring `<Name>Skeleton` beside it |
 | `no_raw_text_style` | no `TextStyle(...)` / `copyWith(` other than `color:` outside the text style files |
 
 ### `catalog`

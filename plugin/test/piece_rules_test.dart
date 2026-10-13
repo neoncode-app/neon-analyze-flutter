@@ -123,6 +123,14 @@ class PieceHasSkeletonTest extends BlocRuleTest {
         []);
     await expectIn('global_widgets/global/app_safe_area/app_safe_area.dart', _widget('AppSafeArea', 'Behavior'), []);
     await expectIn('global_widgets/global/skeleton_card/skeleton_card.dart', _widget('SkeletonCard', 'Skeleton'), []);
+    await expectIn(
+        'global_widgets/global/app_content_page/app_content_page.dart', _widget('AppContentPage', 'Template'), []);
+  }
+
+  Future<void> test_dialogs_and_sheets_need_none() async {
+    await expectIn('global_widgets/global/app_dialog/app_dialog.dart', _widget('AppDialog', 'Pattern'), []);
+    await expectIn('pages/vernak/vernak_company_page/widgets/edit_roles_sheet.dart', _widget('EditRolesSheet'), []);
+    await expectIn('pages/vernak/invite_members_sheet/invite_members_sheet.dart', _widget('InviteMembersSheet'), []);
   }
 
   Future<void> test_a_piece_not_yet_in_its_folder_is_told_where_the_skeleton_goes() => expectIn(
