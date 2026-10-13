@@ -207,7 +207,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
-| `page_help` | admin | every page has `onHelp` and its help keys (one entry per flavour with a help enum) | no |
+| `page_help` | admin | every page has `help:` and its help keys (one entry per flavour with a help enum) | no |
 | `generated` | core | `*.g.dart` match their sources (build_runner) | yes |
 | `test_existence` | bloc, go_router | every cubit has `<name>_cubit_test.dart` (bloc), every GoRoute `<route>_route_test.dart` (go_router); ratchet `test_missing` | no |
 | `integration_pages` | integration | every page has a flow that imports it or finds its class (ratchet `integration_missing`) | no |

@@ -69,7 +69,7 @@ String brief(CheckConfig config, String toolRoot, String file) {
       'an integration flow in ${config.integrationDir}/ that opens this page',
     for (final help in config.pageHelpEntries)
       if (file.startsWith('${help.pages}/') && name.startsWith(help.pagePrefix) && name.endsWith('_page.dart'))
-        '`onHelp` on AppContentPage and the `${help.keyPrefix}<page>_*` keys (${help.enumFile.split('/').last})',
+        '`help:` on AppContentPage and the `${help.keyPrefix}<page>_*` keys (${help.enumFile.split('/').last})',
     if (config.packEnabled('catalog') && config.catalogPreviewRequired.any((dir) => file.startsWith('$dir/')))
       'a catalog preview in ${config.catalogPreviews}/ for every public widget',
     if (config.packEnabled('flavors') && layout.matches(LayoutRole.providers, file))

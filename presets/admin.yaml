@@ -12,7 +12,7 @@ catalog:
   preview_required: [lib/global_widgets]
 
 # One entry per flavour whose help enum exists ({flavor} is replaced):
-# every <flavor>_*_page.dart in pages has onHelp and every help entry has
+# every <flavor>_*_page.dart in pages has help: and every help entry has
 # its translation keys.
 page_help:
   pages: lib/pages/{flavor}

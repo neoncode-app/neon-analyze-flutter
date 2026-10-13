@@ -297,7 +297,7 @@ final class ProvidersStep extends CheckStep {
   }
 }
 
-/// Every page of a configured folder has a help dialog (`onHelp`) and every
+/// Every page of a configured folder has a help dialog (`help:`) and every
 /// help entry has all its translation keys; one entry per flavour whose help
 /// enum exists (`page_help:` with `{flavor}`).
 final class PageHelpStep extends CheckStep {
@@ -307,7 +307,7 @@ final class PageHelpStep extends CheckStep {
   String get name => 'page_help';
 
   @override
-  String get description => 'every page has onHelp and its help translation keys';
+  String get description => 'every page has help and its help translation keys';
 
   @override
   Set<String> get rules => const {'page_help_missing', 'page_help_key_missing'};
@@ -335,12 +335,12 @@ final class PageHelpStep extends CheckStep {
             help.exempt.contains(name)) {
           continue;
         }
-        if (!entity.readAsStringSync().contains('onHelp')) {
+        if (!RegExp(r'\bhelp:').hasMatch(entity.readAsStringSync())) {
           findings.add(
             Finding(
               rule: 'page_help_missing',
               file: file,
-              message: 'the page has no "?" help; pass onHelp to AppContentPage (${help.enumFile.split('/').last})',
+              message: 'the page has no "?" help; pass help: to AppContentPage (${help.enumFile.split('/').last})',
             ),
           );
         }
