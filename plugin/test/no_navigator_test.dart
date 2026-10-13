@@ -95,7 +95,7 @@ void f() => Navigator.pop();
 
   Future<void> test_kit_and_dialog_helper_files_are_not_exempt() async {
     const source = '${_material}void f(BuildContext c) => Navigator.pop(c);';
-    for (final file in ['global_widgets/global/app_dialog.dart', 'utils/utils.dart', 'flavors/neoncode/router.dart']) {
+    for (final file in ['global_widgets/global/app_dialog/app_dialog.dart', 'utils/utils.dart', 'flavors/neoncode/router.dart']) {
       final path = '$testPackageLibPath/$file';
       newFile(path, source);
       await assertDiagnosticsInFile(path, lintsAt(this, source, ['Navigator.pop(c)']));

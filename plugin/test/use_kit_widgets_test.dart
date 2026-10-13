@@ -233,9 +233,9 @@ class UseKitWidgetsTest extends AnalysisRuleTest {
   }
 
   Future<void> test_owner_of_one_row_is_not_owner_of_another() async {
-    // custom_button.dart owns raw buttons and taps, not dialogs.
+    // custom_button/ owns raw buttons and taps, not dialogs.
     const source = '${_material}Object f() => [TextButton(), AlertDialog()];';
-    final path = '$testPackageLibPath/global_widgets/global/custom_button.dart';
+    final path = '$testPackageLibPath/global_widgets/global/custom_button/custom_button.dart';
     newFile(path, source);
     await assertDiagnosticsInFile(path, lintsAt(this, source, ['AlertDialog']));
   }
