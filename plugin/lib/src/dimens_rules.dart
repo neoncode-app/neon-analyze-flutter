@@ -136,8 +136,11 @@ class _RawDimensionVisitor extends SimpleAstVisitor<void> {
     // `-8` is a literal too.
     if (literal.parent is PrefixExpression) literal = literal.parent ?? literal;
     final parent = literal.parent;
-    final isNamedDimension =
-        parent is NamedExpression && NoRawDimension.dimensionNames.contains(parent.name.label.name);
+    // A dimension name on an int parameter is a count or a byte size
+    // (`VernakBannerFile(size: 1200000)`), not a length.
+    final isNamedDimension = parent is NamedExpression &&
+        NoRawDimension.dimensionNames.contains(parent.name.label.name) &&
+        !(parent.element?.type.isDartCoreInt ?? false);
     // Any argument of a geometry class counts, named (`horizontal:`) or not.
     final argumentList = parent is NamedExpression ? parent.parent : parent;
     if (argumentList is! ArgumentList) return;
