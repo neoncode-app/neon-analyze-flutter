@@ -248,6 +248,18 @@ ${_imports}void f(BuildContext context) {
     }
   }
 
+  Future<void> test_a_kit_dialog_closes_itself_before_its_callback() async {
+    const source = '''
+${_imports}void confirm(BuildContext context, void Function(int) onPicked) {
+  context.pop();
+  onPicked(1);
+}
+''';
+    await expectIn('global_widgets/global/x_picker.dart', source, []);
+    await expectIn('pages/x_dialog.dart', source, ['context.pop()'],
+        message: ['emits NavigateTo'], after: 'void confirm(');
+  }
+
   Future<void> test_pure_cancel_and_close_dialog_are_allowed() => expectIn(
         'pages/x_dialog.dart',
         '''

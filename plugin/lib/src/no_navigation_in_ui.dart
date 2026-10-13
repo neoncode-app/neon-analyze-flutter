@@ -14,9 +14,12 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// emits `NavigateTo`, and `PresentationEventHandler` (or the router)
 /// navigates.
 ///
-/// `context.pop()` is allowed in exactly two places: a presentation listener
-/// branch handling `CloseDialog`, and a dialog's pure Cancel, a callback whose
-/// whole body is `context.pop()` without a result.
+/// `context.pop()` without a result is allowed in exactly three places: a
+/// presentation listener branch handling `CloseDialog`, a dialog's pure
+/// Cancel (a callback whose whole body is `context.pop()`), and a dialog of the
+/// widget kit (`lib/global_widgets`), which has no cubit to emit `CloseDialog`
+/// and so closes itself before handing its value to the caller's callback
+/// (a value picker's confirm).
 class NoNavigationInUi extends AnalysisRule {
   NoNavigationInUi() : super(name: 'no_navigation_in_ui', description: _desc);
 
@@ -54,7 +57,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (owner is! ExtensionElement || owner.name != 'GoRouterHelper' || !isFromPackage(owner, 'go_router')) return;
     final name = node.methodName.name;
     if (name == 'canPop') return;
-    if (name == 'pop' && (_isPureCancel(node) || _handlesCloseDialog(node))) return;
+    if (name == 'pop' && (_isPureCancel(node) || _handlesCloseDialog(node) || _closesKitDialog(node))) return;
     rule.reportAtNode(node, arguments: [name]);
   }
 
@@ -68,6 +71,10 @@ class _Visitor extends SimpleAstVisitor<void> {
         (parent.parent as Block).statements.length == 1 &&
         parent.parent?.parent is BlockFunctionBody;
   }
+
+  /// A result-free `context.pop()` in the widget kit.
+  bool _closesKitDialog(MethodInvocation node) =>
+      node.argumentList.arguments.isEmpty && layout.isIn(unitPath(node), LayoutRole.globalWidgets);
 
   /// Inside `if (event is CloseDialog)` or `case CloseDialog():`.
   static bool _handlesCloseDialog(AstNode node) {
