@@ -57,6 +57,7 @@ phases:
       - cancel_subscriptions_in_close
       - state_is_sealed
       - no_status_enum_state
+      - no_state_enum_branching
       - no_repository_in_ui
       - no_http_in_ui
 

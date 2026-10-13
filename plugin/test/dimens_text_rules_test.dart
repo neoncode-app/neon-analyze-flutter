@@ -71,6 +71,13 @@ ${_flutter}Object f() => [
 
   Future<void> test_non_dimension_numbers_are_clean() =>
       expectIn('pages/x_page.dart', '${_flutter}int f(List<int> items) => items.length + 1;\n', []);
+
+  Future<void> test_a_dimension_name_on_an_int_parameter_is_clean() => expectIn(
+        'pages/x_page.dart',
+        '${_flutter}class File {\n  const File({required this.size});\n  final int size;\n}\n'
+            'const file = File(size: 1200000);\n',
+        [],
+      );
 }
 
 @reflectiveTest
@@ -163,6 +170,14 @@ class $name extends StatelessWidget {
         ['this.padding', 'this.height'],
         message: ['take `variant:`'],
         after: 'const AppPill({',
+      );
+
+  Future<void> test_a_size_variant_enum_is_clean() => expectIn(
+        'global_widgets/global/app_button.dart',
+        '${_flutter}enum AppButtonSize { regular, pill }\n/// A button.\n///\n/// {@category Component}\n'
+            'class AppButton extends StatelessWidget {\n  const AppButton({this.size = AppButtonSize.regular});\n'
+            '  final AppButtonSize size;\n  @override\n  Widget build(BuildContext context) => Widget();\n}\n',
+        [],
       );
 
   Future<void> test_primitives_and_other_tiers_are_clean() async {

@@ -3,6 +3,7 @@ import 'package:analyzer/analysis_rule/rule_context.dart';
 import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
+import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/support/ast_support.dart';
@@ -12,7 +13,9 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// `lib/pages`) returns, through the allowed wrappers, a widget whose class
 /// doc comment ends with `{@category Template}` (AdminLayout, AppContentPage,
 /// AppEditorScaffold, ...). The category is read from the resolved class, so
-/// a newly added template counts without editing this rule.
+/// a newly added template counts without editing this rule. A page may also
+/// return another page (a `*Page` widget declared in `lib/pages`, such as the
+/// shared login page a flavour brands): that page is held to this rule itself.
 class PageUsesTemplate extends AnalysisRule {
   PageUsesTemplate() : super(name: 'page_uses_template', description: _desc);
 
@@ -95,8 +98,12 @@ class _TemplateVisitor extends SimpleAstVisitor<void> {
       return;
     }
     if (categoryOf(widget) == 'Template') return;
+    if (widget != null && name.endsWith('Page') && layout.isIn(_declaredIn(widget), LayoutRole.pages)) return;
     rule.reportAtNode(value.constructorName, arguments: [name]);
   }
+
+  static String _declaredIn(Element element) =>
+      element.library?.firstFragment.source.fullName.replaceAll(r'\', '/') ?? '';
 
   /// Every expression [body] returns (an expression body, or each
   /// `return x;` not inside a nested function).
@@ -123,7 +130,10 @@ class _ReturnCollector extends RecursiveAstVisitor<void> {
 }
 
 /// Where a page uses `AppContentPage`, it passes both `title:` and
-/// `subtitle:` (every content page has both, ADMINISTRATION.md 1b).
+/// `subtitle:` (every content page has both, ADMINISTRATION.md 1b). Only in
+/// the pages of layout role `subtitled_pages` (default `lib/pages/`; an app
+/// whose administrations differ narrows it), and never in the widget catalog
+/// previews, which show the template rather than a page.
 class PageHasTitleSubtitle extends AnalysisRule {
   PageHasTitleSubtitle() : super(name: 'page_has_title_subtitle', description: _desc);
 
@@ -142,19 +152,23 @@ class PageHasTitleSubtitle extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    registry.addInstanceCreationExpression(this, _TitleVisitor(this));
+    registry.addInstanceCreationExpression(this, _TitleVisitor(this, RuleLayout.of(context)));
   }
 }
 
 class _TitleVisitor extends SimpleAstVisitor<void> {
-  _TitleVisitor(this.rule);
+  _TitleVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
+
+  final RuleLayout layout;
 
   @override
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     if (node.constructorName.element?.enclosingElement.name != 'AppContentPage') return;
-    if (!isAppSource(unitPath(node))) return;
+    final path = unitPath(node);
+    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.subtitledPages)) return;
+    if (layout.isIn(path, LayoutRole.catalogPreviews)) return;
     final given = {
       for (final argument in node.argumentList.arguments)
         if (argument is NamedExpression && argument.expression is! NullLiteral) argument.name.label.name,

@@ -144,6 +144,12 @@ class XPanel extends StatelessWidget {
   @override
   Widget build(BuildContext context) => const TwoPanelLayout();
 }
+
+class BrandedPage extends StatelessWidget {
+  const BrandedPage();
+  @override
+  Widget build(BuildContext context) => const XPage();
+}
 ''',
         [],
       );
@@ -171,6 +177,14 @@ class PageHasTitleSubtitleTest extends _StructureTest {
 
   Future<void> test_both_given_is_clean() =>
       expectIn('pages/x_page.dart', "${_imports}Object a() => const AppContentPage(title: 'x', subtitle: 'y');\n", []);
+
+  Future<void> test_pages_outside_subtitled_pages_and_catalog_previews_are_not_checked() async {
+    newFile('$testPackageRootPath/neon_check.yaml', 'layout:\n  subtitled_pages: lib/pages/neoncode/\n');
+    const source = "${_imports}Object a() => const AppContentPage(title: 'x');\n";
+    await expectIn('pages/vernak/x_page.dart', source, []);
+    await expectIn('pages/neoncode/widgets/widget_catalog/previews/previews_x.dart', source, []);
+    await expectIn('pages/neoncode/x_page.dart', source, ['AppContentPage'], after: 'Object a()');
+  }
 }
 
 @reflectiveTest
@@ -243,6 +257,14 @@ class NoRepositoryInUiTest extends _StructureTest {
       message: ['Inject the repository'], after: 'void f(');
 
   Future<void> test_cubits_own_repositories() => expectIn('bloc/x/x_cubit.dart', _source, []);
+
+  Future<void> test_repository_through_a_getter_is_flagged() => expectIn(
+        'pages/x_page.dart',
+        "import 'package:test/repository/neo_api_repository.dart';\n"
+            'class Holder {\n  Object get api => throw 0;\n  NeoApiRepository get neoApi => throw 0;\n}\n'
+            'void f(Holder holder) {\n  g(holder.neoApi);\n  g(holder.api);\n}\nvoid g(Object value) {}\n',
+        ['NeoApiRepository', 'holder.neoApi'],
+      );
 }
 
 @reflectiveTest

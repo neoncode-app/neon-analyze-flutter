@@ -4,8 +4,6 @@ import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
-// LintCode is not in the public API surface yet.
-import 'package:analyzer/src/dart/error/lint_codes.dart';
 
 import 'package:neon_lints/src/support/rule_layout.dart';
 
@@ -80,8 +78,9 @@ class NoRawColor extends AnalysisRule {
     // `part of color_editor_dialog.dart`, so the defining unit is that file.
     if (RuleLayout.of(context).isIn(path, LayoutRole.colors)) return;
     final visitor = _Visitor(this);
-    registry.addInstanceCreationExpression(this, visitor);
-    registry.addPrefixedIdentifier(this, visitor);
+    registry
+      ..addInstanceCreationExpression(this, visitor)
+      ..addPrefixedIdentifier(this, visitor);
   }
 }
 

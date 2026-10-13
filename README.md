@@ -122,6 +122,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | Role | Default |
 | --- | --- |
 | `pages` | `lib/pages/` |
+| `subtitled_pages` | `lib/pages/` |
 | `features` | `lib/features/` |
 | `global_widgets` | `lib/global_widgets/` |
 | `bloc` | `lib/bloc/` |
@@ -131,13 +132,14 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `role_enums` | `lib/model/enum/` |
 | `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
 | `routing` | `lib/flavors/` |
+| `app_root` | `lib/app/bootstrap.dart` |
 | `routers` | `lib/flavors/{flavor}/{flavor}_router.dart` |
 | `dialog_helper` | `lib/utils/utils.dart` |
 | `tokens` | `lib/utils/ui/tokens/` |
 | `widget_dimens` | `lib/**/*_dimens.dart` |
 | `legacy_dimens` | `lib/**/app_dimens.dart` |
 | `text_styles` | `lib/**/*_text_styles.dart`, `lib/utils/ui/app_style.dart` |
-| `colors` | `**/theme/`, `**/ui/app_icon.dart`, `**/ui/app_style.dart`, `lib/model/`, `**/color_editor*`, `**/color_editor*/` |
+| `colors` | `**/theme/`, `**/ui/app_icon.dart`, `**/ui/app_style.dart`, `lib/model/`, `**/color_editor*`, `**/color_editor*/`, `test/support/` |
 | `assets_registry` | `lib/**/app_assets.dart` |
 | `logger` | `lib/utils/helpers/log_utils.dart` |
 | `responsive` | `lib/utils/ui/app_responsive.dart` |
@@ -201,11 +203,11 @@ only when a pack of the app lists it and the run touches what it checks.
 | `translations_missing` | core | every literal `tr('key')` exists | no |
 | `translations_unused` | core | keys no code uses (`--all` only) | `--prune-translations` |
 | `translations_order` | core | keys in the primary file's order | yes |
-| `assets` | core | registry paths exist; unused asset files (`--all`) | no |
+| `assets` | core | registry paths exist (in the app, or in the dependency the registry names as their package); unused asset files (`--all`) | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
-| `providers` | flavors | every typed context getter reads a cubit its router or shell provides | no |
-| `page_help` | admin | every page has `onHelp` and its help keys (one entry per flavour with a help enum) | no |
+| `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
+| `page_help` | admin | every page has `help:` and its help keys (one entry per flavour with a help enum) | no |
 | `generated` | core | `*.g.dart` match their sources (build_runner) | yes |
 | `test_existence` | bloc, go_router | every cubit has `<name>_cubit_test.dart` (bloc), every GoRoute `<route>_route_test.dart` (go_router); ratchet `test_missing` | no |
 | `integration_pages` | integration | every page has a flow that imports it or finds its class (ratchet `integration_missing`) | no |
@@ -349,14 +351,45 @@ Checks: `test_existence`, `coverage`.
 | Rule | What it enforces |
 | --- | --- |
 | `extend_base_cubit` | cubits extend `BaseCubit` |
-| `use_context_getters` | `context.read/watch/select` and `BlocProvider.of` only in `lib/flavors/<f>/<f>_providers.dart` |
-| `cubit_created_in_provider` | a bloc / cubit is constructed only in a provider's `create:` callback |
+| `use_context_getters` | `context.read/watch/select` and `BlocProvider.of` only in the providers files (`lib/flavors/<f>/<f>_providers.dart`, plus an app-wide one such as `lib/app/app_providers.dart` when the layout lists it) |
+| `cubit_created_in_provider` | a bloc / cubit is constructed only in a provider's `create:` callback, or in the app startup (`app_root`) for the app-wide cubits the router needs before it exists |
 | `no_cubit_call_in_lifecycle` | no cubit method call directly in `initState`, `didChangeDependencies`, `build` |
 | `no_provider_value` | no `BlocProvider.value` of a cubit held in a `State` field |
 | `cancel_subscriptions_in_close` | `stream.listen` in a cubit stored in a field and cancelled in `close()` |
 | `alert_only_in_cubit` | no `AlertCubit` in `lib/pages`, `lib/features`, `lib/global_widgets` |
 | `state_is_sealed` | the state of a `BaseCubit<S>` is `sealed` (except `lib/bloc/<app>/app_wide/`) |
 | `no_status_enum_state` | no `XStatus` enum field in a state class under `lib/bloc` |
+| `no_state_enum_branching` | UI code never branches (`switch`, `==`) on an enum field of a cubit state; each value is a state subclass |
+
+**The state convention** these rules converge on (one shape for every page
+cubit, so the UI is always `switch (state)` over a closed set):
+
+```dart
+sealed class XState {               // the data every state shows + derived getters
+  final List<Item> items;
+  const XState({this.items = const []});
+  bool get isEmpty => items.isEmpty;
+}
+final class XInitial extends XState { const XInitial(); }
+final class XLoading extends XState { const XLoading({super.items}); }  // previous data stays visible
+final class XLoaded extends XState {
+  final bool isSaving;              // busy markers only on Loaded
+  const XLoaded({required super.items, this.isSaving = false});
+}
+final class XError extends XState {
+  final String message;             // the last data stays visible
+  const XError(this.message, {super.items});
+}
+```
+
+- A page with modes (tabs, a list and an archive) has one subclass per mode,
+  not an enum the UI switches on (`no_state_enum_branching`).
+- A value the user picks (a period, a filter) may stay a field, as long as the
+  UI only shows it and passes it back.
+- Sections that load independently get a nested sealed field
+  (`sealed class XHistory` with `Loading` / `Loaded(items)` / `Error`).
+- App-wide cubits (`lib/bloc/<app>/app_wide/`) are exempt from
+  `state_is_sealed`: a session or the rules are one long-lived value.
 
 ### `presentation`
 
@@ -383,7 +416,7 @@ Checks: `test_existence`.
 | Rule | What it enforces |
 | --- | --- |
 | `no_navigator` | no `Navigator.*`; navigate with go_router (`context.pop` / `go` / `push`) |
-| `provider_in_router` | `BlocProvider` / `MultiBlocProvider` only in `lib/flavors/**` and `lib/utils/utils.dart` |
+| `provider_in_router` | `BlocProvider` / `MultiBlocProvider` only in the routing files (`lib/flavors/**`), the app startup (`app_root`, `lib/app/bootstrap.dart`) and the dialog helper (`lib/utils/utils.dart`) |
 
 ### `responsive`
 

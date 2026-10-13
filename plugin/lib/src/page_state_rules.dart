@@ -117,7 +117,8 @@ class _MethodVisitor extends SimpleAstVisitor<void> {
 /// its State is a controller, focus node, timer, subscription or key.
 ///
 /// Heuristic (types matched by name): `*Controller`, `FocusNode`, `Timer`,
-/// `StreamSubscription`, `GlobalKey`, `*Notifier`. A State with no field at
+/// `StreamSubscription`, `GlobalKey`, `*Notifier`, `*Recognizer` (a gesture
+/// recognizer of a text span, which the State must dispose). A State with no field at
 /// all has no reason to exist either.
 class StatefulPageOnlyForControllers extends AnalysisRule {
   StatefulPageOnlyForControllers() : super(name: 'stateful_page_only_for_controllers', description: _desc);
@@ -135,6 +136,7 @@ class StatefulPageOnlyForControllers extends AnalysisRule {
   static bool isControllerType(String name) =>
       name.endsWith('Controller') ||
       name.endsWith('Notifier') ||
+      name.endsWith('Recognizer') ||
       const {'FocusNode', 'Timer', 'StreamSubscription', 'GlobalKey'}.contains(name);
 
   @override

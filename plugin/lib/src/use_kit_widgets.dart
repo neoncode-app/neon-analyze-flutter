@@ -37,17 +37,28 @@ class UseKitWidgets extends BannedApiRule {
       owners: ['$_kit/rounded_container.dart'],
     ),
     BannedApi(
-      label: 'GestureDetector / InkWell / InkResponse / Material',
-      replacement: 'RoundedContainer(onTap:)',
-      types: {'GestureDetector', 'InkWell', 'InkResponse', 'Material'},
-      owners: ['$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
+      label: 'GestureDetector',
+      replacement: 'AppTapArea (tap / long press / pan without a look) or RoundedContainer(onTap:) (with a ripple)',
+      types: {'GestureDetector'},
+      owners: ['$_kit/app_tap_area.dart'],
     ),
     BannedApi(
-      label: 'MouseRegion for hover',
-      replacement: 'RoundedContainer(onTap:) with hoverColor / hoverBorderColor',
+      label: 'InkWell / InkResponse',
+      replacement: 'RoundedContainer(onTap:), or AppMaterialSurface(onTap:) on an elevated surface',
+      types: {'InkWell', 'InkResponse'},
+      owners: ['$_kit/rounded_container.dart', '$_kit/custom_button.dart', '$_kit/app_material_surface.dart'],
+    ),
+    BannedApi(
+      label: 'Material',
+      replacement: 'AppMaterialSurface (an ink host, an elevated surface) or RoundedContainer(onTap:)',
+      types: {'Material'},
+      owners: ['$_kit/app_material_surface.dart', '$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
+    ),
+    BannedApi(
+      label: 'MouseRegion for hover or a cursor',
+      replacement: 'AppTapArea (onHoverChanged / cursor) or RoundedContainer(onTap:) with hoverColor / hoverBorderColor',
       types: {'MouseRegion'},
-      onlyWithArgs: {'onEnter', 'onExit', 'onHover'},
-      owners: ['$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
+      owners: ['$_kit/app_tap_area.dart', '$_kit/rounded_container.dart', '$_kit/custom_button.dart'],
     ),
     BannedApi(
       label: 'TextButton / OutlinedButton / ElevatedButton / FilledButton',
@@ -162,9 +173,9 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'CircularProgressIndicator',
-      replacement: 'a skeleton (SkeletonBox, CardListSkeleton, ...) or CustomButton(isLoading:)',
+      replacement: 'a skeleton (the piece\'s own, SkeletonBox, CardListSkeleton, ...), AppSpinner, or CustomButton(isLoading:)',
       types: {'CircularProgressIndicator', 'CupertinoActivityIndicator'},
-      owners: ['$_kit/custom_button.dart'],
+      owners: ['$_kit/app_spinner.dart', '$_kit/custom_button.dart'],
     ),
     BannedApi(
       label: 'showDatePicker / showTimePicker / showDateRangePicker',
@@ -256,9 +267,9 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'ReorderableListView',
-      replacement: 'AppReorderableTileGrid',
+      replacement: 'AppReorderableList / AppReorderableTileGrid',
       types: {'ReorderableListView'},
-      owners: ['$_kit/app_reorderable_tile_grid.dart'],
+      owners: ['$_kit/app_reorderable_list.dart', '$_kit/app_reorderable_tile_grid.dart'],
     ),
   ];
 

@@ -170,6 +170,7 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
       return;
     }
     if (context.canPop()) return;
+    if (!context.mounted) handleShared(context, event);
     if (event is CloseDialog) {
       showEditor(context, ShowEditor());
       handleShared(context, event);
@@ -182,6 +183,7 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
           "final cubit = context.read<CounterCubit>();",
           'await showEditor(context, event)',
           'context.canPop()',
+          'handleShared(context, event);',
           'handleShared(context, event);',
           "context.read<AlertCubit>()",
         ],
@@ -200,13 +202,14 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
     }
     if (event is CloseDialog) return context.pop();
     if (await handleShared(context, event)) return;
+    if (!context.mounted) return;
     switch (event) {
       case ShowEditor():
         showEditor(context, event);
       default:
         break;
     }
-    handleShared(context, event);
+    if (context.mounted) handleShared(context, event);
   },
 );
 
@@ -243,6 +246,18 @@ ${_imports}void f(BuildContext context) {
         after: 'void f(',
       );
     }
+  }
+
+  Future<void> test_a_kit_dialog_closes_itself_before_its_callback() async {
+    const source = '''
+${_imports}void confirm(BuildContext context, void Function(int) onPicked) {
+  context.pop();
+  onPicked(1);
+}
+''';
+    await expectIn('global_widgets/global/x_picker.dart', source, []);
+    await expectIn('pages/x_dialog.dart', source, ['context.pop()'],
+        message: ['emits NavigateTo'], after: 'void confirm(');
   }
 
   Future<void> test_pure_cancel_and_close_dialog_are_allowed() => expectIn(
@@ -300,7 +315,13 @@ class Row {
     Button(onTap: () => context.pop()),
     Button(onTap: () => unawaited(cubit.load())),
     Button(onTap: null),
+    Mark(onAccent: 0xFFFFFFFF),
   ];
+}
+
+class Mark {
+  const Mark({required this.onAccent});
+  final int onAccent;
 }
 ''';
 
@@ -440,6 +461,7 @@ class _EmptyState extends State<Empty> {
         '''
 ${_imports}class TextEditingController {}
 class FocusNode {}
+class TapGestureRecognizer {}
 
 class Page extends StatefulWidget {
   const Page();
@@ -448,6 +470,7 @@ class Page extends StatefulWidget {
 class _PageState extends State<Page> {
   final _search = TextEditingController();
   final _focus = FocusNode();
+  final _link = TapGestureRecognizer();
 
   @override
   Widget build(BuildContext context) => Widget();

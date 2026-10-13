@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:neon_check/src/context.dart';
@@ -14,8 +15,9 @@ int _lineOf(List<String> lines, Pattern pattern) {
   return 1;
 }
 
-/// Every asset path the registry names exists, and every asset file
-/// is used somewhere.
+/// Every asset path the registry names exists (in the app, or in a dependency
+/// the registry names as the asset's package), and every asset file is used
+/// somewhere.
 final class AssetsStep extends CheckStep {
   const AssetsStep();
 
@@ -43,15 +45,38 @@ final class AssetsStep extends CheckStep {
     return RegExp('^${parts.map(RegExp.escape).join('[^/]+')}\$');
   }
 
+  /// Roots of the app's dependencies, by package name, from
+  /// `.dart_tool/package_config.json` (empty before `pub get`).
+  static Map<String, String> _packageRoots(CheckContext context) {
+    final file = File(context.absolute('.dart_tool/package_config.json'));
+    if (!file.existsSync()) return const {};
+    final packages = (jsonDecode(file.readAsStringSync()) as Map<String, dynamic>)['packages'] as List<dynamic>;
+    return {
+      for (final package in packages.cast<Map<String, dynamic>>())
+        package['name'] as String: Uri.parse(package['rootUri'] as String).isAbsolute
+            ? Uri.parse(package['rootUri'] as String).toFilePath()
+            : file.parent.uri.resolve(package['rootUri'] as String).toFilePath(),
+    };
+  }
+
   @override
   Future<StepResult> run(CheckContext context) async {
     final findings = <Finding>[];
+    final packageRoots = _packageRoots(context);
     for (final registry in context.config.assetRegistries) {
       final lines = File(context.absolute(registry)).readAsLinesSync();
+      // A path paired with a package (`Image.asset(path, package: 'x')`) lives
+      // in that package: the registry names the package in a string literal.
+      final source = lines.join('\n');
+      final namedPackages = [
+        for (final name in packageRoots.keys)
+          if (source.contains("'$name'") || source.contains('"$name"')) name,
+      ];
+      bool inNamedPackage(String path) => namedPackages.any((name) => File('${packageRoots[name]}/$path').existsSync());
       for (var i = 0; i < lines.length; i++) {
         for (final match in _assetLiteral.allMatches(lines[i])) {
           final path = match.group(1) ?? '';
-          if (!File(context.absolute(path)).existsSync()) {
+          if (!File(context.absolute(path)).existsSync() && !inNamedPackage(path)) {
             findings.add(
               Finding(rule: 'asset_missing', file: registry, line: i + 1, message: '`$path` does not exist'),
             );
@@ -189,8 +214,10 @@ final class CatalogPreviewsStep extends CheckStep {
 }
 
 /// Every typed context getter in a providers file (layout role `providers`)
-/// reads a cubit that a router or shell next to it provides (the routing
-/// files in the providers file's folder, or every routing file).
+/// reads a cubit that is provided somewhere it may be: a router or shell next
+/// to it (the routing files in the providers file's folder, or every routing
+/// file), the app startup (role `app_root`, the app-wide cubits that exist
+/// before the router) or a dialog helper call (`showCustomModalBottomSheet(create:)`).
 final class ProvidersStep extends CheckStep {
   const ProvidersStep();
 
@@ -205,12 +232,17 @@ final class ProvidersStep extends CheckStep {
 
   bool _isRouting(CheckContext context, String file) => context.config.layout.matches(LayoutRole.routing, file);
 
+  bool _isAppRoot(CheckContext context, String file) => context.config.layout.matches(LayoutRole.appRoot, file);
+
   @override
   bool appliesTo(CheckContext context) =>
       context.config.providersFiles.isNotEmpty &&
       (context.isAll ||
           [...context.changedFiles, ...context.deletedFiles].any(
-            (file) => _isRouting(context, file) || context.config.layout.matches(LayoutRole.providers, file),
+            (file) =>
+                _isRouting(context, file) ||
+                _isAppRoot(context, file) ||
+                context.config.layout.matches(LayoutRole.providers, file),
           ));
 
   @override
@@ -218,15 +250,26 @@ final class ProvidersStep extends CheckStep {
     final findings = <Finding>[];
     final getter = RegExp(r'(\w+)\s+get\s+\w+\s*=>');
     final provided = RegExp(r'BlocProvider<(\w+)>|create:\s*\([^)]*\)\s*=>\s*(\w+)\(');
+    final dialogCreate = RegExp(r'showCustomModalBottomSheet\b[^;]*?create:\s*\([^)]*\)\s*=>\s*(\w+)\(', dotAll: true);
     final routing = [
       for (final file in context.allLibDartFiles)
         if (_isRouting(context, file) && !context.config.layout.matches(LayoutRole.providers, file)) file,
     ];
+    final appRoot = [
+      for (final file in context.allLibDartFiles)
+        if (_isAppRoot(context, file)) file,
+    ];
+    final inDialogs = <String>{
+      for (final file in context.allLibDartFiles)
+        for (final match in dialogCreate.allMatches(File(context.absolute(file)).readAsStringSync()))
+          match.group(1) ?? '',
+    };
     for (final providersPath in context.config.providersFiles) {
       final folder = providersPath.substring(0, providersPath.lastIndexOf('/') + 1);
       final nearby = routing.where((file) => file.startsWith(folder)).toList();
-      final sources = nearby.isEmpty ? routing : nearby;
+      final sources = [...nearby.isEmpty ? routing : nearby, ...appRoot];
       final providedTypes = <String>{
+        ...inDialogs,
         for (final file in sources)
           for (final match in provided.allMatches(File(context.absolute(file)).readAsStringSync()))
             match.group(1) ?? match.group(2) ?? '',
@@ -241,8 +284,8 @@ final class ProvidersStep extends CheckStep {
             rule: 'provider_missing',
             file: providersPath,
             line: i + 1,
-            message: '`$type` is never provided in ${nearby.isEmpty ? 'the routing files' : folder}; '
-                'provide it in the router or shell',
+            message: '`$type` is never provided in ${nearby.isEmpty ? 'the routing files' : folder}, '
+                'the app startup or a dialog helper call; provide it in the router or shell',
           ),
         );
       }
@@ -254,7 +297,7 @@ final class ProvidersStep extends CheckStep {
   }
 }
 
-/// Every page of a configured folder has a help dialog (`onHelp`) and every
+/// Every page of a configured folder has a help dialog (`help:`) and every
 /// help entry has all its translation keys; one entry per flavour whose help
 /// enum exists (`page_help:` with `{flavor}`).
 final class PageHelpStep extends CheckStep {
@@ -264,7 +307,7 @@ final class PageHelpStep extends CheckStep {
   String get name => 'page_help';
 
   @override
-  String get description => 'every page has onHelp and its help translation keys';
+  String get description => 'every page has help and its help translation keys';
 
   @override
   Set<String> get rules => const {'page_help_missing', 'page_help_key_missing'};
@@ -292,12 +335,12 @@ final class PageHelpStep extends CheckStep {
             help.exempt.contains(name)) {
           continue;
         }
-        if (!entity.readAsStringSync().contains('onHelp')) {
+        if (!RegExp(r'\bhelp:').hasMatch(entity.readAsStringSync())) {
           findings.add(
             Finding(
               rule: 'page_help_missing',
               file: file,
-              message: 'the page has no "?" help; pass onHelp to AppContentPage (${help.enumFile.split('/').last})',
+              message: 'the page has no "?" help; pass help: to AppContentPage (${help.enumFile.split('/').last})',
             ),
           );
         }
@@ -381,7 +424,13 @@ final class GeneratedCodeStep extends CheckStep {
   @override
   Future<StepResult> run(CheckContext context) async {
     final before = _snapshot(context);
-    final result = await runProcess(context.root, 'dart', [
+    // In a Flutter app `dart run` resolves packages with the plain Dart SDK
+    // whenever it finds them stale, and that fails on the Flutter SDK packages
+    // (integration_test, flutter_test); `flutter pub run` resolves with Flutter.
+    final pubspec = File(context.absolute('pubspec.yaml'));
+    final isFlutter = pubspec.existsSync() && RegExp(r'sdk:\s*flutter').hasMatch(pubspec.readAsStringSync());
+    final result = await runProcess(context.root, isFlutter ? 'flutter' : 'dart', [
+      if (isFlutter) 'pub',
       'run',
       'build_runner',
       'build',

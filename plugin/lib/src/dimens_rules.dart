@@ -136,8 +136,11 @@ class _RawDimensionVisitor extends SimpleAstVisitor<void> {
     // `-8` is a literal too.
     if (literal.parent is PrefixExpression) literal = literal.parent ?? literal;
     final parent = literal.parent;
-    final isNamedDimension =
-        parent is NamedExpression && NoRawDimension.dimensionNames.contains(parent.name.label.name);
+    // A dimension name on an int parameter is a count or a byte size
+    // (`VernakBannerFile(size: 1200000)`), not a length.
+    final isNamedDimension = parent is NamedExpression &&
+        NoRawDimension.dimensionNames.contains(parent.name.label.name) &&
+        !(parent.element?.type.isDartCoreInt ?? false);
     // Any argument of a geometry class counts, named (`horizontal:`) or not.
     final argumentList = parent is NamedExpression ? parent.parent : parent;
     if (argumentList is! ArgumentList) return;
@@ -343,8 +346,17 @@ class ComponentTakesVariant extends AnalysisRule {
     'iconSize',
   };
 
-  /// Generic primitives that are the place raw dimensions are applied.
-  static const primitives = {'RoundedContainer', 'SkeletonBox', 'SkeletonLine', 'SkeletonCircle', 'AppGap'};
+  /// Generic primitives that are the place raw dimensions are applied: the
+  /// box and the remote image of the four basic building blocks, the skeleton
+  /// shapes and the gap.
+  static const primitives = {
+    'RoundedContainer',
+    'AppNetworkImage',
+    'SkeletonBox',
+    'SkeletonLine',
+    'SkeletonCircle',
+    'AppGap',
+  };
 
   @override
   DiagnosticCode get diagnosticCode => code;
@@ -369,9 +381,12 @@ class _VariantVisitor extends SimpleAstVisitor<void> {
     if (categoryOf(element) != 'Component' || !isAppSource(unitPath(node))) return;
     for (final parameter in node.parameters.parameters) {
       final name = parameter.name?.lexeme ?? '';
-      if (ComponentTakesVariant.rawParameters.contains(name)) {
-        rule.reportAtNode(parameter, arguments: [name]);
-      }
+      if (!ComponentTakesVariant.rawParameters.contains(name)) continue;
+      // `size: CustomButtonSize.pill` is the variant itself: only a number or
+      // a geometry value is a raw dimension.
+      final type = parameter.declaredFragment?.element.type;
+      if (type != null && type.element is EnumElement) continue;
+      rule.reportAtNode(parameter, arguments: [name]);
     }
   }
 }

@@ -29,6 +29,11 @@ import 'package:yaml/yaml.dart';
 /// A kind of code whose location the rules and the checks depend on.
 enum LayoutRole {
   pages('pages', ['lib/pages/'], 'Pages: one screen each, composed from templates.'),
+  subtitledPages(
+    'subtitled_pages',
+    ['lib/pages/'],
+    'Pages whose AppContentPage carries a subtitle under the title (page_has_title_subtitle).',
+  ),
   features('features', ['lib/features/'], 'Feature widgets: read state (cubit, repository) or drive a flow.'),
   globalWidgets('global_widgets', ['lib/global_widgets/'], 'The widget kit: draws from parameters and the theme.'),
   bloc('bloc', ['lib/bloc/'], 'Cubits and their states.'),
@@ -38,6 +43,11 @@ enum LayoutRole {
   roleEnums('role_enums', ['lib/model/enum/'], 'Role enums, the only place backend role strings appear.'),
   providers('providers', ['lib/flavors/{flavor}/{flavor}_providers.dart'], 'Typed context getters (context.xCubit).'),
   routing('routing', ['lib/flavors/'], 'Routing and shells: the only place cubits are provided.'),
+  appRoot(
+    'app_root',
+    ['lib/app/bootstrap.dart'],
+    'The app startup: builds the app-wide cubits and repositories the router needs and provides them above it.',
+  ),
   routers('routers', ['lib/flavors/{flavor}/{flavor}_router.dart'], 'Files that declare the GoRoutes.'),
   dialogHelper('dialog_helper', ['lib/utils/utils.dart'], 'The one dialog helper (Utils.showCustomModalBottomSheet).'),
   tokens('tokens', ['lib/utils/ui/tokens/'], 'The dimension scale (AppSpacing, AppRadius, ...).'),
@@ -50,8 +60,19 @@ enum LayoutRole {
   ),
   colors(
     'colors',
-    ['**/theme/', '**/ui/app_icon.dart', '**/ui/app_style.dart', 'lib/model/', '**/color_editor*', '**/color_editor*/'],
-    'Files that may define raw colors (theme, serialization, the color picker).',
+    [
+      '**/theme/',
+      '**/ui/app_icon.dart',
+      '**/ui/app_style.dart',
+      'lib/model/',
+      '**/color_editor*',
+      '**/color_editor*/',
+      // vernakapp: the contrast maths test needs arbitrary colour values.
+      '**/test/readable_accent_test.dart',
+      // Test fixtures: colour values that are inputs of a test, not UI colours.
+      'test/support/',
+    ],
+    'Files that may define raw colors (theme, serialization, the color picker, test fixtures).',
   ),
   assetsRegistry('assets_registry', ['lib/**/app_assets.dart'], "The asset registry, the only place for 'assets/...'."),
   logger('logger', ['lib/utils/helpers/log_utils.dart'], 'The app logger, the only place for debugPrint.'),

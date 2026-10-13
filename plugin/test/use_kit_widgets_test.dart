@@ -29,13 +29,23 @@ const _violations = <({String row, String source, List<String> flagged})>[
     flagged: ['DecoratedBox', 'Card', 'ClipRRect'],
   ),
   (
-    row: 'GestureDetector / InkWell / InkResponse / Material',
-    source: '${_material}Object f() => [GestureDetector(), InkWell(), InkResponse(), Material()];',
-    flagged: ['GestureDetector', 'InkWell', 'InkResponse', 'Material'],
+    row: 'GestureDetector',
+    source: '${_material}Object f() => [GestureDetector()];',
+    flagged: ['GestureDetector'],
   ),
   (
-    row: 'MouseRegion for hover',
-    source: '${_material}Object f() => [MouseRegion(onEnter: 1), MouseRegion(onExit: 1), MouseRegion(onHover: 1)];',
+    row: 'InkWell / InkResponse',
+    source: '${_material}Object f() => [InkWell(), InkResponse()];',
+    flagged: ['InkWell', 'InkResponse'],
+  ),
+  (
+    row: 'Material',
+    source: '${_material}Object f() => [Material()];',
+    flagged: ['Material'],
+  ),
+  (
+    row: 'MouseRegion for hover or a cursor',
+    source: '${_material}Object f() => [MouseRegion(onEnter: 1), MouseRegion(onExit: 1), MouseRegion(cursor: 1)];',
     flagged: ['MouseRegion', 'MouseRegion', 'MouseRegion'],
   ),
   (
@@ -281,7 +291,6 @@ class AppRow {
 $_material
 Object f() => [
   Container(color: 1, padding: 2),
-  MouseRegion(cursor: 1),
   Image.asset('a.png'),
   Icon(),
   Text('a'),

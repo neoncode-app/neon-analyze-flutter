@@ -4,6 +4,7 @@ import 'package:neon_check/src/baseline.dart';
 import 'package:neon_check/src/config.dart';
 import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
+import 'package:neon_check/src/steps/project_steps.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
@@ -264,6 +265,37 @@ void main() {
     expect(step.pathsOf(context, 'vernak'), ['test/vernak']);
     expect(step.pathsOf(context, 'quest'), isEmpty);
     expect(TestsStep.hasTests('${dir.path}/test/support'), isFalse);
+  });
+
+  test('a registry path of a named package resolves in that package, other missing paths are reported', () async {
+    final dir = Directory.systemTemp.createTempSync('neon_check');
+    addTearDown(() => dir.deleteSync(recursive: true));
+    File('${dir.path}/pkg/assets/icons/stamp.svg').createSync(recursive: true);
+    File('${dir.path}/assets/icons/own.svg').createSync(recursive: true);
+    File('${dir.path}/.dart_tool/package_config.json')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+          '{"configVersion": 2, "packages": [{"name": "cards", "rootUri": "../pkg/", "packageUri": "lib/"}]}');
+    File('${dir.path}/lib/app_assets.dart')
+      ..createSync(recursive: true)
+      ..writeAsStringSync(
+        "const own = 'assets/icons/own.svg';\n"
+        "const stamp = 'assets/icons/stamp.svg';\n"
+        "const stampPackage = 'cards';\n"
+        "const gone = 'assets/icons/gone.svg';\n",
+      );
+    final context = CheckContext(
+      root: dir.path,
+      config: CheckConfig.parse('source_dirs: [lib]\nassets: {registries: [lib/app_assets.dart]}'),
+      mode: ScopeMode.files,
+      changedFiles: const {'lib/app_assets.dart'},
+      deletedFiles: const {},
+      fix: false,
+      ci: true,
+    );
+    final result = await const AssetsStep().run(context);
+    expect(result.findings.map((finding) => finding.format()),
+        ['lib/app_assets.dart:4 asset_missing: `assets/icons/gone.svg` does not exist']);
   });
 
   group('test existence (NCR0000022)', () {

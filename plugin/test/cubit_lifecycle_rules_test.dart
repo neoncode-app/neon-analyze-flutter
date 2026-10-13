@@ -4,6 +4,7 @@ import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_provider_value.dart';
+import 'package:neon_lints/src/no_state_enum_branching.dart';
 import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
 import 'package:neon_lints/src/state_is_sealed.dart';
@@ -23,6 +24,7 @@ void main() {
     defineReflectiveTests(AlertOnlyInCubitTest);
     defineReflectiveTests(StateIsSealedTest);
     defineReflectiveTests(NoStatusEnumStateTest);
+    defineReflectiveTests(NoStateEnumBranchingTest);
   });
 }
 
@@ -104,6 +106,21 @@ class CubitCreatedInProviderTest extends BlocRuleTest {
         [],
       );
 
+  Future<void> test_app_startup_builds_the_app_wide_cubits() => expectIn(
+        'app/bootstrap.dart',
+        '$_imports$_cubit\nWidget a() {\n  final cubit = CounterCubit();\n  return BlocProvider<CounterCubit>.value(value: cubit);\n}\n',
+        [],
+      );
+
+  Future<void> test_own_async_factory_is_not_a_construction_site() => expectIn(
+        'bloc/session/session_cubit.dart',
+        '$_imports\nclass SessionCubit extends BaseCubit<int> {\n  SessionCubit._() : super(0);\n'
+            '  static Future<SessionCubit> create() async => SessionCubit._();\n}\n'
+            'class Other extends BaseCubit<int> {\n  Other() : super(0);\n  SessionCubit make() => SessionCubit._();\n}\n',
+        ['SessionCubit._'],
+        after: 'SessionCubit make',
+      );
+
   Future<void> test_closure_inside_create_that_is_not_create_is_flagged() => expectIn(
         'pages/counter_page.dart',
         '$_imports$_cubit\nWidget a(void Function(Object) run) => BlocProvider(create: (_) {\n'
@@ -136,6 +153,8 @@ Widget d() => BlocProvider.value(value: c());
   Future<void> test_router_and_shell_own_providers() => expectIn('flavors/vernak/vernak_router.dart', _source, []);
 
   Future<void> test_dialog_helper_owns_providers() => expectIn('utils/utils.dart', _source, []);
+
+  Future<void> test_app_startup_owns_providers() => expectIn('app/bootstrap.dart', _source, []);
 }
 
 @reflectiveTest
@@ -184,7 +203,7 @@ class Label extends StatelessWidget {
   }
 }
 
-class BuildContextStub implements BuildContext {}
+class BuildContextStub extends BuildContext {}
 ''',
         ['load', 'save', 'load', 'save'],
         message: ['BlocProvider(create:'],
@@ -334,7 +353,10 @@ extension on BuildContext {
 void f(BuildContext context) {
   context.read<AlertCubit>().showSuccess('ok');
   context.alertCubit.showSuccess('ok');
+  g(context.alertCubit);
 }
+
+void g(Object alert) {}
 ''';
 
   Future<void> test_alert_in_ui_folders_is_flagged() async {
@@ -342,7 +364,7 @@ void f(BuildContext context) {
       await expectIn(
         '$folder/x.dart',
         _source,
-        ['AlertCubit', 'AlertCubit', 'context.alertCubit'],
+        ['AlertCubit', 'AlertCubit', 'context.alertCubit', 'context.alertCubit'],
         message: ['inject AlertCubit into the cubit'],
         after: 'extension on BuildContext',
       );
@@ -449,4 +471,52 @@ class InvoicesFilter {
         'enum XStatus { a }\nclass XState {\n  const XState(this.status);\n  final XStatus status;\n}\n',
         [],
       );
+}
+
+@reflectiveTest
+class NoStateEnumBranchingTest extends BlocRuleTest {
+  @override
+  AnalysisRule get ruleUnderTest => NoStateEnumBranching();
+
+  @override
+  void setUp() {
+    super.setUp();
+    newFile('$testPackageLibPath/bloc/promo/promo_state.dart', '''
+enum PromoTab { pending, done }
+enum Shade { light, dark }
+class PromoState {
+  final PromoTab tab;
+  final int count;
+  const PromoState(this.tab, this.count);
+}
+''');
+  }
+
+  static const _source = '''
+import 'package:test/bloc/promo/promo_state.dart';
+class Style {
+  final Shade shade;
+  const Style(this.shade);
+}
+String f(PromoState state, Style style) {
+  if (state.tab == PromoTab.done) return 'done';
+  if (style.shade == Shade.dark) return 'dark';
+  if (state.count == 1) return 'one';
+  return switch (state.tab) {
+    PromoTab.pending => 'pending',
+    PromoTab.done => 'done',
+  };
+}
+bool changed(PromoState a, PromoState b) => a.tab != b.tab;
+bool selected(PromoTab tab, PromoState state) => tab == state.tab;
+''';
+
+  Future<void> test_branching_on_a_state_enum_in_ui_is_flagged() => expectIn(
+        'pages/promo_page.dart',
+        _source,
+        ['state.tab', 'state.tab'],
+        message: ['PromoState.tab', 'sealed state'],
+      );
+
+  Future<void> test_cubits_may_read_their_own_enums() => expectIn('bloc/promo/promo_cubit.dart', _source, []);
 }
