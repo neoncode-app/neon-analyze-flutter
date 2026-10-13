@@ -19,7 +19,9 @@ import 'package:neon_lints/src/support/ast_support.dart';
 /// * `if (event is X) showX(context, event);` (optionally with `return;`),
 /// * `if (await handleShared(context, event)) return;`,
 /// * `switch (event) { case X(): showX(...); ... }`,
-/// * a fallback call, `return;`, `return call(...);`.
+/// * a fallback call, `return;`, `return call(...);`,
+/// * the `mounted` guard Dart asks for after the awaited shared handler:
+///   `if (!context.mounted) return;` or `if (context.mounted) call(...);`.
 class ListenerIsMapping extends AnalysisRule {
   ListenerIsMapping() : super(name: 'listener_is_mapping', description: _desc);
 
@@ -96,11 +98,11 @@ class _Visitor extends SimpleAstVisitor<void> {
     final condition = statement.expression;
     if (_isEventTypeTest(condition)) {
       _checkBranch(statement.thenStatement);
-    } else if (_isSharedHandlerCall(condition)) {
+    } else if (_isSharedHandlerCall(condition) || _isMountedGuard(condition, negated: true)) {
       final then = statement.thenStatement;
-      final isBareReturn = (then is ReturnStatement && then.expression == null) ||
-          (then is Block && then.statements.length == 1 && then.statements.single is ReturnStatement);
-      if (!isBareReturn) _report(then, 'does more than return after the shared handler');
+      if (!_isBareReturn(then)) _report(then, 'does more than return after the shared handler');
+    } else if (_isMountedGuard(condition, negated: false)) {
+      _checkBranch(statement.thenStatement);
     } else {
       _report(condition, 'branches on something other than the event type');
       return;
@@ -138,6 +140,21 @@ class _Visitor extends SimpleAstVisitor<void> {
         topLevel: false,
       );
     }
+  }
+
+  static bool _isBareReturn(Statement statement) =>
+      (statement is ReturnStatement && statement.expression == null) ||
+      (statement is Block && statement.statements.length == 1 && _isBareReturn(statement.statements.single));
+
+  /// `context.mounted` ([negated]: `!context.mounted`), the guard a context
+  /// needs after an await. It decides nothing about the event.
+  static bool _isMountedGuard(Expression condition, {required bool negated}) {
+    var test = condition.unParenthesized;
+    if (negated) {
+      if (test is! PrefixExpression || test.operator.lexeme != '!') return false;
+      test = test.operand.unParenthesized;
+    }
+    return test is PrefixedIdentifier && test.identifier.name == 'mounted';
   }
 
   /// `event is X` (or `event is! X`).

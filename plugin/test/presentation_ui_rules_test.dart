@@ -170,6 +170,7 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
       return;
     }
     if (context.canPop()) return;
+    if (!context.mounted) handleShared(context, event);
     if (event is CloseDialog) {
       showEditor(context, ShowEditor());
       handleShared(context, event);
@@ -182,6 +183,7 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
           "final cubit = context.read<CounterCubit>();",
           'await showEditor(context, event)',
           'context.canPop()',
+          'handleShared(context, event);',
           'handleShared(context, event);',
           "context.read<AlertCubit>()",
         ],
@@ -200,13 +202,14 @@ ${_imports}Widget page() => BlocPresentationListener<CounterCubit, Object>(
     }
     if (event is CloseDialog) return context.pop();
     if (await handleShared(context, event)) return;
+    if (!context.mounted) return;
     switch (event) {
       case ShowEditor():
         showEditor(context, event);
       default:
         break;
     }
-    handleShared(context, event);
+    if (context.mounted) handleShared(context, event);
   },
 );
 

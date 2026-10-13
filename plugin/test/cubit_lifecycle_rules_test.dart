@@ -203,7 +203,7 @@ class Label extends StatelessWidget {
   }
 }
 
-class BuildContextStub implements BuildContext {}
+class BuildContextStub extends BuildContext {}
 ''',
         ['load', 'save', 'load', 'save'],
         message: ['BlocProvider(create:'],

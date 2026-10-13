@@ -167,7 +167,9 @@ const _dialogFunctions = <String>[
 ];
 
 final _flutterStubs = '''
-abstract class BuildContext {}
+abstract class BuildContext {
+  bool get mounted => true;
+}
 
 class Widget {
   const Widget();
