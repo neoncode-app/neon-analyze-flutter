@@ -172,6 +172,14 @@ class $name extends StatelessWidget {
         after: 'const AppPill({',
       );
 
+  Future<void> test_a_size_variant_enum_is_clean() => expectIn(
+        'global_widgets/global/app_button.dart',
+        '${_flutter}enum AppButtonSize { regular, pill }\n/// A button.\n///\n/// {@category Component}\n'
+            'class AppButton extends StatelessWidget {\n  const AppButton({this.size = AppButtonSize.regular});\n'
+            '  final AppButtonSize size;\n  @override\n  Widget build(BuildContext context) => Widget();\n}\n',
+        [],
+      );
+
   Future<void> test_primitives_and_other_tiers_are_clean() async {
     await expectIn('global_widgets/global/rounded_container.dart', _widget('RoundedContainer', 'Component'), []);
     await expectIn('global_widgets/global/two_panel.dart', _widget('TwoPanel', 'Layout'), []);

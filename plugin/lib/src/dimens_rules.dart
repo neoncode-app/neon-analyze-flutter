@@ -372,9 +372,12 @@ class _VariantVisitor extends SimpleAstVisitor<void> {
     if (categoryOf(element) != 'Component' || !isAppSource(unitPath(node))) return;
     for (final parameter in node.parameters.parameters) {
       final name = parameter.name?.lexeme ?? '';
-      if (ComponentTakesVariant.rawParameters.contains(name)) {
-        rule.reportAtNode(parameter, arguments: [name]);
-      }
+      if (!ComponentTakesVariant.rawParameters.contains(name)) continue;
+      // `size: CustomButtonSize.pill` is the variant itself: only a number or
+      // a geometry value is a raw dimension.
+      final type = parameter.declaredFragment?.element.type;
+      if (type != null && type.element is EnumElement) continue;
+      rule.reportAtNode(parameter, arguments: [name]);
     }
   }
 }
