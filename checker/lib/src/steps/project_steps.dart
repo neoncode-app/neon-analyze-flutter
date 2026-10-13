@@ -424,7 +424,13 @@ final class GeneratedCodeStep extends CheckStep {
   @override
   Future<StepResult> run(CheckContext context) async {
     final before = _snapshot(context);
-    final result = await runProcess(context.root, 'dart', [
+    // In a Flutter app `dart run` resolves packages with the plain Dart SDK
+    // whenever it finds them stale, and that fails on the Flutter SDK packages
+    // (integration_test, flutter_test); `flutter pub run` resolves with Flutter.
+    final pubspec = File(context.absolute('pubspec.yaml'));
+    final isFlutter = pubspec.existsSync() && RegExp(r'sdk:\s*flutter').hasMatch(pubspec.readAsStringSync());
+    final result = await runProcess(context.root, isFlutter ? 'flutter' : 'dart', [
+      if (isFlutter) 'pub',
       'run',
       'build_runner',
       'build',
