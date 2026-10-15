@@ -265,11 +265,11 @@
       "message": "`{0}` belongs to another widget; use your own <Widget>Dimens or the scale (lib/utils/ui/tokens/).",
       "correction": "Give this widget its own dimens, built from the scale."
     },
-    "page_dimens_spacing_only": {
+    "scale_only_in_dimens": {
       "kind": "lint",
-      "description": "Pages use only AppSpacing.",
-      "message": "`{0}` in a page; pages use only AppSpacing for gaps between blocks. A size inside a block means a component is missing.",
-      "correction": "Use an existing component, or create one with its own dimens."
+      "description": "The scale is read only by *_dimens.dart files.",
+      "message": "`{0}` reads the scale outside a dimens file; give the value a role name in this piece's own <Name>Dimens (built from the scale) and use that.",
+      "correction": "Add `static const <role> = {0};` to the piece's <name>_dimens.dart and reference it."
     },
     "no_app_dimens": {
       "kind": "lint",
@@ -282,6 +282,18 @@
       "description": "Components take a variant, not raw dimensions.",
       "message": "component parameter `{0}` is a raw dimension; offer named variants in <Widget>Dimens and take `variant:`.",
       "correction": "Replace the parameter with a variant of the widget dimens."
+    },
+    "piece_in_own_folder": {
+      "kind": "lint",
+      "description": "Every piece lives in its own folder, named after its file.",
+      "message": "`{0}` is not in its own folder; move it to `{1}` (beside its dimens and skeleton). A part of a bigger piece goes into a subfolder of that piece's folder.",
+      "correction": "Move the widget into its folder and keep one public entry file there."
+    },
+    "piece_has_skeleton": {
+      "kind": "lint",
+      "description": "Every piece with a look of its own has a skeleton in its folder.",
+      "message": "`{0}` has no skeleton; add `{1}` declaring `{0}Skeleton`, built from the skeleton primitives and the same <Name>Dimens as the widget.",
+      "correction": "Write the skeleton beside the widget; a page skeleton is composed from its pieces' skeletons."
     },
     "no_raw_text_style": {
       "kind": "lint",

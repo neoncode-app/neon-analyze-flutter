@@ -216,18 +216,21 @@ class _PrivateDimensVisitor extends SimpleAstVisitor<void> {
   void visitPrefixedIdentifier(PrefixedIdentifier node) => _check(node.prefix, node.prefix.element);
 }
 
-/// Pages (layout role `pages`) take only `AppSpacing` (gaps between blocks); every
-/// other size belongs to a component and its dimens.
-class PageDimensSpacingOnly extends AnalysisRule {
-  PageDimensSpacingOnly() : super(name: 'page_dimens_spacing_only', description: _desc);
+/// The scale (layout role `tokens`: AppSpacing, AppRadius, AppIconSize, ...)
+/// is read only by the dimens files (`*_dimens.dart`, role `widget_dimens`),
+/// which build their role-named values from it. A widget, layout, feature or
+/// page reads only its own dimens, so no piece is coupled to a step of the
+/// scale another piece also borrows.
+class ScaleOnlyInDimens extends AnalysisRule {
+  ScaleOnlyInDimens() : super(name: 'scale_only_in_dimens', description: _desc);
 
-  static const _desc = 'Pages use only AppSpacing.';
+  static const _desc = 'The scale is read only by *_dimens.dart files.';
 
   static const LintCode code = LintCode(
-    'page_dimens_spacing_only',
-    '[NEON] `{0}` in a page; pages use only AppSpacing for gaps between blocks. '
-        'A size inside a block means a component is missing.',
-    correctionMessage: 'Use an existing component, or create one with its own dimens.',
+    'scale_only_in_dimens',
+    '[NEON] `{0}` reads the scale outside a dimens file; give the value a role name in this piece\'s own '
+        '<Name>Dimens (built from the scale) and use that.',
+    correctionMessage: 'Add `static const <role> = {0};` to the piece\'s <name>_dimens.dart and reference it.',
     severity: DiagnosticSeverity.WARNING,
   );
 
@@ -236,15 +239,15 @@ class PageDimensSpacingOnly extends AnalysisRule {
 
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
-    final visitor = _PageDimensVisitor(this, RuleLayout.of(context));
+    final visitor = _ScaleVisitor(this, RuleLayout.of(context));
     registry
       ..addPrefixedIdentifier(this, visitor)
       ..addPropertyAccess(this, visitor);
   }
 }
 
-class _PageDimensVisitor extends SimpleAstVisitor<void> {
-  _PageDimensVisitor(this.rule, this.layout);
+class _ScaleVisitor extends SimpleAstVisitor<void> {
+  _ScaleVisitor(this.rule, this.layout);
 
   final AnalysisRule rule;
 
@@ -252,10 +255,11 @@ class _PageDimensVisitor extends SimpleAstVisitor<void> {
 
   void _check(Expression node) {
     final owner = _staticOwner(node);
-    if (owner == null || owner.name == 'AppSpacing') return;
-    if (!_isScaleToken(layout, owner) && !_isWidgetDimens(owner)) return;
+    if (owner == null || !_isScaleToken(layout, owner)) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
+    if (!isAppSource(path) || layout.isIn(path, LayoutRole.tokens) || layout.isIn(path, LayoutRole.widgetDimens)) {
+      return;
+    }
     rule.reportAtNode(node, arguments: [node.toSource()]);
   }
 
