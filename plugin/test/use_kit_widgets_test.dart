@@ -143,20 +143,10 @@ const _violations = <({String row, String source, List<String> flagged})>[
     flagged: ["import 'package:fl_chart/fl_chart.dart';", 'LineChart'],
   ),
   (
-    row: 'Clipboard',
-    source: "import 'package:flutter/services.dart';\nvoid f() {\n  Clipboard.setData(1);\n}",
-    flagged: ['Clipboard.setData(1)'],
-  ),
-  (
     row: 'SnackBar / ScaffoldMessenger',
     source:
         '${_material}void f(BuildContext c) {\n  final bar = SnackBar();\n  ScaffoldMessenger.of(c).showSnackBar(bar);\n}',
     flagged: ['SnackBar', 'ScaffoldMessenger.of(c)'],
-  ),
-  (
-    row: 'DateFormat',
-    source: "import 'package:intl/intl.dart';\nObject f() => [DateFormat('d'), DateFormat.yMd()];",
-    flagged: ['DateFormat', 'DateFormat.yMd'],
   ),
   (
     row: 'showDialog / showModalBottomSheet / showGeneralDialog',

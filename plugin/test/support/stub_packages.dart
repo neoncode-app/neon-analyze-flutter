@@ -14,13 +14,31 @@ void addStubPackages(AnalysisRuleTest test) {
     ..addFile('lib/material.dart', "export 'src/stubs.dart';")
     ..addFile('lib/widgets.dart', "export 'src/stubs.dart';")
     ..addFile('lib/cupertino.dart', "export 'src/stubs.dart';")
-    ..addFile('lib/services.dart', "export 'src/stubs.dart';");
+    ..addFile('lib/services.dart', "export 'src/stubs.dart';")
+    ..addFile('lib/foundation.dart', "export 'src/stubs.dart';");
   test.newPackage('intl').addFile('lib/intl.dart', r'''
 class DateFormat {
   DateFormat([String? pattern]);
   DateFormat.yMd();
   String format(DateTime date) => '';
 }
+
+class NumberFormat {
+  NumberFormat([String? pattern]);
+  NumberFormat.currency({String? symbol});
+  String format(num value) => '';
+}
+''');
+  // The real package declares launchUrl in src/ and re-exports it.
+  test.newPackage('url_launcher')
+    ..addFile('lib/src/url_launcher_uri.dart', r'''
+Future<bool> launchUrl(Uri url) async => true;
+Future<bool> canLaunchUrl(Uri url) async => true;
+''')
+    ..addFile('lib/url_launcher.dart', "export 'src/url_launcher_uri.dart';")
+    ..addFile('lib/url_launcher_string.dart', r'''
+Future<bool> launchUrlString(String url) async => true;
+Future<bool> canLaunchUrlString(String url) async => true;
 ''');
   test.newPackage('fl_chart').addFile('lib/fl_chart.dart', r'''
 import 'package:flutter/widgets.dart';
@@ -33,6 +51,33 @@ class LineChartData {
   const LineChartData();
 }
 ''');
+}
+
+/// Adds to the analyzer's mock SDK what it lacks and the rules match:
+/// `num.toStringAsFixed`, `jsonDecode`, `Timer.periodic` / `cancel` and a
+/// non-deprecated `Platform.isIOS`.
+///
+/// Call in `setUp` AFTER `super.setUp()` (which writes the mock SDK).
+void patchMockSdk(AnalysisRuleTest test) {
+  void patch(String unit, String anchor, String addition) {
+    final path = test.convertPath('/sdk/lib/$unit');
+    final file = test.resourceProvider.getFile(path);
+    final source = file.readAsStringSync();
+    if (!source.contains(anchor)) throw StateError('mock SDK $unit has no "$anchor"');
+    test.newFile(path, source.replaceFirst(anchor, '$anchor\n$addition'));
+  }
+
+  patch('core/core.dart', 'sealed class num implements Comparable<num> {',
+      '  String toStringAsFixed(int fractionDigits);');
+  patch('core/core.dart', 'abstract final class double extends num {', '  String toStringAsFixed(int fractionDigits);');
+  patch('convert/convert.dart', 'const JsonCodec json = JsonCodec();', 'dynamic jsonDecode(String source) => null;');
+  patch(
+    'async/async.dart',
+    'abstract interface class Timer {',
+    '  factory Timer.periodic(Duration duration, void Function(Timer timer) callback) => throw 0;\n'
+        '  void cancel();',
+  );
+  patch('io/io.dart', 'abstract final class Platform {', '  static bool get isIOS => false;');
 }
 
 /// Writes minimal `bloc`, `flutter_bloc` and `provider` packages (needs the

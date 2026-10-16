@@ -33,6 +33,7 @@ import 'package:neon_lints/src/text_rules.dart';
 import 'package:neon_lints/src/ui_callback_calls_cubit.dart';
 import 'package:neon_lints/src/use_context_getters.dart';
 import 'package:neon_lints/src/use_kit_widgets.dart';
+import 'package:neon_lints/src/use_shared_utils.dart';
 
 /// Entry point the Dart Analysis Server imports to load this plugin.
 final plugin = NeonLintsPlugin();
@@ -108,6 +109,8 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoHardcodedUiString())
       ..registerLintRule(NoDashInStrings())
       // NCI0000022: a Result.when without unauthorized: hangs the caller on a 401.
-      ..registerLintRule(ResultHandlesUnauthorized());
+      ..registerLintRule(ResultHandlesUnauthorized())
+      // NCR0000030: package:neon_flutter_utils is the only way to format, validate, open links, ...
+      ..registerLintRule(UseSharedUtils());
   }
 }

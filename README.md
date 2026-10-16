@@ -341,6 +341,7 @@ Checks: `config_sync`, `format`, `fix`, `analyze`, `ignores`, `translations_pari
 | `no_hardcoded_ui_string` | no literal text in `Text(...)` / `label:` / `title:` / ... in UI code |
 | `no_repository_in_ui` | no class from `lib/repository/` in UI code |
 | `no_http_in_ui` | no `package:http` / `package:dio` import in UI code |
+| `use_shared_utils` | the raw APIs `neon_flutter_utils` wraps: `DateFormat(` / `NumberFormat(`, `toStringAsFixed(` in UI code, `launchUrl(` / `canLaunchUrl(`, `Clipboard.` outside `AppCopyButton` / `AppCopyField`, `jsonDecode(` outside `repository`, `RegExp(` with an e-mail or phone pattern, `kIsWeb` / `Platform.` outside UI code, a `Timer(` stored in a cubit field (use `Debouncer`) |
 
 ### `bloc`
 
@@ -483,9 +484,9 @@ Integration tests of the real app. The flows the change affects run on the confi
 
 Checks: `integration_pages`, `integration`.
 
-### Banned-API rules (`use_kit_widgets`, `no_navigator`)
+### Banned-API rules (`use_kit_widgets`, `no_navigator`, `use_shared_utils`)
 
-Both are driven by a table in their source file: one `BannedApi` row per
+All three are driven by a table in their source file: one `BannedApi` row per
 banned API, with its replacement and the owner files (paths relative to `lib/`)
 that implement the replacement and may therefore still use the raw API. Adding
 a ban is one row. Matching is type-resolved (element name plus declaring
@@ -495,7 +496,14 @@ class, constructor tear-offs, static member access (`Icons.add`,
 `Navigator.of`), calls of banned top-level functions (`showDialog`) and,
 for whole packages, imports (`package:fl_chart`). Type annotations are never
 flagged. A row can also give ownership to every file that declares a class
-with a given `{@category ...}`, which is how any template may use `Scaffold`.
+with a given `{@category ...}`, which is how any template may use `Scaffold`,
+or to every file that declares one of the named classes (`AppCopyField` owns
+`Clipboard`). A row may also ban instance methods of SDK types
+(`toStringAsFixed` on `num`) and top-level variables (`kIsWeb`), name an SDK
+library as its package (`dart:io`), apply only to UI code, only outside it, only
+in some layout roles or not in some (`jsonDecode` is allowed in `repository`),
+and add a condition on the node (`RegExp` only with an e-mail or phone pattern,
+`Timer` only when stored in a cubit field).
 Only files under `lib/` are checked; generated files (`*.g.dart`,
 `*.freezed.dart`) are skipped.
 

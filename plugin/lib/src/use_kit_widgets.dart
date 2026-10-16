@@ -12,7 +12,8 @@ import 'package:neon_lints/src/banned_api/banned_api.dart';
 /// which is why the rule is opt-in (`registerLintRule`) per app.
 ///
 /// Source of the table: ticket NCR0000014, "Kit components instead of raw
-/// Flutter".
+/// Flutter". `Clipboard` and `DateFormat` moved to `use_shared_utils`
+/// (NCR0000030), which every app runs.
 class UseKitWidgets extends BannedApiRule {
   UseKitWidgets() : super(name: 'use_kit_widgets', description: _desc);
 
@@ -212,22 +213,9 @@ class UseKitWidgets extends BannedApiRule {
       owners: ['$_kit/stats/'],
     ),
     BannedApi(
-      label: 'Clipboard',
-      replacement: 'AppCopyField / AppCopyButton',
-      types: {'Clipboard'},
-      owners: ['$_kit/app_copy_field/', '$_kit/app_copy_button/'],
-    ),
-    BannedApi(
       label: 'SnackBar / ScaffoldMessenger',
       replacement: 'AlertCubit (called from the cubit)',
       types: {'SnackBar', 'ScaffoldMessenger'},
-    ),
-    BannedApi(
-      label: 'DateFormat',
-      replacement: 'formatAppDate / formatAppDateTime (lib/utils/helpers/app_format.dart)',
-      package: 'intl',
-      types: {'DateFormat'},
-      owners: ['utils/helpers/app_format.dart'],
     ),
     BannedApi(
       label: 'showDialog / showModalBottomSheet / showGeneralDialog',

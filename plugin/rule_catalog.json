@@ -324,6 +324,12 @@
       "description": "Result.when(...) without unauthorized: swallows a 401; use handleError.",
       "message": "Result.when(...) without `unauthorized:` runs no branch on a 401, so the caller hangs in its loading state; use result.handleError(error: ..., success: ...).",
       "correction": "Replace with handleError(error:, success:), which routes Unauthorized to error, or pass an explicit unauthorized: callback."
+    },
+    "use_shared_utils": {
+      "kind": "lint",
+      "description": "Use the neon_flutter_utils helpers instead of the raw APIs they wrap.",
+      "message": "{0} is a raw API that neon_flutter_utils wraps; use {1}.",
+      "correction": "Replace it with {1}."
     }
   }
 }

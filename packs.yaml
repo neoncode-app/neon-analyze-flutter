@@ -28,6 +28,7 @@ core:
     - no_hardcoded_ui_string
     - no_repository_in_ui
     - no_http_in_ui
+    - use_shared_utils
   steps:
     - config_sync
     - format
