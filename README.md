@@ -360,6 +360,7 @@ Checks: `test_existence`, `coverage`.
 | `state_is_sealed` | the state of a `BaseCubit<S>` is `sealed` (except `lib/bloc/<app>/app_wide/`) |
 | `no_status_enum_state` | no `XStatus` enum field in a state class under `lib/bloc` |
 | `no_state_enum_branching` | UI code never branches (`switch`, `==`) on an enum field of a cubit state; each value is a state subclass |
+| `result_handles_unauthorized` | no neonapi `Result.when(...)` without `unauthorized:` (it runs no branch on a 401); use `handleError(error:, success:)` |
 
 **The state convention** these rules converge on (one shape for every page
 cubit, so the UI is always `switch (state)` over a closed set):

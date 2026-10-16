@@ -62,6 +62,7 @@ bloc:
     - state_is_sealed
     - no_status_enum_state
     - no_state_enum_branching
+    - result_handles_unauthorized
   steps:
     - test_existence
     - coverage

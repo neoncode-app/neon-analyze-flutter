@@ -318,6 +318,12 @@
       "description": "No typographic dashes in strings.",
       "message": "the string contains `{0}`; use a comma, a full stop, \"od X do Y\" or the common_date_range key.",
       "correction": "Rewrite the text without the dash."
+    },
+    "result_handles_unauthorized": {
+      "kind": "lint",
+      "description": "Result.when(...) without unauthorized: swallows a 401; use handleError.",
+      "message": "Result.when(...) without `unauthorized:` runs no branch on a 401, so the caller hangs in its loading state; use result.handleError(error: ..., success: ...).",
+      "correction": "Replace with handleError(error:, success:), which routes Unauthorized to error, or pass an explicit unauthorized: callback."
     }
   }
 }

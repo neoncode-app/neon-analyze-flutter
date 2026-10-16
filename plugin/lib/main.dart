@@ -26,6 +26,7 @@ import 'package:neon_lints/src/page_template_rules.dart';
 import 'package:neon_lints/src/piece_rules.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
 import 'package:neon_lints/src/responsive_rules.dart';
+import 'package:neon_lints/src/result_handles_unauthorized.dart';
 import 'package:neon_lints/src/role_rules.dart';
 import 'package:neon_lints/src/state_is_sealed.dart';
 import 'package:neon_lints/src/text_rules.dart';
@@ -105,6 +106,8 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoRawTextStyle())
       ..registerLintRule(NoDebugPrint())
       ..registerLintRule(NoHardcodedUiString())
-      ..registerLintRule(NoDashInStrings());
+      ..registerLintRule(NoDashInStrings())
+      // NCI0000022: a Result.when without unauthorized: hangs the caller on a 401.
+      ..registerLintRule(ResultHandlesUnauthorized());
   }
 }
