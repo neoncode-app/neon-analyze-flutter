@@ -65,6 +65,8 @@ bloc:
     - no_status_enum_state
     - no_state_enum_branching
     - result_handles_unauthorized
+    - cubit_only_state
+    - no_value_notifier_state
   steps:
     - test_existence
     - coverage

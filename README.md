@@ -436,6 +436,8 @@ Checks: `test_existence`, `coverage`.
 | `no_status_enum_state` | no `XStatus` enum field in a state class under `lib/bloc` |
 | `no_state_enum_branching` | UI code never branches (`switch`, `==`) on an enum field of a cubit state; each value is a state subclass |
 | `result_handles_unauthorized` | no neonapi `Result.when(...)` without `unauthorized:` (it runs no branch on a 401); use `handleError(error:, success:)` |
+| `cubit_only_state` | state is a Cubit extending `BaseCubit` with a sealed state, nothing else (NCC0000063): no class extending / mixing `Bloc` (events), no `ChangeNotifier()` and no class extending or mixing in `ChangeNotifier` outside the widget kit (a kit controller such as `SaveRequiredHintController` is local UI state, like `TextEditingController`), no `StateNotifier`, no `package:provider` widgets (`Provider`, `ChangeNotifierProvider`, `MultiProvider`, `Consumer`, `Selector`, ...; flutter_bloc's `BlocProvider` / `RepositoryProvider` and `context.read` stay), no import of `package:riverpod`, `flutter_riverpod`, `hooks_riverpod` or `get`. Type-resolved, table-driven (`plugin/lib/src/banned_api/`) |
+| `no_value_notifier_state` | no `ValueNotifier(...)` construction and no class extending `ValueNotifier` outside `lib/global_widgets` (the `global_widgets` role): the value is a field of the cubit state. Reading a `ValueListenable` (Hive `listenable()`, Flutter controllers) and local UI state of a kit component stay |
 
 **The state convention** these rules converge on (one shape for every page
 cubit, so the UI is always `switch (state)` over a closed set):

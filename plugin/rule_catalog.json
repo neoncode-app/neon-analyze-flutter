@@ -366,6 +366,18 @@
       "description": "Call a dialog opener directly; it returns void.",
       "message": "unawaited({0}(...)) wraps a dialog opener; {1}",
       "correction": "Make the opener `void` (it calls Utils.openModalBottomSheet) and write the listener line as `if (event is X) return showX(context, event);`."
+    },
+    "cubit_only_state": {
+      "kind": "lint",
+      "description": "Manage state with a Cubit extending BaseCubit and a sealed state, nothing else.",
+      "message": "{0} is not how this app manages state; use {1}.",
+      "correction": "Replace it with {1}."
+    },
+    "no_value_notifier_state": {
+      "kind": "lint",
+      "description": "No ValueNotifier as app state outside the widget kit; the cubit state holds the value.",
+      "message": "{0} is app state outside the cubits; use {1}.",
+      "correction": "Replace it with {1}."
     }
   }
 }

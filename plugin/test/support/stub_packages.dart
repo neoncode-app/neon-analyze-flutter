@@ -103,6 +103,10 @@ abstract class BlocBase<S> {
 abstract class Cubit<S> extends BlocBase<S> {
   Cubit(super.state);
 }
+
+abstract class Bloc<E, S> extends BlocBase<S> {
+  Bloc(super.state);
+}
 ''');
   test.newPackage('provider').addFile('lib/provider.dart', r'''
 import 'package:flutter/widgets.dart';
@@ -117,6 +121,23 @@ extension WatchContext on BuildContext {
 
 extension SelectContext on BuildContext {
   R select<T, R>(R Function(T value) selector) => throw 0;
+}
+
+class Provider<T> extends Widget {
+  const Provider({required T Function(BuildContext context) create, Widget? child});
+  static T of<T>(BuildContext context) => throw 0;
+}
+
+class ChangeNotifierProvider<T extends ChangeNotifier> extends Widget {
+  const ChangeNotifierProvider({required T Function(BuildContext context) create, Widget? child});
+}
+
+class MultiProvider extends Widget {
+  const MultiProvider({required List<Widget> providers, Widget? child});
+}
+
+class Consumer<T> extends Widget {
+  const Consumer({required Widget Function(BuildContext context, T value, Widget? child) builder});
 }
 ''');
   test.newPackage('flutter_bloc').addFile('lib/flutter_bloc.dart', r'''
@@ -249,6 +270,31 @@ abstract class State<T extends StatefulWidget> {
 
 class IconData {
   const IconData(int codePoint);
+}
+
+abstract class Listenable {}
+
+abstract class ValueListenable<T> extends Listenable {
+  T get value;
+}
+
+mixin class ChangeNotifier implements Listenable {
+  void notifyListeners() {}
+  void dispose() {}
+}
+
+class ValueNotifier<T> extends ChangeNotifier implements ValueListenable<T> {
+  ValueNotifier(this.value);
+  @override
+  T value;
+}
+
+class TextEditingController extends ValueNotifier<String> {
+  TextEditingController() : super('');
+}
+
+class ValueListenableBuilder<T> extends Widget {
+  const ValueListenableBuilder({required ValueListenable<T> valueListenable, Object? builder});
 }
 
 ${_plainWidgets.map((name) => '''

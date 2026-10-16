@@ -48,6 +48,9 @@ typedef BannedApiCondition = bool Function(AstNode node);
 ///  * [variables] — reading a top-level variable or getter of [package]
 ///    (`kIsWeb`).
 ///  * [bansImport] — importing any library of [package] (`package:fl_chart`).
+///  * [subclassing] — naming one of [types] in an `extends`, `with`,
+///    `implements` or mixin `on` clause (`class X extends ChangeNotifier`);
+///    with `constructors: {}` a row bans only that.
 ///
 /// [package] is a pub package name (`flutter`, `intl`) or an SDK library
 /// (`dart:io`, `dart:convert`). [scope], [onlyIn] and [exceptIn] limit the
@@ -64,6 +67,7 @@ final class BannedApi {
     this.methods = const {},
     this.variables = const {},
     this.bansImport = false,
+    this.subclassing = false,
     this.owners = const [],
     this.ownerCategory,
     this.ownerClasses = const {},
@@ -105,6 +109,9 @@ final class BannedApi {
 
   /// Whether importing [package] at all is banned.
   final bool bansImport;
+
+  /// Whether extending, mixing in or implementing one of [types] is banned.
+  final bool subclassing;
 
   /// Files and folders, relative to `lib/`, that may use the API. A folder
   /// ends with `/`.
@@ -199,6 +206,10 @@ final class BannedApi {
   bool bansFunction(Element? element) =>
       element is TopLevelFunctionElement && _isPackageLibrary(element) && functions.contains(element.name);
 
+  /// Whether naming [element] as a supertype (`extends` / `with` /
+  /// `implements` / `on`) is banned.
+  bool bansSubtypeOf(Element? element) => subclassing && bansClass(element);
+
   /// Whether importing [uri] is banned.
   bool bansImportOf(String? uri) => bansImport && (uri?.startsWith('package:$package/') ?? false);
 }
@@ -244,6 +255,7 @@ abstract class BannedApiRule extends AnalysisRule {
       ..addPropertyAccess(this, visitor)
       ..addImportDirective(this, visitor);
     if (table.any((row) => row.variables.isNotEmpty)) registry.addSimpleIdentifier(this, visitor);
+    if (table.any((row) => row.subclassing)) registry.addNamedType(this, visitor);
   }
 }
 
@@ -336,6 +348,18 @@ class _Visitor extends SimpleAstVisitor<void> {
     final element = node.element;
     if (element is! PropertyAccessorElement && element is! TopLevelVariableElement) return;
     _check(node, (row) => row.bansVariable(element));
+  }
+
+  @override
+  void visitNamedType(NamedType node) {
+    // `class X extends ChangeNotifier`, `with ChangeNotifier`, `implements`,
+    // `mixin M on Bloc<E, S>`; a type annotation is never flagged.
+    final parent = node.parent;
+    if (parent is! ExtendsClause && parent is! WithClause && parent is! ImplementsClause && parent is! MixinOnClause) {
+      return;
+    }
+    final element = node.element;
+    _check(node, (row) => row.bansSubtypeOf(element));
   }
 
   @override

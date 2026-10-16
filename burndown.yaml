@@ -71,6 +71,8 @@ phases:
       - alert_only_in_cubit
       - cancel_subscriptions_in_close
       - state_is_sealed
+      - cubit_only_state
+      - no_value_notifier_state
       - no_status_enum_state
       - no_state_enum_branching
       - no_repository_in_ui

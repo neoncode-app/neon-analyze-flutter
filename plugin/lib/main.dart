@@ -6,6 +6,7 @@ import 'package:neon_lints/src/avoid_bang.dart';
 import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/category_matches_folder.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
+import 'package:neon_lints/src/cubit_only_state.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
 import 'package:neon_lints/src/dialog_opener_returns_void.dart';
 import 'package:neon_lints/src/dimens_rules.dart';
@@ -26,6 +27,7 @@ import 'package:neon_lints/src/no_state_enum_branching.dart';
 import 'package:neon_lints/src/no_status_enum_state.dart';
 import 'package:neon_lints/src/no_tr_in_global_widget.dart';
 import 'package:neon_lints/src/no_unawaited_dialog_opener.dart';
+import 'package:neon_lints/src/no_value_notifier_state.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
 import 'package:neon_lints/src/page_state_rules.dart';
 import 'package:neon_lints/src/page_template_rules.dart';
@@ -127,6 +129,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoDataLogicInUi())
       // NCC0000062: a dialog opener returns void; listeners call it without unawaited().
       ..registerLintRule(DialogOpenerReturnsVoid())
-      ..registerLintRule(NoUnawaitedDialogOpener());
+      ..registerLintRule(NoUnawaitedDialogOpener())
+      // NCC0000063: state is a Cubit with a sealed state; no Bloc, ChangeNotifier, riverpod or ValueNotifier state.
+      ..registerLintRule(CubitOnlyState())
+      ..registerLintRule(NoValueNotifierState());
   }
 }
