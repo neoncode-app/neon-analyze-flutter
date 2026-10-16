@@ -108,6 +108,17 @@ presentation:
     no_data_logic_in_ui: [ui]
     no_unawaited_dialog_opener: [ui, routing]
 
+models:
+  description: Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, models only in lib/model/ and nothing else in it, no helper functions in models.
+  rules:
+    - enum_in_enums_folder
+    - one_declaration_per_model_file
+    - models_only_in_model
+    - no_logic_in_models
+  where:
+    one_declaration_per_model_file: [model]
+    no_logic_in_models: [model]
+
 go_router:
   description: Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
   rules:

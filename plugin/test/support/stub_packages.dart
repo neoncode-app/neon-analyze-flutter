@@ -431,3 +431,35 @@ class ScaffoldMessengerState {
 
 ${_dialogFunctions.map((name) => 'Future<T?> $name<T>({BuildContext? context, Object? builder}) async => null;\n').join()}
 ''';
+
+/// `json_annotation` (the annotations json_serializable reads) and
+/// `neon_flutter_utils/json.dart` (the shared converters), for the model rules.
+void addJsonPackages(AnalysisRuleTest test) {
+  test.newPackage('json_annotation').addFile('lib/json_annotation.dart', r'''
+class JsonSerializable {
+  const JsonSerializable({this.explicitToJson, this.genericArgumentFactories});
+  final bool? explicitToJson;
+  final bool? genericArgumentFactories;
+}
+
+class JsonKey {
+  const JsonKey({this.name, this.fromJson, this.toJson, this.defaultValue, this.unknownEnumValue});
+  final String? name;
+  final Function? fromJson;
+  final Function? toJson;
+  final Object? defaultValue;
+  final Enum? unknownEnumValue;
+}
+
+class JsonEnum {
+  const JsonEnum({this.valueField});
+  final String? valueField;
+}
+
+abstract class JsonConverter<T, S> {
+  const JsonConverter();
+  T fromJson(S json);
+  S toJson(T object);
+}
+''');
+}

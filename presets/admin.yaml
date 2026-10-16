@@ -2,7 +2,7 @@
 # go_router, the widget catalog, a help dialog on every page, integration
 # flows in Chrome. Used by neoncode.
 
-packs: [core, bloc, presentation, go_router, responsive, kit, catalog, admin, flavors, integration]
+packs: [core, bloc, presentation, models, go_router, responsive, kit, catalog, admin, flavors, integration]
 
 catalog:
   generator: tool/generate_widget_catalog.dart

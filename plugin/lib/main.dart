@@ -15,6 +15,7 @@ import 'package:neon_lints/src/feature_reads_state.dart';
 import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
+import 'package:neon_lints/src/model_layout_rules.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
@@ -132,6 +133,11 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoUnawaitedDialogOpener())
       // NCC0000063: state is a Cubit with a sealed state; no Bloc, ChangeNotifier, riverpod or ValueNotifier state.
       ..registerLintRule(CubitOnlyState())
-      ..registerLintRule(NoValueNotifierState());
+      ..registerLintRule(NoValueNotifierState())
+      // NCC0000065: the model layout; enums in lib/model/enums/<scope>/, one declaration per file, data only.
+      ..registerLintRule(EnumInEnumsFolder())
+      ..registerLintRule(OneDeclarationPerModelFile())
+      ..registerLintRule(ModelsOnlyInModel())
+      ..registerLintRule(NoLogicInModels());
   }
 }

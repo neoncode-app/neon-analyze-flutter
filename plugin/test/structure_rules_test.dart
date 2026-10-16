@@ -73,7 +73,7 @@ class RoleGuard extends StatelessWidget {
     newFile('$testPackageLibPath/pages/vernak/vernak_cards_page.dart', 'class CardsPageMarker {}\n');
     newFile('$testPackageLibPath/features/vernak/vernak_shell.dart', 'class ShellMarker {}\n');
     newFile('$testPackageLibPath/global_widgets/global/stats/src/app_chart_axis.dart', 'class AppChartAxis {}\n');
-    newFile('$testPackageLibPath/model/enum/app_role.dart',
+    newFile('$testPackageLibPath/model/enums/common/app_role.dart',
         "enum AppRole { vernakAdmin('vernak-admin'); const AppRole(this.value); final String value; }\n");
     newPackage('dio').addFile('lib/dio.dart', 'class Dio {}\n');
     super.setUp();
@@ -366,7 +366,7 @@ class NoRoleLiteralTest extends _StructureTest {
   Future<void> test_role_strings_are_flagged() =>
       expectIn('pages/x_page.dart', _source, ["'vernak-admin'", "'root'", "'admin'"], message: ['use the role enums']);
 
-  Future<void> test_role_enums_own_the_strings() => expectIn('model/enum/vernak_role.dart', _source, []);
+  Future<void> test_role_enums_own_the_strings() => expectIn('model/enums/vernak/vernak_role.dart', _source, []);
 }
 
 @reflectiveTest

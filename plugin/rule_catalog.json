@@ -214,7 +214,7 @@
     "no_role_literal": {
       "kind": "lint",
       "description": "Use the role enums, never role strings.",
-      "message": "role string '{0}'; use the role enums (AppRole, NeoncodeRole, VernakRole in lib/model/enum/).",
+      "message": "role string '{0}'; use the role enums (AppRole, NeoncodeRole, VernakRole in lib/model/enums/).",
       "correction": "Replace the string with the enum value (e.g. AppRole.vernakAdmin)."
     },
     "no_access_guard_in_pages": {
@@ -378,6 +378,30 @@
       "description": "No ValueNotifier as app state outside the widget kit; the cubit state holds the value.",
       "message": "{0} is app state outside the cubits; use {1}.",
       "correction": "Replace it with {1}."
+    },
+    "enum_in_enums_folder": {
+      "kind": "lint",
+      "description": "Every enum lives in lib/model/enums/<scope>/<name>.dart, one enum per file.",
+      "message": "enum {0} {1}; move it to {2}.",
+      "correction": "Declare every enum in its own file lib/model/enums/<scope>/<name>.dart, <scope> being common/ or the project (vernak/, neoncode/, ...); only the kit variant enums of lib/global_widgets/**/*_dimens.dart stay beside their widget."
+    },
+    "one_declaration_per_model_file": {
+      "kind": "lint",
+      "description": "One top-level class, enum or extension per model file.",
+      "message": "{0} is a further top-level declaration of this model file; move it into its own file {1}.dart.",
+      "correction": "Declare one class, enum or extension per model file, the file named after it (an enum in lib/model/enums/<scope>/); fold an extension into the class or enum it extends."
+    },
+    "models_only_in_model": {
+      "kind": "lint",
+      "description": "Models live only in lib/model/, and lib/model/ holds nothing but models.",
+      "message": "{0}; models live only in the model role ({1}) and it holds nothing but models.",
+      "correction": "Move a serializing class into lib/model/ (one declaration per file); move widgets, dimens and other UI out of lib/model/ to the piece that draws it; take Color from dart:ui."
+    },
+    "no_logic_in_models": {
+      "kind": "lint",
+      "description": "No top-level helper functions in model files.",
+      "message": "top-level function {0} in a model file; models hold data, no helper functions.",
+      "correction": "Parse through json_serializable (@JsonKey, the converters of package:neon_flutter_utils/json.dart), make a derived value a getter or named constructor of the model, or move the helper to lib/utils/ or into the cubit."
     }
   }
 }

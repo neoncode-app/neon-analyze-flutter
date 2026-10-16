@@ -40,7 +40,12 @@ enum LayoutRole {
   appWideCubits('app_wide_cubits', ['lib/bloc/*/app_wide/'], 'App-wide cubits provided by the shell.'),
   repository('repository', ['lib/repository/'], 'Repositories: the only code that talks to the API and storage.'),
   model('model', ['lib/model/'], 'Data models and serialization.'),
-  roleEnums('role_enums', ['lib/model/enum/'], 'Role enums, the only place backend role strings appear.'),
+  enums(
+    'enums',
+    ['lib/model/enums/*/'],
+    'Scope folders of the enums (common or a project): lib/model/enums/<scope>/<name>.dart, one enum per file.',
+  ),
+  roleEnums('role_enums', ['lib/model/enums/'], 'Role enums, the only place backend role strings appear.'),
   providers('providers', ['lib/flavors/{flavor}/{flavor}_providers.dart'], 'Typed context getters (context.xCubit).'),
   routing('routing', ['lib/flavors/'], 'Routing and shells: the only place cubits are provided.'),
   appRoot(

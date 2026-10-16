@@ -9,7 +9,7 @@ import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Roles are enums (`AppRole`, `NeoncodeRole`, `VernakRole` in
-/// `lib/model/enum/`); their backend strings appear nowhere else.
+/// `lib/model/enums/`); their backend strings appear nowhere else.
 class NoRoleLiteral extends AnalysisRule {
   NoRoleLiteral() : super(name: 'no_role_literal', description: _desc);
 
@@ -17,7 +17,7 @@ class NoRoleLiteral extends AnalysisRule {
 
   static const LintCode code = LintCode(
     'no_role_literal',
-    "[NEON] role string '{0}'; use the role enums (AppRole, NeoncodeRole, VernakRole in lib/model/enum/).",
+    "[NEON] role string '{0}'; use the role enums (AppRole, NeoncodeRole, VernakRole in lib/model/enums/).",
     correctionMessage: 'Replace the string with the enum value (e.g. AppRole.vernakAdmin).',
     severity: DiagnosticSeverity.WARNING,
   );

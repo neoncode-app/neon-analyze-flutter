@@ -130,7 +130,8 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `app_wide_cubits` | `lib/bloc/*/app_wide/` |
 | `repository` | `lib/repository/` |
 | `model` | `lib/model/` |
-| `role_enums` | `lib/model/enum/` |
+| `enums` | `lib/model/enums/*/` (the scope folders; neoncode lists them: `common`, `vernak`, `neoncode`, `doordrop`, `quest`) |
+| `role_enums` | `lib/model/enums/` |
 | `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
 | `routing` | `lib/flavors/` |
 | `app_root` | `lib/app/bootstrap.dart` |
@@ -488,6 +489,17 @@ No logic in UI. Dialogs and navigation through presentation events, no setState 
 | `no_editor_controller_in_pages` | no `*EditorController` and no `.validate()` in pages |
 | `no_data_logic_in_ui` | in a `Widget` / `State` class of pages, features and the kit: no `where` / `firstWhere` / `sort` / `fold` / `reduce` / `any` / `every` / `expand` on an `Iterable` of app models (classes of the `model` role, enums excluded), no `DateTime.now()`, no arithmetic (`+ - * / ~/ %` on numbers) with an operand that reads a field of an app model object (`coupon.price * 2`); mapping data to widgets, comparisons and layout maths from number parameters stay allowed. The cubit computes and emits ready-to-draw data |
 
+### `models`
+
+Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, models only in lib/model/ and nothing else in it, no helper functions in models.
+
+| Rule | What it enforces |
+| --- | --- |
+| `enum_in_enums_folder` | every enum of app code lives in its own file `lib/model/enums/<scope>/<name>.dart` (role `enums`: the scope folders, `common/` or a project), the file named after it; enums of pages, cubits, states, features, utils and other model folders, private ones included, are findings. Only the kit's variant enums in `lib/global_widgets/**/*_dimens.dart` stay; a kit enum declared beside its widget is reported with the piece's dimens as its place (NCC0000065) |
+| `one_declaration_per_model_file` | a file of the `model` role declares one class, enum, mixin, extension, extension type or typedef; every further one is reported (generated parts skipped) |
+| `models_only_in_model` | outside the `model` role no class with a `fromJson` constructor / static method, a `toJson` method or `@JsonSerializable`, and no class (widgets and `*Labels` aside) in a `*_model.dart` / `*_models.dart` file; inside it no widget or `State`, no `*Dimens` class, no import of `package:flutter/material.dart` / `widgets.dart` / `cupertino.dart` (`Color` comes from `dart:ui`) and no import of a UI file (pages, features, the kit) |
+| `no_logic_in_models` | no top-level function (or top-level getter / setter) in the `model` role: parsing through json_serializable and its converters, derived values as getters of the model, helpers in `lib/utils/` |
+
 ### `go_router`
 
 Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
@@ -554,7 +566,7 @@ Checks: `page_help`.
 | `page_uses_template` | `build()` of a `*Page` returns, through bloc / presentation wrappers, a `{@category Template}` widget |
 | `page_has_title_subtitle` | `AppContentPage` gets both `title:` and `subtitle:` |
 | `no_access_guard_in_pages` | no `RoleGuard` / access-denied widget in pages (access is on the route) |
-| `no_role_literal` | no backend role strings outside `lib/model/enum/` |
+| `no_role_literal` | no backend role strings outside `lib/model/enums/` |
 
 ### `flavors`
 

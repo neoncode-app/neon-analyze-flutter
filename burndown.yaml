@@ -30,6 +30,14 @@ phases:
       - feature_used_once
       - feature_reads_state
 
+  - name: models
+    why: every enum and model moves to its final file in lib/model/ (one declaration each, data only) before its serialization and the requests are reworked on top of it
+    rules:
+      - enum_in_enums_folder
+      - models_only_in_model
+      - one_declaration_per_model_file
+      - no_logic_in_models
+
   - name: tokens
     why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
     rules:
