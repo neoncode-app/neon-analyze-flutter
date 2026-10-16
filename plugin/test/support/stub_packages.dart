@@ -143,7 +143,8 @@ class MultiBlocProvider extends Widget {
 }
 
 /// Writes minimal `bloc_presentation` and `go_router` packages and the app's
-/// dialog helper `Utils.showCustomModalBottomSheet` (lib/utils/utils.dart).
+/// dialog helper `Utils.showCustomModalBottomSheet` / `Utils.openModalBottomSheet`
+/// (lib/utils/utils.dart).
 void addPresentationPackages(AnalysisRuleTest test) {
   test.newPackage('bloc_presentation').addFile('lib/bloc_presentation.dart', r'''
 import 'package:flutter/widgets.dart';
@@ -168,6 +169,7 @@ import 'package:flutter/widgets.dart';
 
 class Utils {
   static Future<T?> showCustomModalBottomSheet<T>({required BuildContext context, Object? builder}) async => null;
+  static void openModalBottomSheet({required BuildContext context, Object? builder}) {}
 }
 ''');
 }

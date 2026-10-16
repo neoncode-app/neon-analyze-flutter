@@ -473,8 +473,10 @@ No logic in UI. Dialogs and navigation through presentation events, no setState 
 
 | Rule | What it enforces |
 | --- | --- |
-| `dialog_only_in_listener` | `Utils.showCustomModalBottomSheet` only in a presentation listener or a `show*` function |
+| `dialog_only_in_listener` | `Utils.showCustomModalBottomSheet` / `Utils.openModalBottomSheet` only in a presentation listener or a `show*` function |
 | `no_dialog_result` | the result of a dialog (`showCustomModalBottomSheet`, `show*` Future) is never used, no code after an awaited dialog |
+| `dialog_opener_returns_void` | a top-level `show*` function or static `show*` method that opens a dialog (calls `Utils.showCustomModalBottomSheet` / `Utils.openModalBottomSheet`, or forwards to another app `show*` Future) returns `void`; it opens the dialog with `Utils.openModalBottomSheet` (NCC0000062) |
+| `no_unawaited_dialog_opener` | in UI and routing code no `unawaited(showX(...))` around an app `show*` function or method returning a Future (reported at the opener: make it `void`), and no `unawaited(Utils.showCustomModalBottomSheet(...))` outside a `show*` opener; the listener line is `if (event is X) return showX(context, event);`. Background work (`unawaited(cubit.load())`) stays |
 | `listener_is_mapping` | a presentation listener only maps `event is X` to one call: no variables, cubit reads, awaits or other branching |
 | `no_navigation_in_ui` | no go_router navigation in UI code; `context.pop()` only as a pure Cancel or for `CloseDialog` |
 | `ui_callback_calls_cubit` | `on*:` in pages is a cubit tear-off, one cubit call or a forwarded callback |

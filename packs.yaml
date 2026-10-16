@@ -91,6 +91,8 @@ presentation:
     - stateful_page_only_for_controllers
     - no_editor_controller_in_pages
     - no_data_logic_in_ui
+    - dialog_opener_returns_void
+    - no_unawaited_dialog_opener
   where:
     dialog_only_in_listener: [ui]
     no_dialog_result: [ui]
@@ -102,6 +104,7 @@ presentation:
     stateful_page_only_for_controllers: [pages, features]
     no_editor_controller_in_pages: [pages]
     no_data_logic_in_ui: [ui]
+    no_unawaited_dialog_opener: [ui, routing]
 
 go_router:
   description: Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.

@@ -219,7 +219,7 @@ class UseKitWidgets extends BannedApiRule {
     ),
     BannedApi(
       label: 'showDialog / showModalBottomSheet / showGeneralDialog',
-      replacement: 'Utils.showCustomModalBottomSheet',
+      replacement: 'Utils.openModalBottomSheet in a void show* opener',
       functions: {
         'showDialog',
         'showModalBottomSheet',

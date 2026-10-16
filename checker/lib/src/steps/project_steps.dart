@@ -250,7 +250,9 @@ final class ProvidersStep extends CheckStep {
     final findings = <Finding>[];
     final getter = RegExp(r'(\w+)\s+get\s+\w+\s*=>');
     final provided = RegExp(r'BlocProvider<(\w+)>|create:\s*\([^)]*\)\s*=>\s*(\w+)\(');
-    final dialogCreate = RegExp(r'showCustomModalBottomSheet\b[^;]*?create:\s*\([^)]*\)\s*=>\s*(\w+)\(', dotAll: true);
+    final dialogCreate = RegExp(
+        r'(?:showCustomModalBottomSheet|openModalBottomSheet)\b[^;]*?create:\s*\([^)]*\)\s*=>\s*(\w+)\(',
+        dotAll: true);
     final routing = [
       for (final file in context.allLibDartFiles)
         if (_isRouting(context, file) && !context.config.layout.matches(LayoutRole.providers, file)) file,

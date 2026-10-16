@@ -354,6 +354,18 @@
       "description": "UI only draws; computations over data happen in the cubit, which emits ready-to-draw data.",
       "message": "{0} in a widget; UI only draws. The cubit is the controller: it computes over the data and emits ready-to-draw values (filtered or sorted IDs, formatted numbers and dates, flags).",
       "correction": "Move the computation into the cubit and put its result into the state; pure stateless logic goes to neon_flutter_utils or lib/utils/helpers/."
+    },
+    "dialog_opener_returns_void": {
+      "kind": "lint",
+      "description": "A dialog opener (show* function) returns void.",
+      "message": "the dialog opener {0} returns {1}; a dialog returns nothing, so an opener returns void and the listener calls it without unawaited().",
+      "correction": "Declare it `void {0}(...)` and open the dialog with Utils.openModalBottomSheet(...); the listener line becomes `if (event is X) return {0}(context, event);`."
+    },
+    "no_unawaited_dialog_opener": {
+      "kind": "lint",
+      "description": "Call a dialog opener directly; it returns void.",
+      "message": "unawaited({0}(...)) wraps a dialog opener; {1}",
+      "correction": "Make the opener `void` (it calls Utils.openModalBottomSheet) and write the listener line as `if (event is X) return showX(context, event);`."
     }
   }
 }

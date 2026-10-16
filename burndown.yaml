@@ -81,6 +81,8 @@ phases:
     rules:
       - dialog_only_in_listener
       - no_dialog_result
+      - dialog_opener_returns_void
+      - no_unawaited_dialog_opener
       - listener_is_mapping
       - no_navigation_in_ui
       - ui_callback_calls_cubit

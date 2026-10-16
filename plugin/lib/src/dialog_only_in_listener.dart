@@ -8,7 +8,8 @@ import 'package:analyzer/error/error.dart';
 import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
-/// `Utils.showCustomModalBottomSheet` is called only inside a
+/// `Utils.showCustomModalBottomSheet` (or its void entry point
+/// `Utils.openModalBottomSheet`) is called only inside a
 /// `BlocPresentationListener`'s `listener:` or inside a `show*` function or
 /// method (the dialog's own opener, which the listener calls).
 ///
@@ -57,15 +58,10 @@ class _Visitor extends SimpleAstVisitor<void> {
         _ => null,
       };
       if (name != null) {
-        if (_isOpenerName(name)) return;
+        if (isOpenerName(name)) return;
         break;
       }
     }
     rule.reportAtNode(node.methodName);
-  }
-
-  static bool _isOpenerName(String name) {
-    final bare = name.startsWith('_') ? name.substring(1) : name;
-    return bare.startsWith('show');
   }
 }

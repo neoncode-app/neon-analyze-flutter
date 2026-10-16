@@ -57,11 +57,46 @@ bool isProviderRead(MethodInvocation node) {
   return method.name == 'of' && owner?.name == 'BlocProvider' && isFromPackage(owner, 'flutter_bloc');
 }
 
-/// `Utils.showCustomModalBottomSheet(...)`, the one dialog helper.
+/// The methods of the app's dialog helper `Utils`: the Future-returning
+/// `showCustomModalBottomSheet` and its void entry point for dialog openers,
+/// `openModalBottomSheet` (NCC0000062).
+const dialogHelperMethods = {'showCustomModalBottomSheet', 'openModalBottomSheet'};
+
+/// `Utils.showCustomModalBottomSheet(...)` or `Utils.openModalBottomSheet(...)`,
+/// the one dialog helper.
 bool isDialogHelperCall(MethodInvocation node) {
-  if (node.methodName.name != 'showCustomModalBottomSheet') return false;
+  if (!dialogHelperMethods.contains(node.methodName.name)) return false;
   final owner = node.methodName.element?.enclosingElement;
   return owner is InterfaceElement && owner.name == 'Utils';
+}
+
+/// Whether [name] (a function or method name, private or not) names a dialog
+/// opener by convention: it starts with `show` (`showCouponEditor`,
+/// `_showStep`, a static `show`).
+bool isOpenerName(String name) => (name.startsWith('_') ? name.substring(1) : name).startsWith('show');
+
+/// The `package:<name>/` prefix of the library [node] is in, or null for a
+/// file outside a package.
+String? packagePrefixOf(AstNode node) {
+  final unit = node.root;
+  if (unit is! CompilationUnit) return null;
+  final uri = unit.declaredFragment?.source.uri.toString() ?? '';
+  if (!uri.startsWith('package:')) return null;
+  final slash = uri.indexOf('/');
+  return slash < 0 ? null : uri.substring(0, slash + 1);
+}
+
+/// Whether [invocation] calls an app dialog opener that returns a Future: a
+/// `show*` function or method declared in the same package as [invocation]
+/// whose static type is a Future (`showCouponEditor(context, event)`,
+/// `EditRolesSheet.show(context)`). Flutter's own `showDialog` is not one.
+bool callsFutureOpener(MethodInvocation invocation) {
+  if (!isOpenerName(invocation.methodName.name)) return false;
+  final type = invocation.staticType;
+  if (type == null || !type.isDartAsyncFuture) return false;
+  final declared = invocation.methodName.element?.library?.uri.toString();
+  final package = packagePrefixOf(invocation);
+  return declared != null && package != null && declared.startsWith(package);
 }
 
 /// Whether [function] is the `listener:` callback of a
