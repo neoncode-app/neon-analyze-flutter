@@ -487,12 +487,13 @@ Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platfo
 
 ### `kit`
 
-The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit.
+The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit.
 
 | Rule | What it enforces |
 | --- | --- |
 | `use_kit_widgets` | raw Flutter widgets and APIs the admin widget kit replaces; the message names the kit widget to use |
 | `no_tr_in_global_widget` | no `tr()` under `lib/global_widgets/` |
+| `labels_only_in_kit` | only the kit takes `*Labels` objects: no class named `*Labels` in a page or feature, no `*Labels` field or constructor parameter on a `{@category Feature}` class or a page widget; features and pages call `tr()` where they draw, per-flavour wording comes from `FlavorConfig` |
 | `global_widgets_layering` | `lib/global_widgets` never imports `lib/pages` or `lib/features` |
 | `component_has_no_state_access` | a Component / Layout / Pattern file imports no bloc and reads no provider |
 | `global_widget_has_category` | public kit / feature widgets end their doc comment with a valid `{@category}` |

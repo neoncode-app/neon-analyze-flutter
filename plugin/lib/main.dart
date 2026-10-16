@@ -9,6 +9,7 @@ import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
 import 'package:neon_lints/src/dimens_rules.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
+import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
@@ -114,6 +115,8 @@ class NeonLintsPlugin extends Plugin {
       // NCR0000030: package:neon_flutter_utils is the only way to format, validate, open links, ...
       ..registerLintRule(UseSharedUtils())
       // NCC0000058: a widget's folder says its layer.
-      ..registerLintRule(CategoryMatchesFolder());
+      ..registerLintRule(CategoryMatchesFolder())
+      // NCC0000059: only the kit takes *Labels; features and pages call tr() where they draw.
+      ..registerLintRule(LabelsOnlyInKit());
   }
 }

@@ -336,6 +336,12 @@
       "description": "A widget's folder says its layer: its {@category} matches the layer folder it sits in.",
       "message": "the folder of `{0}` does not say its layer: {1}.",
       "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/<owner>/ and in widgets/ of a page or feature."
+    },
+    "labels_only_in_kit": {
+      "kind": "lint",
+      "description": "Only the widget kit takes *Labels objects; features and pages call tr() where they draw.",
+      "message": "{0}; features and pages call tr() where they draw; per-flavour wording comes from FlavorConfig.",
+      "correction": "Call tr('key') where the text is drawn and drop the *Labels class or parameter; when the wording differs per administration, pick the key from FlavorConfig."
     }
   }
 }

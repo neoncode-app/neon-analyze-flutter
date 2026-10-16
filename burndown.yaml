@@ -49,6 +49,7 @@ phases:
       - use_kit_widgets
       - no_navigator
       - no_tr_in_global_widget
+      - labels_only_in_kit
       - no_hardcoded_ui_string
       - global_widgets_layering
       - component_has_no_state_access
