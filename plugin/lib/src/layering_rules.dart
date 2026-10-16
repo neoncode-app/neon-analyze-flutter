@@ -237,7 +237,10 @@ class _HttpVisitor extends SimpleAstVisitor<void> {
 /// Every public widget under `lib/global_widgets` and `lib/features` names
 /// its tier as the last line of its doc comment: `{@category X}` with X one
 /// of Component, Layout, Behavior, Pattern, Template, Feature, Skeleton.
-/// (`src/` parts and the catalog previews are not catalog widgets.)
+/// (`src/` parts and the catalog previews are not catalog widgets.) The
+/// folder does not matter here: old locations and layer folders
+/// (`global/components/x/x.dart`, `<feature>/widgets/patterns/y.dart`) alike;
+/// whether the folder matches the tier is `category_matches_folder`.
 class GlobalWidgetHasCategory extends AnalysisRule {
   GlobalWidgetHasCategory() : super(name: 'global_widget_has_category', description: _desc);
 
@@ -274,7 +277,7 @@ class _CategoryVisitor extends SimpleAstVisitor<void> {
     final path = unitPath(node);
     if (!isAppSource(path) || !(layout.isIn(path, LayoutRole.globalWidgets) || layout.isIn(path, LayoutRole.features)))
       return;
-    if (path.contains('/src/') || path.contains('/widget_catalog/previews/')) return;
+    if (path.contains('/src/') || layout.isIn(path, LayoutRole.catalogPreviews)) return;
     final name = node.name.lexeme;
     if (name.startsWith('_')) return;
     final superclass = node.extendsClause?.superclass.element;

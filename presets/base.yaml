@@ -13,6 +13,17 @@ source_dirs: [lib, test, tool, integration_test, test_driver]
 baseline: tool/lint_baseline.json
 plugin: neon-analyze-flutter/plugin
 
+# The canonical lib/ tree (step layout_tree, NCC0000058): the only folders
+# directly under lib/, one per layout role, with fixed names. An `optional`
+# folder belongs in an app only when its neon_check.yaml switches it on with
+# `tree: {use: [flavors]}`; an app never renames a folder or adds one. The
+# only files directly under lib/ are the entrypoints. (vernakapp, without
+# flavours, keeps its router under app/.)
+tree:
+  folders: [app, bloc, model, repository, features, pages, global_widgets, utils, hive]
+  optional: [flavors]
+  entrypoints: [main.dart, 'main_*.dart']
+
 translations:
   dir: assets/translations
   primary: cs

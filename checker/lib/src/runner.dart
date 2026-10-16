@@ -10,6 +10,7 @@ import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
+import 'package:neon_check/src/steps/layout_tree_step.dart';
 import 'package:neon_check/src/steps/project_steps.dart';
 import 'package:neon_check/src/steps/rule_docs_step.dart';
 import 'package:neon_check/src/steps/test_existence_step.dart';
@@ -88,6 +89,7 @@ List<CheckStep> allSteps({bool pruneTranslations = false}) => [
       TranslationUnusedStep(prune: pruneTranslations),
       const TranslationOrderStep(),
       const AssetsStep(),
+      const LayoutTreeStep(),
       const CatalogIndexStep(),
       const CatalogPreviewsStep(),
       const ProvidersStep(),

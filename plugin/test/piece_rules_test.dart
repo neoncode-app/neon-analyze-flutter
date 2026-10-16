@@ -90,6 +90,33 @@ class PieceInOwnFolderTest extends BlocRuleTest {
       );
 
   Future<void> test_outside_the_ui_is_clean() => expectIn('utils/x.dart', _widget('AppThing', 'Component'), []);
+
+  // NCC0000058: layer folders; both the old and the new locations are pieces.
+  Future<void> test_a_piece_below_its_layer_folder_is_clean() async {
+    await expectIn(
+        'global_widgets/global/components/app_switch/app_switch.dart', _widget('AppSwitch', 'Component'), []);
+    await expectIn('pages/vernak/widgets/behaviors/vernak_feature_gate/vernak_feature_gate.dart',
+        _widget('VernakFeatureGate', 'Behavior'), []);
+  }
+
+  Future<void> test_a_piece_loose_in_its_layer_folder_gets_a_folder_there() => expectIn(
+        'global_widgets/global/components/app_switch.dart',
+        _widget('AppSwitch', 'Component'),
+        ['AppSwitch'],
+        message: ['lib/global_widgets/global/components/app_switch/app_switch.dart'],
+        after: 'class',
+      );
+
+  Future<void> test_a_part_in_a_layer_folder_of_widgets_is_clean() async {
+    newFile(
+        '$testPackageLibPath/pages/vernak/vernak_company_page/vernak_company_page.dart', _widget('VernakCompanyPage'));
+    await expectIn('pages/vernak/vernak_company_page/widgets/patterns/company_users_block.dart',
+        _widget('CompanyUsersBlock', 'Pattern'), []);
+    newFile('$testPackageLibPath/global_widgets/global/templates/admin_layout/admin_layout.dart',
+        _widget('AdminLayout', 'Template'));
+    await expectIn('global_widgets/global/templates/admin_layout/widgets/components/admin_nav_row.dart',
+        _widget('AdminNavRow', 'Component'), []);
+  }
 }
 
 @reflectiveTest
@@ -138,6 +165,27 @@ class PieceHasSkeletonTest extends BlocRuleTest {
     await expectIn('global_widgets/global/app_dialog/app_dialog.dart', _widget('AppDialog', 'Pattern'), []);
     await expectIn('pages/vernak/vernak_company_page/widgets/edit_roles_sheet.dart', _widget('EditRolesSheet'), []);
     await expectIn('pages/vernak/invite_members_sheet/invite_members_sheet.dart', _widget('InviteMembersSheet'), []);
+  }
+
+  Future<void> test_a_piece_below_its_layer_folder_needs_its_skeleton_beside_it() async {
+    await expectIn(
+      'global_widgets/global/components/app_switch/app_switch.dart',
+      _widget('AppSwitch', 'Component'),
+      ['AppSwitch'],
+      message: ['lib/global_widgets/global/components/app_switch/app_switch_skeleton.dart'],
+      after: 'class',
+    );
+    newFile('$testPackageLibPath/global_widgets/global/components/app_switch/app_switch_skeleton.dart',
+        _widget('AppSwitchSkeleton', 'Skeleton'));
+    await expectIn(
+        'global_widgets/global/components/app_switch/app_switch.dart', _widget('AppSwitch', 'Component'), []);
+  }
+
+  Future<void> test_a_part_in_a_layer_folder_needs_none() async {
+    newFile(
+        '$testPackageLibPath/pages/vernak/vernak_company_page/vernak_company_page.dart', _widget('VernakCompanyPage'));
+    await expectIn('pages/vernak/vernak_company_page/widgets/components/company_header.dart',
+        _widget('CompanyHeader', 'Component'), []);
   }
 
   Future<void> test_a_piece_not_yet_in_its_folder_is_told_where_the_skeleton_goes() => expectIn(

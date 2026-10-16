@@ -327,6 +327,15 @@ class _Private extends StatelessWidget {
     await expectIn('pages/x_page.dart', _source, []);
     await expectIn('global_widgets/global/stats/src/x.dart', _source, []);
   }
+
+  // NCC0000058: the folder does not matter, old locations and layer folders alike.
+  Future<void> test_layer_folders_are_checked_like_any_other_location() async {
+    await expectIn('global_widgets/global/components/x/x.dart', _source, ['AppNoTier', 'AppWrongTier'],
+        after: '/// No tier.');
+    await expectIn('features/vernak/x_editor/widgets/patterns/x.dart', _source, ['AppNoTier', 'AppWrongTier'],
+        after: '/// No tier.');
+    await expectIn('pages/neoncode/widgets/widget_catalog/previews/previews_x.dart', _source, []);
+  }
 }
 
 @reflectiveTest

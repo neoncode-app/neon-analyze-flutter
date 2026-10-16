@@ -182,6 +182,12 @@ final class CheckConfig {
         errors.add('preset `$name` sets `layout:`; layout belongs only in $fileName (the plugin reads it there)');
       }
     }
+    final appTree = appMap['tree'];
+    if (appTree is Map<String, Object?>) {
+      for (final key in appTree.keys.where((key) => key != 'use')) {
+        errors.add('tree: `$key` is fixed by the base preset; an app only switches optional folders on with `use:`');
+      }
+    }
     final merged = _merge(_merge(base, preset), appMap);
     final layoutSection = appMap['layout'];
     final layout = Layout.fromMap(layoutSection is Map ? layoutSection : const {});
@@ -323,6 +329,11 @@ final class CheckConfig {
     for (final rule in ruleOverrides.keys) {
       if (!rules.contains(rule)) errors.add('rules: `$rule` is not a neon_lints rule of any pack');
     }
+    for (final folder in treeUse) {
+      if (!treeOptional.contains(folder)) {
+        errors.add('tree: `$folder` is not an optional folder of the lib/ tree (optional: ${treeOptional.join(', ')})');
+      }
+    }
     for (final value in ruleOverrides.values) {
       if (!const {'true', 'false', 'error', 'warning', 'info'}.contains(value)) {
         errors.add('rules: `$value` is not one of true, false, error, warning, info');
@@ -463,6 +474,27 @@ final class CheckConfig {
           if (root == null || File('$root/$registry').existsSync()) registry,
       ];
   List<String> get assetDirs => _strings(_assets['dirs']);
+
+  // ---------------------------------------------------------------- lib/ tree
+
+  Map<String, Object?> get _tree => _section('tree');
+
+  /// Folders every app may have directly under `lib/` (base preset).
+  List<String> get treeFolders => _strings(_tree['folders']);
+
+  /// Folders an app has only when it lists them in `tree: use:`.
+  List<String> get treeOptional => _strings(_tree['optional']);
+
+  /// The optional folders this app switches on.
+  List<String> get treeUse => _strings(_tree['use']);
+
+  /// File name patterns allowed directly under `lib/` (`main_*.dart`).
+  List<String> get treeEntrypoints => _strings(_tree['entrypoints']);
+
+  bool get hasTree => treeFolders.isNotEmpty;
+
+  /// The folders allowed directly under `lib/` in this app.
+  List<String> get treeAllowedFolders => [...treeFolders, ...treeUse.where(treeOptional.contains)];
 
   // ---------------------------------------------------------------- catalog
 

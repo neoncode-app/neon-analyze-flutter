@@ -9,6 +9,7 @@ import 'package:neon_check/src/runner.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
+import 'package:neon_check/src/steps/layout_tree_step.dart';
 import 'package:neon_check/src/steps/rule_docs_step.dart';
 import 'package:test/test.dart';
 
@@ -121,6 +122,61 @@ layout: {pagez: lib/screens/}
       expect(errors, contains('`no_such_rule` is not a neon_lints rule'));
       expect(errors, contains('`maybe` is not one of'));
       expect(errors, contains('`pagez` is not a role'));
+    });
+
+    test('the lib/ tree: fixed folders from the base preset, optional ones switched on by the app', () {
+      _write(dir, 'neon_check.yaml', 'preset: admin\ntree: {use: [flavors]}\n');
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      expect(config.errors, isEmpty);
+      expect(config.treeAllowedFolders, containsAll(['app', 'bloc', 'pages', 'global_widgets', 'hive', 'flavors']));
+      expect(config.treeEntrypoints, ['main.dart', 'main_*.dart']);
+      _write(dir, 'neon_check.yaml', 'preset: app\n');
+      expect(CheckConfig.load(dir.path, toolRoot: _tool).treeAllowedFolders, isNot(contains('flavors')));
+    });
+
+    test('an app neither renames nor adds a folder of the lib/ tree', () {
+      _write(dir, 'neon_check.yaml', 'preset: admin\ntree: {use: [services], folders: [screens]}\n');
+      final errors = CheckConfig.load(dir.path, toolRoot: _tool).errors.join('\n');
+      expect(errors, contains('tree: `folders` is fixed by the base preset'));
+      expect(errors, contains('tree: `services` is not an optional folder'));
+    });
+
+    test('layout_tree reports a folder outside the tree and a file that is no entrypoint', () async {
+      _write(dir, 'neon_check.yaml', 'preset: admin\ntree: {use: [flavors]}\n');
+      for (final path in [
+        'lib/main.dart',
+        'lib/main_shop.dart',
+        'lib/app/bootstrap.dart',
+        'lib/flavors/shop/shop_router.dart',
+        'lib/hive/hive_registrar.g.dart',
+        'lib/services/push.dart',
+        'lib/hive_registrar.g.dart',
+        'lib/firebase_options.dart',
+        'lib/.DS_Store',
+      ]) {
+        _write(dir, path);
+      }
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final context = _context(dir.path, config, changed: {'lib/services/push.dart'});
+      expect(const LayoutTreeStep().appliesTo(context), isTrue);
+      final result = await const LayoutTreeStep().run(context);
+      expect(result.findings.map((finding) => '${finding.rule} ${finding.file}'), [
+        'layout_tree lib/firebase_options.dart',
+        'layout_tree lib/hive_registrar.g.dart',
+        'layout_tree lib/services/',
+      ]);
+      expect(result.findings.last.message, contains('no folder of the lib/ tree'));
+      expect(result.findingsScope?.call('lib/old/'), isTrue);
+      expect(const LayoutTreeStep().appliesTo(_context(dir.path, config, changed: {'test/a_test.dart'})), isFalse);
+    });
+
+    test('layout_tree tells an app how to switch an optional folder on', () async {
+      _write(dir, 'neon_check.yaml', 'preset: app\n');
+      _write(dir, 'lib/flavors/shop/shop_router.dart');
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final result = await const LayoutTreeStep().run(_context(dir.path, config));
+      expect(result.findings.single.file, 'lib/flavors/');
+      expect(result.findings.single.message, contains('tree: {use: [flavors]}'));
     });
 
     test('page help expands per flavour and keeps only flavours with a help enum', () {

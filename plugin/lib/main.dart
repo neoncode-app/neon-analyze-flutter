@@ -4,6 +4,7 @@ import 'package:analysis_server_plugin/registry.dart';
 import 'package:neon_lints/src/alert_only_in_cubit.dart';
 import 'package:neon_lints/src/avoid_bang.dart';
 import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
+import 'package:neon_lints/src/category_matches_folder.dart';
 import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
 import 'package:neon_lints/src/dimens_rules.dart';
@@ -111,6 +112,8 @@ class NeonLintsPlugin extends Plugin {
       // NCI0000022: a Result.when without unauthorized: hangs the caller on a 401.
       ..registerLintRule(ResultHandlesUnauthorized())
       // NCR0000030: package:neon_flutter_utils is the only way to format, validate, open links, ...
-      ..registerLintRule(UseSharedUtils());
+      ..registerLintRule(UseSharedUtils())
+      // NCC0000058: a widget's folder says its layer.
+      ..registerLintRule(CategoryMatchesFolder());
   }
 }

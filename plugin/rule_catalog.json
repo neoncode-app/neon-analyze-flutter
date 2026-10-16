@@ -330,6 +330,12 @@
       "description": "Use the neon_flutter_utils helpers instead of the raw APIs they wrap.",
       "message": "{0} is a raw API that neon_flutter_utils wraps; use {1}.",
       "correction": "Replace it with {1}."
+    },
+    "category_matches_folder": {
+      "kind": "lint",
+      "description": "A widget's folder says its layer: its {@category} matches the layer folder it sits in.",
+      "message": "the folder of `{0}` does not say its layer: {1}.",
+      "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/<owner>/ and in widgets/ of a page or feature."
     }
   }
 }

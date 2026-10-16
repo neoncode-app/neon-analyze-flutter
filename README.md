@@ -95,6 +95,7 @@ triggers, layout, suites, flows, hooks, and any configuration error.
 | `packs` / `skip_packs` | replace the preset's packs / drop some of them |
 | `rules` | one rule: `true`, `false`, `error`, `warning`, `info` |
 | `layout` | roles whose folders differ from the default (below) |
+| `tree.use` | optional folders of the canonical `lib/` tree the app has (`[flavors]`); the folder names themselves are fixed (below) |
 | `flavors`, `translations.languages` | only when detection is wrong |
 | `tests.suites` | `name: [source globs]`: which sources select `test/<name>` and the `integration_test/<name>_*` flows |
 | `tests.shared` | sources whose change runs every suite (preset) |
@@ -147,6 +148,57 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 
 The plugin reads the `layout:` section from the app's `neon_check.yaml`
 itself (presets never set a layout, so both sides agree).
+
+### The `lib/` tree
+
+Every app has the same `lib/` (NCC0000058). The base preset fixes the folder
+of every role directly under `lib/`; an app never renames one or adds its own.
+Optional folders exist only where the app switches them on:
+
+```yaml
+# presets/base.yaml
+tree:
+  folders: [app, bloc, model, repository, features, pages, global_widgets, utils, hive]
+  optional: [flavors]
+  entrypoints: [main.dart, 'main_*.dart']
+
+# an app with flavours, in its neon_check.yaml
+tree: {use: [flavors]}
+```
+
+The `layout_tree` step reports every other folder directly under `lib/` (as
+`lib/<name>/`) and every file there that is no entrypoint (a generated
+`hive_registrar.g.dart` belongs in `lib/hive/`). An app setting `tree.folders`,
+`tree.optional` or `tree.entrypoints`, or using a folder that is not optional,
+is a `config_invalid` failure. An app without flavours keeps its router under
+`app/` (role `routers`).
+
+### Layer folders
+
+A widget's folder says its layer: its `{@category}`, mapped to one folder
+name, the same everywhere (rule `category_matches_folder`):
+
+| `{@category}` | Folder |
+| --- | --- |
+| Component | `components/` |
+| Layout | `layouts/` |
+| Behavior | `behaviors/` |
+| Pattern | `patterns/` |
+| Template | `templates/` |
+| Skeleton (a skeleton that is a piece of its own) | `skeletons/` |
+| Feature (a kit piece or a part) | `features/` |
+| any class named `*Dialog` / `*Sheet` | `dialogs/` |
+
+The layer folder sits directly under each owner of the kit
+(`lib/global_widgets/global/components/app_switch/app_switch.dart`), in every
+`widgets/` folder of a page, feature or kit piece
+(`lib/pages/vernak/vernak_company_page/widgets/patterns/company_users_block.dart`)
+and below a kit's `src/`. A grouping folder may stand on either side of it
+(`global/stats/components/...` or `global/components/stats/...`). Parts keep
+no folder, dimens or skeleton of their own, and each carries its own
+`{@category}`. A `<name>_skeleton.dart` stays beside its widget and moves with
+it; pages stay in `lib/pages/<app>/<page>/` and feature pieces in
+`lib/features/<product>/<feature>/`, under no layer folder.
 
 ### Triggers
 
@@ -204,6 +256,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `translations_unused` | core | keys no code uses (`--all` only) | `--prune-translations` |
 | `translations_order` | core | keys in the primary file's order | yes |
 | `assets` | core | registry paths exist (in the app, or in the dependency the registry names as their package); unused asset files (`--all`) | no |
+| `layout_tree` | core | directly under `lib/` only the folders of the canonical tree (`tree:`) and the entrypoints; ratchet `layout_tree` | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
@@ -326,9 +379,9 @@ fixed in the plugin.
 
 ### `core`
 
-Every Flutter app. Formatting, analyzer, translations, assets, generated code, unit tests, and the rules any code base follows.
+Every Flutter app. Formatting, analyzer, translations, assets, generated code, the canonical lib/ tree, unit tests, and the rules any code base follows.
 
-Checks: `config_sync`, `format`, `fix`, `analyze`, `ignores`, `translations_parity`, `translations_dashes`, `translations_missing`, `translations_unused`, `translations_order`, `assets`, `generated`, `tests`.
+Checks: `config_sync`, `format`, `fix`, `analyze`, `ignores`, `translations_parity`, `translations_dashes`, `translations_missing`, `translations_unused`, `translations_order`, `assets`, `generated`, `layout_tree`, `tests`.
 
 | Rule | What it enforces |
 | --- | --- |
@@ -434,7 +487,7 @@ Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platfo
 
 ### `kit`
 
-The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the scale only in dimens files, named text styles, no tr() in the kit.
+The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit.
 
 | Rule | What it enforces |
 | --- | --- |
@@ -449,8 +502,9 @@ The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, 
 | `scale_only_in_dimens` | the scale (`AppSpacing`, `AppRadius`, ... in `lib/utils/ui/tokens/`) is read only by `*_dimens.dart` files; every other file uses its own dimens |
 | `no_app_dimens` | no reference to the old `AppDimens` (ratchet during the migration) |
 | `component_takes_variant` | `{@category Component}` constructors take no raw dimension parameters (primitives allow-listed) |
-| `piece_in_own_folder` | every public widget of the kit, features and pages lives in `<name>/<name>.dart`; parts go into subfolders of their piece's folder |
+| `piece_in_own_folder` | every public widget of the kit, features and pages lives in `<name>/<name>.dart` (below its layer folder or, during the migration, where it is); parts go into subfolders of their piece's folder |
 | `piece_has_skeleton` | every piece except layouts, behaviors, templates, skeletons, dialogs and sheets has `<name>_skeleton.dart` declaring `<Name>Skeleton` beside it |
+| `category_matches_folder` | the `{@category}` of a public widget in the kit or in a `widgets/` folder matches its [layer folder](#layer-folders) (`*Dialog` / `*Sheet` in `dialogs/`); a part of a page without `{@category}` is reported too |
 | `no_raw_text_style` | no `TextStyle(...)` / `copyWith(` other than `color:` outside the text style files |
 
 ### `catalog`

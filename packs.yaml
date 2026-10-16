@@ -17,7 +17,7 @@
 # texts come from plugin/rule_catalog.json, generated from the rules.
 
 core:
-  description: Every Flutter app. Formatting, analyzer, translations, assets, generated code, unit tests, and the rules any code base follows.
+  description: Every Flutter app. Formatting, analyzer, translations, assets, generated code, the canonical lib/ tree, unit tests, and the rules any code base follows.
   rules:
     - avoid_bang
     - no_widget_builder_method
@@ -43,6 +43,7 @@ core:
     - translations_order
     - assets
     - generated
+    - layout_tree
     - tests
   where:
     no_widget_builder_method: [ui]
@@ -122,7 +123,7 @@ responsive:
     no_layout_builder_in_pages: [pages, features]
 
 kit:
-  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the scale only in dimens files, named text styles, no tr() in the kit.
+  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit.
   rules:
     - use_kit_widgets
     - no_tr_in_global_widget
@@ -137,6 +138,7 @@ kit:
     - component_takes_variant
     - piece_in_own_folder
     - piece_has_skeleton
+    - category_matches_folder
     - no_raw_text_style
   where:
     no_tr_in_global_widget: [global_widgets]
@@ -146,6 +148,7 @@ kit:
     component_takes_variant: [global_widgets]
     piece_in_own_folder: [ui]
     piece_has_skeleton: [ui]
+    category_matches_folder: [ui]
 
 catalog:
   description: The widget catalog page. Its generated index is current and every kit widget has a live preview.

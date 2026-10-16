@@ -66,6 +66,11 @@ int explain(String root, String toolRoot, StringSink out) {
     final custom = patterns.join() != role.defaults.join();
     out.writeln('  ${custom ? '*' : ' '} ${role.key.padRight(17)} ${patterns.join(', ')}');
   }
+  if (config.hasTree) {
+    final unused = config.treeOptional.where((folder) => !config.treeUse.contains(folder));
+    out.writeln('  lib/ tree: ${config.treeAllowedFolders.map((folder) => '$folder/').join(', ')}'
+        '${unused.isEmpty ? '' : ' (optional, off: ${unused.join(', ')})'}; entrypoints ${config.treeEntrypoints.join(', ')}');
+  }
 
   final context = CheckContext(
     root: root,

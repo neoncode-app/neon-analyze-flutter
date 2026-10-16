@@ -25,6 +25,12 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// not a PART: a file below a subfolder of a piece's folder is a part of that
 /// piece and has no folder of its own. The skeleton file of a piece is part
 /// of it too.
+///
+/// Layer folders (NCC0000058, rule `category_matches_folder`) change nothing
+/// here: a kit piece is still `x/x.dart`, now below its layer folder
+/// (`global/components/app_switch/app_switch.dart`), and a part of a page or
+/// feature sits in `widgets/<layer>/`. Both the old and the new locations are
+/// accepted; only `category_matches_folder` reports a missing layer folder.
 
 /// Tiers that have no skeleton of their own: a behavior adds nothing to draw,
 /// a layout and a template are rendered as they are around the skeletons of
@@ -103,11 +109,20 @@ _Piece? _pieceOf(ClassDeclaration node, RuleLayout layout, ResourceProvider prov
 bool _isPartOrSkeleton(String path, RuleLayout layout, ResourceProvider provider) {
   final dir = _dirOf(path);
   if (_baseName(path) == '${_baseName(dir)}_skeleton.dart') return true;
+  return pieceFolderAbove(path, layout, provider) != null;
+}
+
+/// The nearest folder ABOVE the folder of [path] (absolute) that is a piece's
+/// folder (`x/` holding `x/x.dart`), or null: when there is one, [path] is a
+/// part of that piece. Layer folders (`components/`, `patterns/`, ...) hold
+/// no entry file of their own, so `global/components/app_switch/app_switch.dart`
+/// is a piece and `<page>/widgets/patterns/users_block.dart` a part of the page.
+String? pieceFolderAbove(String path, RuleLayout layout, ResourceProvider provider) {
   final lib = '${layout.root}/lib';
-  for (var ancestor = _dirOf(dir); ancestor.length > lib.length; ancestor = _dirOf(ancestor)) {
-    if (provider.getFile('$ancestor/${_baseName(ancestor)}.dart').exists) return true;
+  for (var ancestor = _dirOf(_dirOf(path)); ancestor.length > lib.length; ancestor = _dirOf(ancestor)) {
+    if (provider.getFile('$ancestor/${_baseName(ancestor)}.dart').exists) return ancestor;
   }
-  return false;
+  return null;
 }
 
 String _relative(RuleLayout layout, String path) => layout.relative(path) ?? path;

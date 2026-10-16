@@ -22,9 +22,11 @@ phases:
       - extend_base_cubit
 
   - name: folders
-    why: every piece moves into its own folder first, so its dimens and skeleton have a place beside it
+    why: every file moves to its final place first (the canonical lib/ tree, each piece in its own folder below its layer folder), so its dimens and skeleton have a place beside it
     rules:
+      - layout_tree
       - piece_in_own_folder
+      - category_matches_folder
 
   - name: tokens
     why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
