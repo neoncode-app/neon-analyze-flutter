@@ -54,8 +54,8 @@ class LineChartData {
 }
 
 /// Adds to the analyzer's mock SDK what it lacks and the rules match:
-/// `num.toStringAsFixed`, `jsonDecode`, `Timer.periodic` / `cancel` and a
-/// non-deprecated `Platform.isIOS`.
+/// `num.toStringAsFixed`, `jsonDecode`, `Timer.periodic` / `cancel`, a
+/// non-deprecated `Platform.isIOS` `Iterable.any` / `every` / `reduce` and `List.sort`.
 ///
 /// Call in `setUp` AFTER `super.setUp()` (which writes the mock SDK).
 void patchMockSdk(AnalysisRuleTest test) {
@@ -78,6 +78,13 @@ void patchMockSdk(AnalysisRuleTest test) {
         '  void cancel();',
   );
   patch('io/io.dart', 'abstract final class Platform {', '  static bool get isIOS => false;');
+  patch(
+    'core/core.dart',
+    'abstract mixin class Iterable<E> {',
+    '  bool any(bool test(E element));\n  bool every(bool test(E element));\n  E reduce(E combine(E value, E element));',
+  );
+  patch('core/core.dart', 'abstract interface class List<E> implements Iterable<E> {',
+      '  void sort([int compare(E a, E b)?]);');
 }
 
 /// Writes minimal `bloc`, `flutter_bloc` and `provider` packages (needs the

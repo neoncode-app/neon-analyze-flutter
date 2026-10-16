@@ -79,7 +79,7 @@ bloc:
     alert_only_in_cubit: [ui]
 
 presentation:
-  description: No logic in UI. Dialogs and navigation through presentation events, no setState in pages, page State holds controllers only.
+  description: No logic in UI. Dialogs and navigation through presentation events, no setState in pages, page and feature State holds controllers only, no computations over model data in widgets.
   rules:
     - dialog_only_in_listener
     - no_dialog_result
@@ -90,6 +90,7 @@ presentation:
     - no_private_methods_in_page_state
     - stateful_page_only_for_controllers
     - no_editor_controller_in_pages
+    - no_data_logic_in_ui
   where:
     dialog_only_in_listener: [ui]
     no_dialog_result: [ui]
@@ -97,9 +98,10 @@ presentation:
     no_navigation_in_ui: [ui]
     ui_callback_calls_cubit: [pages]
     no_setstate_in_pages: [pages, features]
-    no_private_methods_in_page_state: [pages]
-    stateful_page_only_for_controllers: [pages]
+    no_private_methods_in_page_state: [pages, features]
+    stateful_page_only_for_controllers: [pages, features]
     no_editor_controller_in_pages: [pages]
+    no_data_logic_in_ui: [ui]
 
 go_router:
   description: Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
@@ -123,7 +125,7 @@ responsive:
     no_layout_builder_in_pages: [pages, features]
 
 kit:
-  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit.
+  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, a Feature reads state and serves several pages.
   rules:
     - use_kit_widgets
     - no_tr_in_global_widget
@@ -141,6 +143,9 @@ kit:
     - piece_has_skeleton
     - category_matches_folder
     - no_raw_text_style
+    - feature_reads_state
+  steps:
+    - feature_used_once
   where:
     no_tr_in_global_widget: [global_widgets]
     labels_only_in_kit: [pages, features]
@@ -151,6 +156,7 @@ kit:
     piece_in_own_folder: [ui]
     piece_has_skeleton: [ui]
     category_matches_folder: [ui]
+    feature_reads_state: [features]
 
 catalog:
   description: The widget catalog page. Its generated index is current and every kit widget has a live preview.

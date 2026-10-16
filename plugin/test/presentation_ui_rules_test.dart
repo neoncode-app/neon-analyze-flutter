@@ -403,6 +403,8 @@ class _PageState extends State<Page> {
   @override
   void dispose() {}
 
+  void didChangeAppLifecycleState(Object state) {}
+
   @override
   Widget build(BuildContext context) => Widget();
 
@@ -418,6 +420,10 @@ class _PageState extends State<Page> {
       message: ['only lifecycle methods'], after: 'Widget();');
 
   Future<void> test_states_outside_pages_are_not_checked() => expectIn('global_widgets/global/x.dart', _source, []);
+
+  Future<void> test_feature_states_are_checked_too() => expectIn(
+      'features/vernak/flow/flow.dart', _source, ['_save', '_count'],
+      message: ['page or feature State'], after: 'Widget();');
 }
 
 @reflectiveTest
@@ -454,6 +460,42 @@ class _EmptyState extends State<Empty> {
         ['_PageState', '_EmptyState'],
         message: ['only owns controllers'],
         after: 'const Page();',
+      );
+
+  Future<void> test_feature_state_holding_data_is_flagged() => expectIn(
+        'features/vernak/flow/flow.dart',
+        '''
+${_imports}class Flow extends StatefulWidget {
+  const Flow();
+}
+
+class _FlowState extends State<Flow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) => Widget();
+}
+''',
+        ['_FlowState'],
+        message: ['holds _expanded'],
+        after: 'const Flow();',
+      );
+
+  Future<void> test_states_in_the_kit_are_not_checked() => expectIn(
+        'global_widgets/global/components/flow/flow.dart',
+        '''
+${_imports}class Flow extends StatefulWidget {
+  const Flow();
+}
+
+class _FlowState extends State<Flow> {
+  bool _expanded = false;
+
+  @override
+  Widget build(BuildContext context) => Widget();
+}
+''',
+        [],
       );
 
   Future<void> test_state_owning_only_controllers_is_clean() => expectIn(

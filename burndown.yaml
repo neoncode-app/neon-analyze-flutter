@@ -27,6 +27,8 @@ phases:
       - layout_tree
       - piece_in_own_folder
       - category_matches_folder
+      - feature_used_once
+      - feature_reads_state
 
   - name: tokens
     why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
@@ -86,6 +88,7 @@ phases:
       - no_private_methods_in_page_state
       - stateful_page_only_for_controllers
       - no_editor_controller_in_pages
+      - no_data_logic_in_ui
 
   - name: pages
     why: every page on its template, access on the route, responsiveness through the screen sizes

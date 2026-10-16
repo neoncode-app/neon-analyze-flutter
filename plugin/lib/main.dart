@@ -9,10 +9,12 @@ import 'package:neon_lints/src/cubit_created_in_provider.dart';
 import 'package:neon_lints/src/dialog_only_in_listener.dart';
 import 'package:neon_lints/src/dimens_rules.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
+import 'package:neon_lints/src/feature_reads_state.dart';
 import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
+import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
 import 'package:neon_lints/src/no_navigation_in_ui.dart';
 import 'package:neon_lints/src/no_navigator.dart';
@@ -117,6 +119,9 @@ class NeonLintsPlugin extends Plugin {
       // NCC0000058: a widget's folder says its layer.
       ..registerLintRule(CategoryMatchesFolder())
       // NCC0000059: only the kit takes *Labels; features and pages call tr() where they draw.
-      ..registerLintRule(LabelsOnlyInKit());
+      ..registerLintRule(LabelsOnlyInKit())
+      // NCC0000060: a Feature reads state; UI only draws, the cubit is the controller.
+      ..registerLintRule(FeatureReadsState())
+      ..registerLintRule(NoDataLogicInUi());
   }
 }

@@ -9,6 +9,7 @@ import 'package:neon_check/src/runner.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
+import 'package:neon_check/src/steps/feature_used_once_step.dart';
 import 'package:neon_check/src/steps/layout_tree_step.dart';
 import 'package:neon_check/src/steps/rule_docs_step.dart';
 import 'package:test/test.dart';
@@ -168,6 +169,57 @@ layout: {pagez: lib/screens/}
       expect(result.findings.last.message, contains('no folder of the lib/ tree'));
       expect(result.findingsScope?.call('lib/old/'), isTrue);
       expect(const LayoutTreeStep().appliesTo(_context(dir.path, config, changed: {'test/a_test.dart'})), isFalse);
+    });
+
+    test('feature_used_once reports a feature only one page imports', () async {
+      _write(dir, 'neon_check.yaml', 'preset: admin\n');
+      const feature = """
+import 'package:flutter/widgets.dart';
+
+/// A feature.
+///
+/// {@category Feature}
+class %s extends StatelessWidget {}
+""";
+      _write(dir, 'lib/features/shop/banner/banner.dart', feature.replaceFirst('%s', 'Banner'));
+      _write(dir, 'lib/features/shop/banner/widgets/part.dart', "import '../banner.dart';\n");
+      _write(dir, 'lib/features/shop/menu/menu.dart', feature.replaceFirst('%s', 'Menu'));
+      _write(dir, 'lib/features/shop/cart/cart.dart', feature.replaceFirst('%s', 'Cart'));
+      _write(dir, 'lib/features/shop/badge/badge.dart', feature.replaceFirst('%s', 'Badge'));
+      _write(dir, 'lib/features/shop/loose/widgets/loose_part.dart', feature.replaceFirst('%s', 'LoosePart'));
+      _write(dir, 'lib/features/shop/helper/helper.dart', 'class Helper {}\n');
+      // Banner: two files of one page (one relative), nothing else -> finding.
+      _write(dir, 'lib/pages/shop/home_page/home_page.dart', """
+import 'package:shop/features/shop/banner/banner.dart';
+import 'package:shop/features/shop/menu/menu.dart';
+import 'package:shop/features/shop/cart/cart.dart';
+import 'package:shop/features/shop/loose/widgets/loose_part.dart';
+import 'package:shop/features/shop/helper/helper.dart';
+""");
+      _write(dir, 'lib/pages/shop/home_page/widgets/patterns/header.dart', "import '../../../../../features/shop/banner/banner.dart';\n");
+      // Menu: a second page; Cart: the router; Badge: nobody.
+      _write(dir, 'lib/pages/shop/orders_page/orders_page.dart', "import 'package:shop/features/shop/menu/menu.dart';\n");
+      _write(dir, 'lib/flavors/shop/shop_router.dart', "import 'package:shop/features/shop/cart/cart.dart';\n");
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final context = _context(dir.path, config, changed: {'lib/pages/shop/home_page/home_page.dart'});
+      expect(const FeatureUsedOnceStep().appliesTo(context), isTrue);
+      final result = await const FeatureUsedOnceStep().run(context);
+      expect(result.findings.map((finding) => '${finding.rule} ${finding.file}:${finding.line}'), [
+        'feature_used_once lib/features/shop/banner/banner.dart:6',
+      ]);
+      expect(result.findings.single.message, contains('only by the page `lib/pages/shop/home_page/`'));
+      expect(result.findingsScope?.call('lib/features/shop/menu/menu.dart'), isTrue);
+      expect(result.findingsScope?.call('lib/pages/shop/home_page/home_page.dart'), isFalse);
+      expect(const FeatureUsedOnceStep().appliesTo(_context(dir.path, config, changed: {'test/a_test.dart'})), isFalse);
+    });
+
+    test('feature_used_once: a shared pages/<app>/widgets/ user counts as another user', () async {
+      _write(dir, 'neon_check.yaml', 'preset: admin\n');
+      _write(dir, 'lib/features/shop/flow/flow.dart', '/// {@category Feature}\nclass Flow {}\n');
+      _write(dir, 'lib/pages/shop/home_page/home_page.dart', "import 'package:shop/features/shop/flow/flow.dart';\n");
+      _write(dir, 'lib/pages/shop/widgets/flow_host/flow_host.dart', "export 'package:shop/features/shop/flow/flow.dart';\n");
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      expect((await const FeatureUsedOnceStep().run(_context(dir.path, config))).findings, isEmpty);
     });
 
     test('layout_tree tells an app how to switch an optional folder on', () async {

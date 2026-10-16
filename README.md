@@ -200,6 +200,26 @@ no folder, dimens or skeleton of their own, and each carries its own
 it; pages stay in `lib/pages/<app>/<page>/` and feature pieces in
 `lib/features/<product>/<feature>/`, under no layer folder.
 
+### Where a widget lives, and what UI may do
+
+Placement (NCC0000060, rule doc `feature_placement`), first match wins:
+
+1. it reads no state (no cubit, context getter or repository): the kit
+   (`lib/global_widgets/**`), or a part of the one page that uses it;
+2. it reads state and only one page uses it: a part of that page
+   (`<page>/widgets/`);
+3. it reads state or drives a whole flow, and several pages, a shell or both
+   administrations use it: a Feature in `lib/features/<product>/<feature>/`.
+
+`feature_reads_state` reports a Feature that reads no state and the step
+`feature_used_once` a feature only one page imports. UI only draws: the cubit
+of a page or feature is its controller (no second controller layer); every
+computation over data happens in the cubit, which emits ready-to-draw data
+(filtered and sorted IDs, formatted numbers and dates, flags);
+`no_data_logic_in_ui` reports filtering, sorting and arithmetic over model
+data and the clock in widgets. Pure stateless logic goes to
+`neon_flutter_utils` or `lib/utils/helpers/`.
+
 ### Triggers
 
 | Trigger | Called by | Scope | Steps (base preset) | Changes files | Integration |
@@ -257,6 +277,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `translations_order` | core | keys in the primary file's order | yes |
 | `assets` | core | registry paths exist (in the app, or in the dependency the registry names as their package); unused asset files (`--all`) | no |
 | `layout_tree` | core | directly under `lib/` only the folders of the canonical tree (`tree:`) and the entrypoints; ratchet `layout_tree` | no |
+| `feature_used_once` | kit | a feature (the entry file `<feature>/<feature>.dart` of the `features` role declaring a `{@category Feature}` class) imported directly by exactly one page folder (`.../<name>_page/`) and by nothing else outside its folder (no shell, router, other feature, shared `pages/<app>/widgets/`) belongs into that page; ratchet `feature_used_once` | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
@@ -448,7 +469,7 @@ final class XError extends XState {
 
 ### `presentation`
 
-No logic in UI. Dialogs and navigation through presentation events, no setState in pages, page State holds controllers only.
+No logic in UI. Dialogs and navigation through presentation events, no setState in pages, page and feature State holds controllers only, no computations over model data in widgets.
 
 | Rule | What it enforces |
 | --- | --- |
@@ -458,9 +479,10 @@ No logic in UI. Dialogs and navigation through presentation events, no setState 
 | `no_navigation_in_ui` | no go_router navigation in UI code; `context.pop()` only as a pure Cancel or for `CloseDialog` |
 | `ui_callback_calls_cubit` | `on*:` in pages is a cubit tear-off, one cubit call or a forwarded callback |
 | `no_setstate_in_pages` | no `setState` in `lib/pages`, `lib/features` |
-| `no_private_methods_in_page_state` | a page `State` declares only lifecycle methods and `build` |
-| `stateful_page_only_for_controllers` | a page `State` holds only controllers, focus nodes, timers, subscriptions, keys (by type name) |
+| `no_private_methods_in_page_state` | a page or feature `State` declares only lifecycle methods (`didChangeAppLifecycleState` included) and `build` |
+| `stateful_page_only_for_controllers` | a page or feature `State` holds only controllers, focus nodes, timers, subscriptions, keys (by type name) |
 | `no_editor_controller_in_pages` | no `*EditorController` and no `.validate()` in pages |
+| `no_data_logic_in_ui` | in a `Widget` / `State` class of pages, features and the kit: no `where` / `firstWhere` / `sort` / `fold` / `reduce` / `any` / `every` / `expand` on an `Iterable` of app models (classes of the `model` role, enums excluded), no `DateTime.now()`, no arithmetic (`+ - * / ~/ %` on numbers) with an operand that reads a field of an app model object (`coupon.price * 2`); mapping data to widgets, comparisons and layout maths from number parameters stay allowed. The cubit computes and emits ready-to-draw data |
 
 ### `go_router`
 
@@ -487,7 +509,9 @@ Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platfo
 
 ### `kit`
 
-The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit.
+The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, a Feature reads state and serves several pages.
+
+Checks: `feature_used_once`.
 
 | Rule | What it enforces |
 | --- | --- |
@@ -507,6 +531,7 @@ The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, 
 | `piece_has_skeleton` | every piece except layouts, behaviors, templates, skeletons, dialogs and sheets has `<name>_skeleton.dart` declaring `<Name>Skeleton` beside it |
 | `category_matches_folder` | the `{@category}` of a public widget in the kit or in a `widgets/` folder matches its [layer folder](#layer-folders) (`*Dialog` / `*Sheet` in `dialogs/`); a part of a page without `{@category}` is reported too |
 | `no_raw_text_style` | no `TextStyle(...)` / `copyWith(` other than `color:` outside the text style files |
+| `feature_reads_state` | a `{@category Feature}` class reads state: in it, its `State` or the private classes of its file there is a typed context getter (an extension getter of a providers file), a provider read, a bloc / cubit type or a type of the `bloc` or `repository` roles, or another Feature it builds; otherwise it belongs to the kit or to its one page |
 
 ### `catalog`
 

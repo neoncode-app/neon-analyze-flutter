@@ -23,7 +23,12 @@ const _lifecycle = {
   'dispose',
   'reassemble',
   'build',
+  // WidgetsBindingObserver: the app lifecycle is lifecycle too.
+  'didChangeAppLifecycleState',
 };
+
+bool _inPagesOrFeatures(RuleLayout layout, String path) =>
+    layout.isIn(path, LayoutRole.pages) || layout.isIn(path, LayoutRole.features);
 
 bool _isFlutterState(ClassDeclaration node) {
   final state = supertypeNamed(node, 'State');
@@ -71,17 +76,18 @@ class _SetStateVisitor extends SimpleAstVisitor<void> {
   }
 }
 
-/// A page `State` declares only lifecycle methods and `build`: no private
-/// helpers, no getters, no event handlers.
+/// A page or feature `State` (layout roles `pages`, `features`) declares only
+/// lifecycle methods and `build`: no private helpers, no getters, no event
+/// handlers.
 class NoPrivateMethodsInPageState extends AnalysisRule {
   NoPrivateMethodsInPageState() : super(name: 'no_private_methods_in_page_state', description: _desc);
 
-  static const _desc = 'A page State has only lifecycle methods and build.';
+  static const _desc = 'A page or feature State has only lifecycle methods and build.';
 
   static const LintCode code = LintCode(
     'no_private_methods_in_page_state',
-    '[NEON] `{0}` in a page State; a page State has only lifecycle methods and build. Logic goes into the '
-        'cubit, pieces of UI into widget classes.',
+    '[NEON] `{0}` in a page or feature State; a page or feature State has only lifecycle methods and build. '
+        'Logic goes into the cubit, pieces of UI into widget classes.',
     correctionMessage: 'Move the logic into a cubit method, or the UI into its own widget.',
     severity: DiagnosticSeverity.WARNING,
   );
@@ -106,15 +112,16 @@ class _MethodVisitor extends SimpleAstVisitor<void> {
   void visitMethodDeclaration(MethodDeclaration node) {
     if (node.isStatic || _lifecycle.contains(node.name.lexeme)) return;
     final path = unitPath(node);
-    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages)) return;
+    if (!isAppSource(path) || !_inPagesOrFeatures(layout, path)) return;
     final owner = enclosingClass(node);
     if (owner == null || !_isFlutterState(owner)) return;
     rule.reportAtToken(node.name, arguments: [node.name.lexeme]);
   }
 }
 
-/// A page `StatefulWidget` exists only to own controllers: every field of
-/// its State is a controller, focus node, timer, subscription or key.
+/// A page or feature `StatefulWidget` (layout roles `pages`, `features`)
+/// exists only to own controllers: every field of its State is a controller,
+/// focus node, timer, subscription or key.
 ///
 /// Heuristic (types matched by name): `*Controller`, `FocusNode`, `Timer`,
 /// `StreamSubscription`, `GlobalKey`, `*Notifier`, `*Recognizer` (a gesture
@@ -123,12 +130,12 @@ class _MethodVisitor extends SimpleAstVisitor<void> {
 class StatefulPageOnlyForControllers extends AnalysisRule {
   StatefulPageOnlyForControllers() : super(name: 'stateful_page_only_for_controllers', description: _desc);
 
-  static const _desc = 'StatefulWidget in pages only to own controllers.';
+  static const _desc = 'StatefulWidget in pages and features only to own controllers.';
 
   static const LintCode code = LintCode(
     'stateful_page_only_for_controllers',
-    '[NEON] page State `{0}` {1}; a StatefulWidget in a page only owns controllers (TextEditingController, '
-        'FocusNode, ...). Keep everything else in the cubit, or use a StatelessWidget.',
+    '[NEON] page or feature State `{0}` {1}; a StatefulWidget in a page or feature only owns controllers '
+        '(TextEditingController, FocusNode, ...). Keep everything else in the cubit, or use a StatelessWidget.',
     correctionMessage: 'Move the field into the cubit state, or make the widget stateless.',
     severity: DiagnosticSeverity.WARNING,
   );
@@ -158,7 +165,7 @@ class _StatefulVisitor extends SimpleAstVisitor<void> {
   @override
   void visitClassDeclaration(ClassDeclaration node) {
     final path = unitPath(node);
-    if (!isAppSource(path) || !layout.isIn(path, LayoutRole.pages) || !_isFlutterState(node)) return;
+    if (!isAppSource(path) || !_inPagesOrFeatures(layout, path) || !_isFlutterState(node)) return;
     final element = node.declaredFragment?.element;
     if (element == null) return;
     final fields = element.fields.where((field) => !field.isStatic && field.isOriginDeclaration).toList();

@@ -147,14 +147,14 @@
     },
     "no_private_methods_in_page_state": {
       "kind": "lint",
-      "description": "A page State has only lifecycle methods and build.",
-      "message": "`{0}` in a page State; a page State has only lifecycle methods and build. Logic goes into the cubit, pieces of UI into widget classes.",
+      "description": "A page or feature State has only lifecycle methods and build.",
+      "message": "`{0}` in a page or feature State; a page or feature State has only lifecycle methods and build. Logic goes into the cubit, pieces of UI into widget classes.",
       "correction": "Move the logic into a cubit method, or the UI into its own widget."
     },
     "stateful_page_only_for_controllers": {
       "kind": "lint",
-      "description": "StatefulWidget in pages only to own controllers.",
-      "message": "page State `{0}` {1}; a StatefulWidget in a page only owns controllers (TextEditingController, FocusNode, ...). Keep everything else in the cubit, or use a StatelessWidget.",
+      "description": "StatefulWidget in pages and features only to own controllers.",
+      "message": "page or feature State `{0}` {1}; a StatefulWidget in a page or feature only owns controllers (TextEditingController, FocusNode, ...). Keep everything else in the cubit, or use a StatelessWidget.",
       "correction": "Move the field into the cubit state, or make the widget stateless."
     },
     "no_editor_controller_in_pages": {
@@ -342,6 +342,18 @@
       "description": "Only the widget kit takes *Labels objects; features and pages call tr() where they draw.",
       "message": "{0}; features and pages call tr() where they draw; per-flavour wording comes from FlavorConfig.",
       "correction": "Call tr('key') where the text is drawn and drop the *Labels class or parameter; when the wording differs per administration, pick the key from FlavorConfig."
+    },
+    "feature_reads_state": {
+      "kind": "lint",
+      "description": "A Feature reads state; a widget that reads none belongs to the kit or to its one page.",
+      "message": "the Feature `{0}` reads no state (no context getter, cubit or repository); it belongs to the kit (lib/global_widgets/), or into the one page that uses it.",
+      "correction": "Move it to the kit with its texts and data as parameters (category Component, Pattern, ...), or into <page>/widgets/ when only one page uses it."
+    },
+    "no_data_logic_in_ui": {
+      "kind": "lint",
+      "description": "UI only draws; computations over data happen in the cubit, which emits ready-to-draw data.",
+      "message": "{0} in a widget; UI only draws. The cubit is the controller: it computes over the data and emits ready-to-draw values (filtered or sorted IDs, formatted numbers and dates, flags).",
+      "correction": "Move the computation into the cubit and put its result into the state; pure stateless logic goes to neon_flutter_utils or lib/utils/helpers/."
     }
   }
 }
