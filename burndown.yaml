@@ -44,6 +44,12 @@ phases:
       - model_uses_json_serializable
       - no_dynamic_in_models
 
+  - name: requests
+    why: one request per file in request_models/<project>/<domain>/, the tenant declared once by the project base
+    rules:
+      - request_extends_project_base
+      - no_tenant_in_extra_headers
+
   - name: tokens
     why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
     rules:
