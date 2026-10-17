@@ -437,8 +437,9 @@ ${_dialogFunctions.map((name) => 'Future<T?> $name<T>({BuildContext? context, Ob
 void addJsonPackages(AnalysisRuleTest test) {
   test.newPackage('json_annotation').addFile('lib/json_annotation.dart', r'''
 class JsonSerializable {
-  const JsonSerializable({this.explicitToJson, this.genericArgumentFactories});
+  const JsonSerializable({this.explicitToJson, this.genericArgumentFactories, this.createToJson});
   final bool? explicitToJson;
+  final bool? createToJson;
   final bool? genericArgumentFactories;
 }
 

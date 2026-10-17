@@ -16,6 +16,7 @@ import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
 import 'package:neon_lints/src/model_layout_rules.dart';
+import 'package:neon_lints/src/model_serialization_rules.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
@@ -138,6 +139,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(EnumInEnumsFolder())
       ..registerLintRule(OneDeclarationPerModelFile())
       ..registerLintRule(ModelsOnlyInModel())
-      ..registerLintRule(NoLogicInModels());
+      ..registerLintRule(NoLogicInModels())
+      // NCC0000066: every model serializes through json_serializable, no dynamic in models.
+      ..registerLintRule(ModelUsesJsonSerializable())
+      ..registerLintRule(NoDynamicInModels());
   }
 }

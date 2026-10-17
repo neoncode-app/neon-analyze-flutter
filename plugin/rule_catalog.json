@@ -402,6 +402,18 @@
       "description": "No top-level helper functions in model files.",
       "message": "top-level function {0} in a model file; models hold data, no helper functions.",
       "correction": "Parse through json_serializable (@JsonKey, the converters of package:neon_flutter_utils/json.dart), make a derived value a getter or named constructor of the model, or move the helper to lib/utils/ or into the cubit."
+    },
+    "model_uses_json_serializable": {
+      "kind": "lint",
+      "description": "Models serialize through json_serializable: @JsonSerializable and the generated functions.",
+      "message": "{0}; every model serializes through json_serializable.",
+      "correction": "Annotate the model @JsonSerializable(), add `part '<file>.g.dart';`, make fromJson return _$XFromJson(json) and toJson return _$XToJson(this), and express special cases with @JsonKey(fromJson:, toJson:, defaultValue:, unknownEnumValue:), @JsonEnum and the converters of package:neon_flutter_utils/json.dart; then run build_runner."
+    },
+    "no_dynamic_in_models": {
+      "kind": "lint",
+      "description": "No dynamic, Object? or Map<String, dynamic> fields, parameters or getters in models.",
+      "message": "{0} of {1} is '{2}'; a model field, constructor parameter or getter has a concrete type.",
+      "correction": "Give it a typed model or a concrete type (a nested @JsonSerializable class, an enum, List<X>, Map<String, X>); keep Map<String, dynamic> only as the fromJson parameter and the toJson result."
     }
   }
 }

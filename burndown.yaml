@@ -38,6 +38,12 @@ phases:
       - one_declaration_per_model_file
       - no_logic_in_models
 
+  - name: serialization
+    why: once every model has its file, it serializes through json_serializable with typed fields; the requests are rebuilt on these models
+    rules:
+      - model_uses_json_serializable
+      - no_dynamic_in_models
+
   - name: tokens
     why: dimensions and text styles from each piece's own dimens, so the kit and pages can be reshaped on top of them
     rules:

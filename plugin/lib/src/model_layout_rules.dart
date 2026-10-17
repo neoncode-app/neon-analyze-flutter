@@ -237,6 +237,11 @@ bool hasJsonMembers(ClassDeclaration node) => classMembers(node).any(
       },
     );
 
+/// Whether [node] implements json_annotation's `JsonConverter` (a converter
+/// has `fromJson` / `toJson` methods and is no model).
+bool isJsonConverter(ClassDeclaration node) =>
+    isSubtypeOf(node.declaredFragment?.element.thisType, 'JsonConverter', package: 'json_annotation');
+
 /// Whether [node] is annotated `@JsonSerializable(...)`.
 bool hasJsonSerializable(AnnotatedNode node) => node.metadata.any((annotation) {
       final name = annotation.name.name;
@@ -268,6 +273,7 @@ class _ModelsOnlyVisitor extends SimpleAstVisitor<void> {
       final modelFile = _stem(path).endsWith('_model') || _stem(path).endsWith('_models');
       for (final declaration in node.declarations.whereType<ClassDeclaration>()) {
         final name = declaration.namePart.typeName;
+        if (isJsonConverter(declaration)) continue;
         if (hasJsonMembers(declaration) || hasJsonSerializable(declaration)) {
           rule.reportAtToken(name, arguments: ['${name.lexeme} serializes outside the model role', model]);
         } else if (modelFile && !_isWidgetOrLabels(declaration)) {
