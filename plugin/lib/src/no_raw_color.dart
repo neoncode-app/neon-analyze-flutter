@@ -5,6 +5,7 @@ import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
 
+import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Forbids raw colors in widget code: `Color(0x...)` literals and
@@ -68,7 +69,9 @@ class NoRawColor extends AnalysisRule {
     // Normalise separators so path fragments match on every platform.
     final path = context.definingUnit.file.path.replaceAll(r'\', '/');
     // Skip generated files: json_serializable / hive emit raw `Color(...)`,
-    // and the plugin does not honour the analyzer `exclude` glob.
+    // and the plugin does not honour the analyzer `exclude` glob. A generated
+    // `part` of a hand-written library is skipped per node (_Visitor), since
+    // the defining unit is the library, not the part.
     if (path.endsWith('.g.dart')) return;
     // Locations that legitimately define raw color values (layout role
     // `colors`): the theme/ folders (app_colors, *_text_styles, ...), the icon
@@ -93,6 +96,7 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final typeName = node.constructorName.type.name.lexeme;
     if (typeName != 'Color') return;
+    if (unitPath(node).endsWith('.g.dart')) return;
     // Only flag hardcoded literal colors (`Color(0xFF...)`). A `Color(expr)`
     // built from a non-literal argument (variable, `int.parse(...)`,
     // arithmetic, ...) is color deserialization and must be allowed.
@@ -125,6 +129,7 @@ class _Visitor extends SimpleAstVisitor<void> {
   void visitPrefixedIdentifier(PrefixedIdentifier node) {
     // Matches `Colors.grey`, `Colors.red`, etc.
     if (node.prefix.name != 'Colors') return;
+    if (unitPath(node).endsWith('.g.dart')) return;
     if (NoRawColor._allowedNamed.contains(node.identifier.name)) return;
     rule.reportAtNode(node);
   }
