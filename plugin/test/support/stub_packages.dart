@@ -177,6 +177,41 @@ class BlocPresentationListener<B, E> extends Widget {
   test.newPackage('go_router').addFile('lib/go_router.dart', r'''
 import 'package:flutter/widgets.dart';
 
+class GoRouterState {}
+
+abstract class Page<T> {
+  const Page();
+}
+
+class NoTransitionPage<T> extends Page<T> {
+  const NoTransitionPage({required Widget child});
+}
+
+class CustomTransitionPage<T> extends Page<T> {
+  const CustomTransitionPage({required Widget child});
+}
+
+abstract class RouteBase {
+  const RouteBase();
+}
+
+class GoRoute extends RouteBase {
+  const GoRoute({
+    required String path,
+    Widget Function(BuildContext, GoRouterState)? builder,
+    Page<Object?> Function(BuildContext, GoRouterState)? pageBuilder,
+    List<RouteBase> routes = const [],
+  });
+}
+
+class ShellRoute extends RouteBase {
+  const ShellRoute({Widget Function(BuildContext, GoRouterState, Widget)? builder, List<RouteBase> routes = const []});
+}
+
+class GoRouter {
+  GoRouter({required List<RouteBase> routes});
+}
+
 extension GoRouterHelper on BuildContext {
   void go(String location) {}
   void goNamed(String name) {}

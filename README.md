@@ -506,7 +506,7 @@ Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, 
 
 ### `go_router`
 
-Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
+Navigation with go_router. No Navigator, cubits provided in the route builders, routers hold only routes built through the page factory, a test for every route.
 
 Checks: `test_existence`.
 
@@ -514,6 +514,8 @@ Checks: `test_existence`.
 | --- | --- |
 | `no_navigator` | no `Navigator.*`; navigate with go_router (`context.pop` / `go` / `push`) |
 | `provider_in_router` | `BlocProvider` / `MultiBlocProvider` only in the routing files (`lib/flavors/**`), the app startup (`app_root`, `lib/app/bootstrap.dart`) and the dialog helper (`lib/utils/utils.dart`) |
+| `router_only_routes` | a router file (role `routers`) declares no class, mixin, enum or extension and no top-level function but the one returning the `GoRouter`; it calls no `show*` / `.show(` (a tear-off such as `help: VernakPageHelp.x.show` is a reference, not a call) and no `tr()`. Shells, guards, the page factory and labels are pieces of their own under `lib/flavors/<flavor>/` (NCC0000061) |
+| `route_uses_page_factory` | every `GoRoute` of a router uses `pageBuilder:` returning a call of the flavour's page factory (a function of a `*_page_factory.dart`, e.g. `vernakPage(state, access:, transition:, page:)`); a `GoRoute(builder:)` or a hand-built `NoTransitionPage` / `MaterialPage` / `CupertinoPage` / `CustomTransitionPage` is reported. `ShellRoute(builder:)` is fine |
 
 ### `responsive`
 

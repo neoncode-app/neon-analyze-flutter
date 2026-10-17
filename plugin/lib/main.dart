@@ -19,6 +19,7 @@ import 'package:neon_lints/src/model_layout_rules.dart';
 import 'package:neon_lints/src/model_serialization_rules.dart';
 import 'package:neon_lints/src/no_cubit_call_in_lifecycle.dart';
 import 'package:neon_lints/src/request_model_rules.dart';
+import 'package:neon_lints/src/router_rules.dart';
 import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
 import 'package:neon_lints/src/no_navigation_in_ui.dart';
@@ -146,6 +147,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoDynamicInModels())
       // NCC0000067: requests per project on a project base, no tenant in extraHeaders.
       ..registerLintRule(RequestExtendsProjectBase())
-      ..registerLintRule(NoTenantInExtraHeaders());
+      ..registerLintRule(NoTenantInExtraHeaders())
+      // NCC0000061: routers hold only routes, every route through the page factory.
+      ..registerLintRule(RouterOnlyRoutes())
+      ..registerLintRule(RouteUsesPageFactory());
   }
 }

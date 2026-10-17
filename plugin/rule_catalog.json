@@ -426,6 +426,18 @@
       "description": "The tenant is never set in extraHeaders; the request declares project through its base.",
       "message": "{0} sets x-project in extraHeaders.",
       "correction": "Remove the x-project header and extend the project base from request_models/_base/ (TenantScopedRequest when the caller chooses the tenant)."
+    },
+    "router_only_routes": {
+      "kind": "lint",
+      "description": "A router file holds only routes: no classes, helpers, dialogs or translations.",
+      "message": "the router {0}; a router file holds only its routes.",
+      "correction": "Move shells, guards, the page factory and labels into their own pieces under lib/flavors/<flavor>/ (component_folder_with_skeleton), open dialogs through a cubit presentation event, and translate where the text is drawn."
+    },
+    "route_uses_page_factory": {
+      "kind": "lint",
+      "description": "Every GoRoute builds its page through the flavour's page factory.",
+      "message": "{0}; every GoRoute uses pageBuilder: returning the page factory of its flavour.",
+      "correction": "Write `pageBuilder: (context, state) => <flavor>Page(state, access: ..., page: ...)`; the factory (lib/flavors/<flavor>/<flavor>_page_factory/) declares the access and applies the AppPageTransition."
     }
   }
 }

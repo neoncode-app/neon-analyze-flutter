@@ -127,10 +127,15 @@ models:
     request_extends_project_base: [model]
 
 go_router:
-  description: Navigation with go_router. No Navigator, cubits provided in the route builders, a test for every route.
+  description: Navigation with go_router. No Navigator, cubits provided in the route builders, routers hold only routes built through the page factory, a test for every route.
   rules:
     - no_navigator
     - provider_in_router
+    - router_only_routes
+    - route_uses_page_factory
+  where:
+    router_only_routes: [routers]
+    route_uses_page_factory: [routers]
   steps:
     - test_existence
 
