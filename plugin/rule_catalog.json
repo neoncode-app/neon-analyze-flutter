@@ -480,6 +480,18 @@
       "description": "Hive (through neon_flutter_hive) is the only local data store.",
       "message": "{0}; Hive through neon_flutter_hive is the only local store.",
       "correction": "Store data in a typed box of neon_flutter_hive (EntityBox, KeyValueBox) owned by a repository; secrets go to the secure store (rule secure_storage)."
+    },
+    "state_carries_ids": {
+      "kind": "lint",
+      "description": "Cubit states carry the ids of Hive entities, never the entities.",
+      "message": "the state field {0} holds the Hive entity {1}; a state carries its id.",
+      "correction": "Write the entity to its box through the repository and keep its id (or ordered ids) in the state; the UI reads it with HiveEntityBuilder / HiveEntitiesBuilder. A form being edited is a dedicated *Draft type."
+    },
+    "ui_reads_entities_through_builder": {
+      "kind": "lint",
+      "description": "Pages and features read Hive entities through the neon_flutter_hive builders.",
+      "message": "{0} reads the box directly; the UI reads entities through the neon_flutter_hive builders.",
+      "correction": "Pass the box to HiveEntityBuilder (one id), HiveEntitiesBuilder (ids) or HiveValueBuilder (a key of a KeyValueBox); writes go through the repository from a cubit."
     }
   }
 }

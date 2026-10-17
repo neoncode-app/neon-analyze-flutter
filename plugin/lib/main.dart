@@ -23,6 +23,7 @@ import 'package:neon_lints/src/request_model_rules.dart';
 import 'package:neon_lints/src/router_rules.dart';
 import 'package:neon_lints/src/secure_storage_rules.dart';
 import 'package:neon_lints/src/shared_functions.dart';
+import 'package:neon_lints/src/state_ids_rules.dart';
 import 'package:neon_lints/src/storage_rules.dart';
 import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
@@ -165,6 +166,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(SecureStorageKeys())
       // NCC0000070: Hive is the only store, repositories own the boxes.
       ..registerLintRule(HiveOnlyInRepositories())
-      ..registerLintRule(StorageHiveOnly());
+      ..registerLintRule(StorageHiveOnly())
+      // NCC0000071: states carry ids, the UI reads entities through the Hive builders.
+      ..registerLintRule(StateCarriesIds())
+      ..registerLintRule(UiReadsEntitiesThroughBuilder());
   }
 }

@@ -510,7 +510,7 @@ Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, 
 
 ### `storage`
 
-Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys); cubit states carry ids, the UI reads entities through the Hive builders.
 
 Checks: `hive_types` (`lib/hive/hive_adapters.dart` lists every stored type with `@GenerateAdapters([AdapterSpec<T>()])`, no `@HiveType` remains, the generated `lib/hive/hive_adapters.g.yaml` is committed and lists exactly those types, and the app startup passes `registerAdapters: (hive) => hive.registerAdapters()` to `NeonHive.init`).
 
@@ -521,6 +521,8 @@ Checks: `hive_types` (`lib/hive/hive_adapters.dart` lists every stored type with
 | `secure_storage_keys` | in the `secure_storage` role every `write(key:)` builds its key from a value listed under `secure_storage_keys:` in `neon_check.yaml` (resolved through literals, constants, interpolations and the key-building methods of the same file); a setting goes to Hive |
 | `hive_only_in_repositories` | `Hive.box` / `Hive.openBox`, `EntityBox(` / `KeyValueBox(` and a box's `.listenable(` only in the `repository` and `hive` roles; the UI reads through the neon_flutter_hive builders (NCC0000070) |
 | `storage_hive_only` | no import of `shared_preferences`, `sqflite`, `drift`, `isar` or the bare `hive` package and no `window.localStorage` in app code; Hive through neon_flutter_hive is the only store |
+| `state_carries_ids` | a field of a cubit state (a class of the `bloc` role named `*State` or extending one) is no Hive entity (a type with its own `EntityBox<T>` declared in `lib/hive/` or `lib/repository/`, or annotated `@HiveType`) nor a collection or map of one; a value type stored only inside an entity (a branding) and a `*Draft` type are fine (NCC0000071) |
+| `ui_reads_entities_through_builder` | in the `pages` and `features` roles no member of an `EntityBox` / `KeyValueBox` is called or read; the box is only passed to `HiveEntityBuilder` / `HiveEntitiesBuilder` / `HiveValueBuilder` |
 
 ### `api_environment`
 

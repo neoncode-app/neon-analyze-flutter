@@ -217,17 +217,21 @@ api_environment:
     - api_environment
 
 storage:
-  description: Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+  description: Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys); cubit states carry ids, the UI reads entities through the Hive builders.
   rules:
     - secure_storage_only_in_repository
     - secure_storage_options
     - secure_storage_keys
     - hive_only_in_repositories
     - storage_hive_only
+    - state_carries_ids
+    - ui_reads_entities_through_builder
   steps:
     - hive_types
   where:
     secure_storage_keys: [secure_storage]
+    state_carries_ids: [bloc]
+    ui_reads_entities_through_builder: [pages, features]
 
 flavors:
   description: Several flavours in one code base. Every typed context getter reads a cubit its flavour's router or shell provides.
