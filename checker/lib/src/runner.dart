@@ -9,6 +9,7 @@ import 'package:neon_check/src/step.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
+import 'package:neon_check/src/steps/duplicates_step.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
 import 'package:neon_check/src/steps/feature_used_once_step.dart';
 import 'package:neon_check/src/steps/layout_tree_step.dart';
@@ -92,6 +93,7 @@ List<CheckStep> allSteps({bool pruneTranslations = false}) => [
       const AssetsStep(),
       const LayoutTreeStep(),
       const FeatureUsedOnceStep(),
+      const DuplicatesStep(),
       const CatalogIndexStep(),
       const CatalogPreviewsStep(),
       const ProvidersStep(),

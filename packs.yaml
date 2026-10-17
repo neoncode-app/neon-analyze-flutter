@@ -29,6 +29,7 @@ core:
     - no_repository_in_ui
     - no_http_in_ui
     - use_shared_utils
+    - shared_functions
   steps:
     - config_sync
     - format
@@ -43,6 +44,7 @@ core:
     - translations_order
     - assets
     - generated
+    - duplicates
     - layout_tree
     - tests
   where:
@@ -50,6 +52,7 @@ core:
     no_hardcoded_ui_string: [ui]
     no_repository_in_ui: [ui]
     no_http_in_ui: [ui]
+    shared_functions: [bloc, features, pages]
 
 bloc:
   description: Cubits. BaseCubit, sealed states, cubits only in providers, typed context getters, alerts from cubits, a test for every cubit, coverage of changed cubit code.

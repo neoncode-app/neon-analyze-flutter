@@ -6,6 +6,7 @@ import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/steps/project_steps.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
+import 'package:neon_check/src/steps/duplicates_step.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
 import 'package:neon_check/src/steps/test_existence_step.dart';
@@ -435,5 +436,49 @@ void main() {
     );
     final result = await const IgnoreCommentsStep().run(context);
     expect(result.findings.map((finding) => finding.line), [1, 2]);
+  });
+
+  group('duplicates', () {
+    String body(String name) => [
+          for (var i = 0; i < 14; i++) '  final $name$i = compute($i, "x$i");',
+        ].join('\n');
+
+    test('normalising drops comments, directives, blank and punctuation lines', () {
+      final lines = DuplicatesStep.normalise('''
+import 'a.dart';
+// a comment
+/* a
+   block */
+void f() {
+  final   a = 1; // kept with its comment
+});
+''');
+      expect([for (final line in lines) line.text], ['void f() {', 'final a = 1; // kept with its comment']);
+      expect(lines.first.line, 5);
+    });
+
+    test('a copy across two files is one region in each, naming the other', () {
+      final clones = DuplicatesStep.findClones({
+        'lib/a.dart': 'void a() {\n${body('v')}\n}\n',
+        'lib/b.dart': 'void b() {\n${body('v')}\n}\n',
+        'lib/c.dart': 'void c() {\n${body('w')}\n}\n',
+      });
+      expect(clones.keys, ['lib/a.dart', 'lib/b.dart']);
+      expect(clones['lib/a.dart']?.single.other, 'lib/b.dart');
+      expect(clones['lib/a.dart']?.single.line, 2);
+      expect(clones['lib/b.dart']?.single.otherLine, 2);
+    });
+
+    test('a copy shorter than the window is no finding', () {
+      final short = [for (var i = 0; i < 5; i++) '  final v$i = compute($i);'].join('\n');
+      expect(DuplicatesStep.findClones({'lib/a.dart': short, 'lib/b.dart': short}), isEmpty);
+    });
+
+    test('two copies inside one file are found, overlapping windows are not', () {
+      final clones = DuplicatesStep.findClones({'lib/a.dart': '${body('v')}\nvoid gap() {}\n${body('v')}\n'});
+      expect(clones['lib/a.dart'], hasLength(2));
+      final repeated = List.filled(30, '  tick();').join('\n');
+      expect(DuplicatesStep.findClones({'lib/b.dart': repeated})['lib/b.dart'], hasLength(1));
+    });
   });
 }

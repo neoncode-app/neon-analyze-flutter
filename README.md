@@ -284,6 +284,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
 | `page_help` | admin | every page has `help:` and its help keys (one entry per flavour with a help enum) | no |
 | `generated` | core | `*.g.dart` match their sources (build_runner) | yes |
+| `duplicates` | core | token clone detection across `lib/` (generated files skipped): after dropping comments, blank lines, directives and punctuation-only lines, a run of 12 identical normalised lines in two places is a copy; overlapping windows of a file merge into one region, one `duplicates` finding per region naming another place of the copy (ratchet, NCC0000064) | no |
 | `test_existence` | bloc, go_router | every cubit has `<name>_cubit_test.dart` (bloc), every GoRoute `<route>_route_test.dart` (go_router); ratchet `test_missing` | no |
 | `integration_pages` | integration | every page has a flow that imports it or finds its class (ratchet `integration_missing`) | no |
 | `tests` | core | `flutter test`, suites selected by the changed files | no |
@@ -417,6 +418,7 @@ Checks: `config_sync`, `format`, `fix`, `analyze`, `ignores`, `translations_pari
 | `no_repository_in_ui` | no class from `lib/repository/` in UI code |
 | `no_http_in_ui` | no `package:http` / `package:dio` import in UI code |
 | `use_shared_utils` | the raw APIs `neon_flutter_utils` wraps: `DateFormat(` / `NumberFormat(`, `toStringAsFixed(` in UI code, `launchUrl(` / `canLaunchUrl(`, `Clipboard.` outside `AppCopyButton` / `AppCopyField`, `jsonDecode(` outside `repository`, `RegExp(` with an e-mail or phone pattern, `kIsWeb` / `Platform.` outside UI code, a `Timer(` stored in a cubit field (use `Debouncer`) |
+| `shared_functions` | in the `bloc`, `features` and `pages` roles the inline copies of a shared helper (NCC0000064): `{...x}..remove(` / `{...x, y}` on a set (`toggled` / `adding` / `removing`), `.map((c) => c.id == … ? … : c)` and `[for (c in l) if (c.id == …) … else c]` (`replaceById` / `updateById`), `.where((c) => c.id != …)` (`removeById`), `trim().toLowerCase()` with a `.contains(` in the same function (`matchesQuery`), `emitPresentation(CloseDialog());` followed by a return (`BaseCubit.closeDialogThen` / `closeOnSuccess`; `BaseCubit` itself is exempt) and a `'/api/uploads'` literal (`NeoApiImageUpload.uploadImageUrl`) |
 
 ### `bloc`
 

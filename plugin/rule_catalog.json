@@ -438,6 +438,12 @@
       "description": "Every GoRoute builds its page through the flavour's page factory.",
       "message": "{0}; every GoRoute uses pageBuilder: returning the page factory of its flavour.",
       "correction": "Write `pageBuilder: (context, state) => <flavor>Page(state, access: ..., page: ...)`; the factory (lib/flavors/<flavor>/<flavor>_page_factory/) declares the access and applies the AppPageTransition."
+    },
+    "shared_functions": {
+      "kind": "lint",
+      "description": "Identical logic exists once: use the shared helper instead of an inline copy.",
+      "message": "{0}; use {1}.",
+      "correction": "Identical logic exists once (rule shared_functions): collections, dates and debounce in neon_flutter_utils, dialog helpers on BaseCubit, uploads through NeoApiImageUpload.uploadImageUrl."
     }
   }
 }
