@@ -45,6 +45,8 @@ enum LayoutRole {
     'The secure store owner: the only FlutterSecureStorage, tokens only (keys in secure_storage_keys:).',
   ),
   model('model', ['lib/model/'], 'Data models and serialization.'),
+  hive('hive', ['lib/hive/'],
+      'Hive adapters (hive_adapters.dart, the generated registrar) and shared box declarations.'),
   enums(
     'enums',
     ['lib/model/enums/*/'],

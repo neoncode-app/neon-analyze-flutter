@@ -11,6 +11,7 @@ import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
 import 'package:neon_check/src/steps/feature_used_once_step.dart';
+import 'package:neon_check/src/steps/hive_types_step.dart';
 import 'package:neon_check/src/steps/layout_tree_step.dart';
 import 'package:neon_check/src/steps/rule_docs_step.dart';
 import 'package:test/test.dart';
@@ -602,6 +603,38 @@ enum ApiEnvironment {
       final result =
           await const ApiEnvironmentStep().run(_context(dir.path, config, changed: {'lib/flavors/b/b_flavor.dart'}));
       expect([for (final finding in result.findings) finding.file], ['lib/flavors/b/b_flavor.dart']);
+    });
+  });
+  group('hive_types', () {
+    test('reads the adapter specs, the schema types and the registrar', () {
+      expect(HiveTypesStep.specTypes('@GenerateAdapters([AdapterSpec<User>(), AdapterSpec<LoginResponse>()])'), {
+        'User',
+        'LoginResponse',
+      });
+      expect(HiveTypesStep.schemaTypes('nextTypeId: 2\ntypes:\n  User:\n    typeId: 0\n  Coupon:\n    typeId: 1\n'), {
+        'User',
+        'Coupon',
+      });
+      expect(
+        HiveTypesStep.passesRegistrar(
+            'await NeonHive.init(\n  registerAdapters: (hive) => hive.registerAdapters(),\n);'),
+        isTrue,
+      );
+      expect(HiveTypesStep.passesRegistrar('await NeonHive.init(registerAdapters: (_) {});'), isFalse);
+    });
+
+    test('an app without Hive types is not checked; an old annotation is a finding', () async {
+      final dir = Directory.systemTemp.createTempSync('hive_types');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'neon_check.yaml', '');
+      _write(dir, 'lib/model/plain.dart', 'class Plain {}');
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final clean = await const HiveTypesStep().run(_context(dir.path, config, changed: {'lib/model/plain.dart'}));
+      expect(clean.findings, isEmpty);
+
+      _write(dir, 'lib/model/user.dart', '@HiveType(typeId: 0)\nclass User {}');
+      final flagged = await const HiveTypesStep().run(_context(dir.path, config, changed: {'lib/model/user.dart'}));
+      expect([for (final finding in flagged.findings) finding.file], [HiveTypesStep.adaptersFile]);
     });
   });
 }

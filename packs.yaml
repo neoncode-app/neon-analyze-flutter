@@ -217,11 +217,15 @@ api_environment:
     - api_environment
 
 storage:
-  description: Local storage. The secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+  description: Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
   rules:
     - secure_storage_only_in_repository
     - secure_storage_options
     - secure_storage_keys
+    - hive_only_in_repositories
+    - storage_hive_only
+  steps:
+    - hive_types
   where:
     secure_storage_keys: [secure_storage]
 

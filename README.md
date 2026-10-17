@@ -131,6 +131,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `repository` | `lib/repository/` |
 | `secure_storage` | `lib/repository/shared_prefs_repository.dart` |
 | `model` | `lib/model/` |
+| `hive` | `lib/hive/` |
 | `enums` | `lib/model/enums/*/` (the scope folders; neoncode lists them: `common`, `vernak`, `neoncode`, `doordrop`, `quest`) |
 | `role_enums` | `lib/model/enums/` |
 | `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
@@ -509,13 +510,17 @@ Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, 
 
 ### `storage`
 
-Local storage. The secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+Local storage. Hive through neon_flutter_hive is the only store, repositories own its boxes, adapters are generated; the secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+
+Checks: `hive_types` (`lib/hive/hive_adapters.dart` lists every stored type with `@GenerateAdapters([AdapterSpec<T>()])`, no `@HiveType` remains, the generated `lib/hive/hive_adapters.g.yaml` is committed and lists exactly those types, and the app startup passes `registerAdapters: (hive) => hive.registerAdapters()` to `NeonHive.init`).
 
 | Rule | What it enforces |
 | --- | --- |
 | `secure_storage_only_in_repository` | `FlutterSecureStorage(` is constructed only in the layout role `secure_storage` (default `lib/repository/shared_prefs_repository.dart`) (NCC0000069) |
 | `secure_storage_options` | every `FlutterSecureStorage(` passes `aOptions: AndroidOptions(storageNamespace:` or the legacy `sharedPreferencesName:)`, `iOptions: IOSOptions(accountName:, accessibility:)`, `mOptions: MacOsOptions(accountName:, accessibility:)` and `webOptions: WebOptions(dbName:)`; the names never change once shipped |
 | `secure_storage_keys` | in the `secure_storage` role every `write(key:)` builds its key from a value listed under `secure_storage_keys:` in `neon_check.yaml` (resolved through literals, constants, interpolations and the key-building methods of the same file); a setting goes to Hive |
+| `hive_only_in_repositories` | `Hive.box` / `Hive.openBox`, `EntityBox(` / `KeyValueBox(` and a box's `.listenable(` only in the `repository` and `hive` roles; the UI reads through the neon_flutter_hive builders (NCC0000070) |
+| `storage_hive_only` | no import of `shared_preferences`, `sqflite`, `drift`, `isar` or the bare `hive` package and no `window.localStorage` in app code; Hive through neon_flutter_hive is the only store |
 
 ### `api_environment`
 

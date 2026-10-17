@@ -23,6 +23,7 @@ import 'package:neon_lints/src/request_model_rules.dart';
 import 'package:neon_lints/src/router_rules.dart';
 import 'package:neon_lints/src/secure_storage_rules.dart';
 import 'package:neon_lints/src/shared_functions.dart';
+import 'package:neon_lints/src/storage_rules.dart';
 import 'package:neon_lints/src/no_data_logic_in_ui.dart';
 import 'package:neon_lints/src/no_dialog_result.dart';
 import 'package:neon_lints/src/no_navigation_in_ui.dart';
@@ -161,6 +162,9 @@ class NeonLintsPlugin extends Plugin {
       // NCC0000069: the secure store has one owner, every option, secrets only.
       ..registerLintRule(SecureStorageOnlyInRepository())
       ..registerLintRule(SecureStorageOptions())
-      ..registerLintRule(SecureStorageKeys());
+      ..registerLintRule(SecureStorageKeys())
+      // NCC0000070: Hive is the only store, repositories own the boxes.
+      ..registerLintRule(HiveOnlyInRepositories())
+      ..registerLintRule(StorageHiveOnly());
   }
 }

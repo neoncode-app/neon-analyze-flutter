@@ -468,6 +468,18 @@
       "description": "The secure store writes only the secret keys of secure_storage_keys.",
       "message": "the secure store writes {0}, which is no secret key of secure_storage_keys ({1}).",
       "correction": "The secure store holds secrets only (tokens). Put a setting into Hive (DeviceSettingsRepository); a new secret key is added to secure_storage_keys: in neon_check.yaml."
+    },
+    "hive_only_in_repositories": {
+      "kind": "lint",
+      "description": "Hive boxes are owned by repositories; the UI reads through the neon_flutter_hive builders.",
+      "message": "{0} outside the repositories and lib/hive/.",
+      "correction": "Declare and open boxes in a repository (or lib/hive/), write through it, and read in the UI with HiveEntityBuilder / HiveEntitiesBuilder / HiveValueBuilder."
+    },
+    "storage_hive_only": {
+      "kind": "lint",
+      "description": "Hive (through neon_flutter_hive) is the only local data store.",
+      "message": "{0}; Hive through neon_flutter_hive is the only local store.",
+      "correction": "Store data in a typed box of neon_flutter_hive (EntityBox, KeyValueBox) owned by a repository; secrets go to the secure store (rule secure_storage)."
     }
   }
 }
