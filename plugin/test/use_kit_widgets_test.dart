@@ -222,6 +222,22 @@ class UseKitWidgetsTest extends AnalysisRuleTest {
     }
   }
 
+  Future<void> test_owner_below_its_layer_folder_owns_its_row() async {
+    // NCC0000058 puts the layer between the kit and the piece; the owner
+    // global_widgets/global/rounded_container/ still owns its raw box there,
+    // and a grouping folder (stats/) keeps owning below components/ too.
+    const box = '${_material}Object f() => [DecoratedBox()];';
+    final piece = '$testPackageLibPath/global_widgets/global/components/rounded_container/rounded_container.dart';
+    newFile(piece, box);
+    await assertNoDiagnosticsInFile(piece);
+    final part = '$testPackageLibPath/global_widgets/global/templates/rounded_container/widgets/components/part.dart';
+    newFile(part, box);
+    await assertNoDiagnosticsInFile(part);
+    final other = '$testPackageLibPath/global_widgets/global/components/app_pill/app_pill.dart';
+    newFile(other, box);
+    await assertDiagnosticsInFile(other, lintsAt(this, box, ['DecoratedBox']));
+  }
+
   Future<void> test_owner_of_one_row_is_not_owner_of_another() async {
     // custom_button/ owns raw buttons and taps, not dialogs.
     const source = '${_material}Object f() => [TextButton(), AlertDialog()];';

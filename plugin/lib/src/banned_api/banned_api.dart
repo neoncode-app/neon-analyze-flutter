@@ -6,6 +6,7 @@ import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
+import 'package:neon_lints/src/support/layer_folders.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Which code a [BannedApi] row applies to, on top of its owners.
@@ -155,10 +156,16 @@ final class BannedApi {
 
   /// Whether the file at [path] (normalised to `/`) owns this API.
   bool isOwner(String path, CompilationUnit unit) {
+    // Owners name a piece by its folder (`global_widgets/global/app_tap_area/`);
+    // the layer folders of NCC0000058 (`components/`, `patterns/`, ...) sit
+    // between the kit and the piece, so they are left out of the comparison.
+    final bare = withoutLayerFolders(path);
     for (final owner in owners) {
       final fragment = '/lib/$owner';
-      if (owner.endsWith('/') ? path.contains(fragment) : path.endsWith(fragment)) {
-        return true;
+      for (final candidate in {path, bare}) {
+        if (owner.endsWith('/') ? candidate.contains(fragment) : candidate.endsWith(fragment)) {
+          return true;
+        }
       }
     }
     if (ownerClasses.isNotEmpty && declaresClass(unit, ownerClasses)) return true;

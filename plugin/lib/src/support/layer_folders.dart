@@ -51,3 +51,14 @@ String? expectedLayerFolder(String className, String? category) {
   if (className.endsWith('Dialog') || className.endsWith('Sheet')) return dialogsFolder;
   return layerFolderOfCategory[category];
 }
+
+/// [path] without its layer folders (`/components/`, `/patterns/`, ...): the
+/// folder a piece had before NCC0000058 put the layer between the kit and
+/// the piece. Table entries that name a piece by its folder compare with it.
+String withoutLayerFolders(String path) {
+  var result = path;
+  for (final folder in layerFolderNames) {
+    result = result.replaceAll('/$folder/', '/');
+  }
+  return result;
+}
