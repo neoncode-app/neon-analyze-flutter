@@ -129,6 +129,7 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `bloc` | `lib/bloc/` |
 | `app_wide_cubits` | `lib/bloc/*/app_wide/` |
 | `repository` | `lib/repository/` |
+| `secure_storage` | `lib/repository/shared_prefs_repository.dart` |
 | `model` | `lib/model/` |
 | `enums` | `lib/model/enums/*/` (the scope folders; neoncode lists them: `common`, `vernak`, `neoncode`, `doordrop`, `quest`) |
 | `role_enums` | `lib/model/enums/` |
@@ -505,6 +506,16 @@ Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, 
 | `no_dynamic_in_models` | no field, constructor parameter or getter of a class, enum or mixin in the `model` role is `dynamic`, `Object` / `Object?` or has one of them as a type argument (`Map<String, dynamic>`, `List<dynamic>`); the `fromJson(Map<String, dynamic> json)` parameter, methods (`toJson()`), `this.x` parameters (the field is reported) and getters overriding an inherited one (`body` of a neonapi request) are allowed |
 | `request_extends_project_base` | a neonapi request in the `model` role lives in `request_models/<project>/<domain>/` and extends that project's base, the class of `request_models/_base/<project>_request.dart` (`common/` extends plain `NeoRequest`, `TenantScopedRequest` from `_base/tenant_scoped_request.dart` is allowed everywhere); only the bases in `_base/` declare `project` (NCC0000067) |
 | `no_tenant_in_extra_headers` | no `extraHeaders` getter sets `x-project` (a string key or `NeoRequest.projectHeader`); the tenant is the request's `project`, declared by its base. neonapi asserts on it in debug too |
+
+### `storage`
+
+Local storage. The secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+
+| Rule | What it enforces |
+| --- | --- |
+| `secure_storage_only_in_repository` | `FlutterSecureStorage(` is constructed only in the layout role `secure_storage` (default `lib/repository/shared_prefs_repository.dart`) (NCC0000069) |
+| `secure_storage_options` | every `FlutterSecureStorage(` passes `aOptions: AndroidOptions(storageNamespace:` or the legacy `sharedPreferencesName:)`, `iOptions: IOSOptions(accountName:, accessibility:)`, `mOptions: MacOsOptions(accountName:, accessibility:)` and `webOptions: WebOptions(dbName:)`; the names never change once shipped |
+| `secure_storage_keys` | in the `secure_storage` role every `write(key:)` builds its key from a value listed under `secure_storage_keys:` in `neon_check.yaml` (resolved through literals, constants, interpolations and the key-building methods of the same file); a setting goes to Hive |
 
 ### `api_environment`
 

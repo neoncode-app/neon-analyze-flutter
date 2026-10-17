@@ -216,6 +216,15 @@ api_environment:
   steps:
     - api_environment
 
+storage:
+  description: Local storage. The secure store has one owner, sets every platform option and holds secrets only (secure_storage_keys).
+  rules:
+    - secure_storage_only_in_repository
+    - secure_storage_options
+    - secure_storage_keys
+  where:
+    secure_storage_keys: [secure_storage]
+
 flavors:
   description: Several flavours in one code base. Every typed context getter reads a cubit its flavour's router or shell provides.
   steps:

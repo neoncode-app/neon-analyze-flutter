@@ -39,6 +39,11 @@ enum LayoutRole {
   bloc('bloc', ['lib/bloc/'], 'Cubits and their states.'),
   appWideCubits('app_wide_cubits', ['lib/bloc/*/app_wide/'], 'App-wide cubits provided by the shell.'),
   repository('repository', ['lib/repository/'], 'Repositories: the only code that talks to the API and storage.'),
+  secureStorage(
+    'secure_storage',
+    ['lib/repository/shared_prefs_repository.dart'],
+    'The secure store owner: the only FlutterSecureStorage, tokens only (keys in secure_storage_keys:).',
+  ),
   model('model', ['lib/model/'], 'Data models and serialization.'),
   enums(
     'enums',

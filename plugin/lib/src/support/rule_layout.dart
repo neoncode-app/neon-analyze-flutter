@@ -2,6 +2,7 @@ import 'package:analyzer/analysis_rule/rule_context.dart';
 import 'package:analyzer/file_system/file_system.dart';
 
 import 'package:neon_lints/layout.dart';
+import 'package:yaml/yaml.dart';
 
 export 'package:neon_lints/layout.dart' show Layout, LayoutRole;
 
@@ -12,7 +13,7 @@ export 'package:neon_lints/layout.dart' show Layout, LayoutRole;
 /// through the analyzer's resource provider (so tests can provide one) and
 /// cached until the file changes.
 final class RuleLayout {
-  RuleLayout(this.root, this.layout);
+  RuleLayout(this.root, this.layout, {this.secureStorageKeys = const []});
 
   /// The layout of the package [context] analyses.
   factory RuleLayout.of(RuleContext context) {
@@ -30,12 +31,26 @@ final class RuleLayout {
         source = null;
       }
     }
-    final layout = RuleLayout(root, Layout.fromConfigSource(source));
+    final layout = RuleLayout(root, Layout.fromConfigSource(source), secureStorageKeys: _secureStorageKeys(source));
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
   }
 
   static const configFileName = 'neon_check.yaml';
+
+  /// `secure_storage_keys:` of the config: the key VALUES the secure store
+  /// may write (rule secure_storage_keys).
+  static List<String> _secureStorageKeys(String? source) {
+    if (source == null) return const [];
+    Object? yaml;
+    try {
+      yaml = loadYaml(source);
+    } on YamlException {
+      return const [];
+    }
+    final value = yaml is YamlMap ? yaml['secure_storage_keys'] : null;
+    return value is YamlList ? [for (final item in value) '$item'] : const [];
+  }
 
   static final _cache = <String, ({int stamp, RuleLayout layout})>{};
 
@@ -50,6 +65,9 @@ final class RuleLayout {
   final String root;
 
   final Layout layout;
+
+  /// Key values the secure store may write (`secure_storage_keys:`).
+  final List<String> secureStorageKeys;
 
   /// [path] (absolute) relative to the root, or `null` outside the package.
   String? relative(String path) {

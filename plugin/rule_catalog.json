@@ -450,6 +450,24 @@
       "description": "Values that differ per API environment live on ApiEnvironment; no branch picks them.",
       "message": "{0}; a value that differs per environment is a field of ApiEnvironment.",
       "correction": "Read the value from ApiConfig.environment (a field of the ApiEnvironment enum). The only decision point is FlavorConfig.defaultApiEnvironment => kReleaseMode ? ApiEnvironment.prod : ApiEnvironment.test."
+    },
+    "secure_storage_only_in_repository": {
+      "kind": "lint",
+      "description": "FlutterSecureStorage is constructed only in the secure store repository.",
+      "message": "FlutterSecureStorage constructed outside the secure store ({0}).",
+      "correction": "Read and write secrets through the secure store repository (SharedPrefsRepository); settings that are no secret go to Hive (DeviceSettingsRepository)."
+    },
+    "secure_storage_options": {
+      "kind": "lint",
+      "description": "FlutterSecureStorage sets every platform option explicitly.",
+      "message": "FlutterSecureStorage misses {0}.",
+      "correction": "Pass aOptions: AndroidOptions(storageNamespace: '<App>Prefs'), iOptions: IOSOptions(accountName: '<App>Keychain', accessibility: KeychainAccessibility.first_unlock), mOptions: MacOsOptions(accountName:, accessibility:) and webOptions: WebOptions(dbName: '<App>Secure', publicKey: '<App>'); the names never change once shipped."
+    },
+    "secure_storage_keys": {
+      "kind": "lint",
+      "description": "The secure store writes only the secret keys of secure_storage_keys.",
+      "message": "the secure store writes {0}, which is no secret key of secure_storage_keys ({1}).",
+      "correction": "The secure store holds secrets only (tokens). Put a setting into Hive (DeviceSettingsRepository); a new secret key is added to secure_storage_keys: in neon_check.yaml."
     }
   }
 }
