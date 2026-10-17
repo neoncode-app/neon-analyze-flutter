@@ -2,6 +2,7 @@ import 'package:analysis_server_plugin/plugin.dart';
 import 'package:analysis_server_plugin/registry.dart';
 
 import 'package:neon_lints/src/alert_only_in_cubit.dart';
+import 'package:neon_lints/src/api_environment_rules.dart';
 import 'package:neon_lints/src/avoid_bang.dart';
 import 'package:neon_lints/src/cancel_subscriptions_in_close.dart';
 import 'package:neon_lints/src/category_matches_folder.dart';
@@ -153,6 +154,8 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(RouterOnlyRoutes())
       ..registerLintRule(RouteUsesPageFactory())
       // NCC0000064: identical logic exists once.
-      ..registerLintRule(SharedFunctions());
+      ..registerLintRule(SharedFunctions())
+      // NCC0000068: the API environment can never be swapped.
+      ..registerLintRule(ApiEnvironmentValuesOnEnum());
   }
 }

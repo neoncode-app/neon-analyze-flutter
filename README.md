@@ -506,6 +506,16 @@ Data models. Enums in lib/model/enums/<scope>/, one declaration per model file, 
 | `request_extends_project_base` | a neonapi request in the `model` role lives in `request_models/<project>/<domain>/` and extends that project's base, the class of `request_models/_base/<project>_request.dart` (`common/` extends plain `NeoRequest`, `TenantScopedRequest` from `_base/tenant_scoped_request.dart` is allowed everywhere); only the bases in `_base/` declare `project` (NCC0000067) |
 | `no_tenant_in_extra_headers` | no `extraHeaders` getter sets `x-project` (a string key or `NeoRequest.projectHeader`); the tenant is the request's `project`, declared by its base. neonapi asserts on it in debug too |
 
+### `api_environment`
+
+The API environment can never be swapped. Values per environment live on the ApiEnvironment enum, the build mode decides only the default, every flavour declares its switch policy.
+
+Checks: `api_environment` (reads the `enum ApiEnvironment` under `lib/`: a `test` and a `prod` constant, no `test` in the prod `baseUrl` / `webOrigin`, `test` in the test `baseUrl`, two different `apiKey`s, and an `environmentSwitch` in every `lib/flavors/<f>/<f>_flavor.dart`).
+
+| Rule | What it enforces |
+| --- | --- |
+| `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in `defaultApiEnvironment => kReleaseMode ? ApiEnvironment.prod : ApiEnvironment.test`; no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068) |
+
 ### `go_router`
 
 Navigation with go_router. No Navigator, cubits provided in the route builders, routers hold only routes built through the page factory, a test for every route.

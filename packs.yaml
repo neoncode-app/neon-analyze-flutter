@@ -209,6 +209,13 @@ admin:
     page_has_title_subtitle: [pages]
     no_access_guard_in_pages: [pages]
 
+api_environment:
+  description: The API environment can never be swapped. Values per environment live on the ApiEnvironment enum, the build mode decides only the default, every flavour declares its switch policy.
+  rules:
+    - api_environment_values_on_enum
+  steps:
+    - api_environment
+
 flavors:
   description: Several flavours in one code base. Every typed context getter reads a cubit its flavour's router or shell provides.
   steps:

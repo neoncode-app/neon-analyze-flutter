@@ -444,6 +444,12 @@
       "description": "Identical logic exists once: use the shared helper instead of an inline copy.",
       "message": "{0}; use {1}.",
       "correction": "Identical logic exists once (rule shared_functions): collections, dates and debounce in neon_flutter_utils, dialog helpers on BaseCubit, uploads through NeoApiImageUpload.uploadImageUrl."
+    },
+    "api_environment_values_on_enum": {
+      "kind": "lint",
+      "description": "Values that differ per API environment live on ApiEnvironment; no branch picks them.",
+      "message": "{0}; a value that differs per environment is a field of ApiEnvironment.",
+      "correction": "Read the value from ApiConfig.environment (a field of the ApiEnvironment enum). The only decision point is FlavorConfig.defaultApiEnvironment => kReleaseMode ? ApiEnvironment.prod : ApiEnvironment.test."
     }
   }
 }

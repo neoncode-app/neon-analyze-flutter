@@ -6,6 +6,7 @@ import 'package:neon_check/src/burndown.dart';
 import 'package:neon_check/src/config.dart';
 import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/runner.dart';
+import 'package:neon_check/src/steps/api_environment_step.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
@@ -196,9 +197,11 @@ import 'package:shop/features/shop/cart/cart.dart';
 import 'package:shop/features/shop/loose/widgets/loose_part.dart';
 import 'package:shop/features/shop/helper/helper.dart';
 """);
-      _write(dir, 'lib/pages/shop/home_page/widgets/patterns/header.dart', "import '../../../../../features/shop/banner/banner.dart';\n");
+      _write(dir, 'lib/pages/shop/home_page/widgets/patterns/header.dart',
+          "import '../../../../../features/shop/banner/banner.dart';\n");
       // Menu: a second page; Cart: the router; Badge: nobody.
-      _write(dir, 'lib/pages/shop/orders_page/orders_page.dart', "import 'package:shop/features/shop/menu/menu.dart';\n");
+      _write(
+          dir, 'lib/pages/shop/orders_page/orders_page.dart', "import 'package:shop/features/shop/menu/menu.dart';\n");
       _write(dir, 'lib/flavors/shop/shop_router.dart', "import 'package:shop/features/shop/cart/cart.dart';\n");
       final config = CheckConfig.load(dir.path, toolRoot: _tool);
       final context = _context(dir.path, config, changed: {'lib/pages/shop/home_page/home_page.dart'});
@@ -217,7 +220,8 @@ import 'package:shop/features/shop/helper/helper.dart';
       _write(dir, 'neon_check.yaml', 'preset: admin\n');
       _write(dir, 'lib/features/shop/flow/flow.dart', '/// {@category Feature}\nclass Flow {}\n');
       _write(dir, 'lib/pages/shop/home_page/home_page.dart', "import 'package:shop/features/shop/flow/flow.dart';\n");
-      _write(dir, 'lib/pages/shop/widgets/flow_host/flow_host.dart', "export 'package:shop/features/shop/flow/flow.dart';\n");
+      _write(dir, 'lib/pages/shop/widgets/flow_host/flow_host.dart',
+          "export 'package:shop/features/shop/flow/flow.dart';\n");
       final config = CheckConfig.load(dir.path, toolRoot: _tool);
       expect((await const FeatureUsedOnceStep().run(_context(dir.path, config))).findings, isEmpty);
     });
@@ -537,6 +541,67 @@ tests:
       expect(recordedBase(dir.path), isNull);
       expect(gitScope(dir.path, ScopeMode.changed, base: 'main').existing, {'b.dart', 'c.dart'});
       expect(() => gitScope(dir.path, ScopeMode.changed), throwsStateError);
+    });
+  });
+  group('api_environment', () {
+    String environments(
+            {String testUrl = 'https://test-api.x.cz', String prodUrl = 'https://api.x.cz', String prodKey = 'p'}) =>
+        '''
+/// Which backend.
+enum ApiEnvironment {
+  test(
+    baseUrl: '$testUrl',
+    apiKey: 't',
+    webOrigin: 'https://test-podnik.x.cz',
+  ),
+  prod(
+    baseUrl: '$prodUrl',
+    apiKey: '$prodKey',
+    webOrigin: 'https://podnik.x.cz',
+  );
+
+  const ApiEnvironment({required this.baseUrl, required this.apiKey, required this.webOrigin});
+
+  final String baseUrl;
+}
+''';
+
+    List<String> check(String source) => [
+          for (final finding in ApiEnvironmentStep.checkValues('lib/e.dart', ApiEnvironmentStep.parseEnum(source)))
+            finding.message,
+        ];
+
+    test('parses the string arguments of every constant', () {
+      final values = ApiEnvironmentStep.parseEnum(environments());
+      expect(values.keys, ['test', 'prod']);
+      expect(values['prod'], {'baseUrl': 'https://api.x.cz', 'apiKey': 'p', 'webOrigin': 'https://podnik.x.cz'});
+    });
+
+    test('the right mapping is clean', () => expect(check(environments()), isEmpty));
+
+    test('swapped urls and equal keys are findings', () {
+      expect(check(environments(testUrl: 'https://api.x.cz', prodUrl: 'https://test-api.x.cz', prodKey: 't')), [
+        contains('prod baseUrl'),
+        contains('test baseUrl'),
+        contains('apiKey'),
+      ]);
+    });
+
+    test('a missing constant is a finding', () {
+      expect(check('enum ApiEnvironment { live(baseUrl: \'x\'); }'), [contains('no `test` and `prod`')]);
+    });
+
+    test('every flavour declares its switch policy', () async {
+      final dir = Directory.systemTemp.createTempSync('api_env');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'lib/model/enums/common/api_environment.dart', environments());
+      _write(dir, 'lib/flavors/a/a_flavor.dart', 'class A { get environmentSwitch => 0; }');
+      _write(dir, 'lib/flavors/b/b_flavor.dart', 'class B {}');
+      _write(dir, 'neon_check.yaml', '');
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final result =
+          await const ApiEnvironmentStep().run(_context(dir.path, config, changed: {'lib/flavors/b/b_flavor.dart'}));
+      expect([for (final finding in result.findings) finding.file], ['lib/flavors/b/b_flavor.dart']);
     });
   });
 }
