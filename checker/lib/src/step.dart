@@ -27,9 +27,13 @@ abstract class CheckStep {
 }
 
 final class StepResult {
-  const StepResult({this.findings = const [], this.fixed = const [], this.findingsScope});
+  const StepResult({this.findings = const [], this.fixed = const [], this.notes = const [], this.findingsScope});
 
   final List<Finding> findings;
+
+  /// One-line notices for the person or model reading the run (printed before
+  /// the result line), e.g. flows left running in the background.
+  final List<String> notes;
 
   /// Files an auto-fix step changed.
   final List<String> fixed;

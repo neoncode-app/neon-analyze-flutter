@@ -268,7 +268,7 @@ import 'package:shop/features/shop/helper/helper.dart';
       final triggers = config.triggers;
       expect(triggers.keys, containsAll(['edit', 'stop', 'commit', 'push', 'ci']));
       expect(triggers['edit']?.ci, isTrue);
-      expect(triggers['stop']?.integration, IntegrationMode.affected);
+      expect(triggers['stop']?.integration, IntegrationMode.background);
       expect(triggers['ci']?.integration, IntegrationMode.all);
       for (final trigger in triggers.values) {
         expect(resolveStepNames(trigger.steps.isEmpty ? ['static'] : trigger.steps, allSteps()), isNotNull);

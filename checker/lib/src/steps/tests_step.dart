@@ -4,6 +4,7 @@ import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/process.dart';
 import 'package:neon_check/src/step.dart';
+import 'package:neon_check/src/steps/test_impact.dart';
 
 /// Glob for root-relative paths: `**` any folders, `*` any characters within
 /// one segment. A pattern without a glob character also matches everything
@@ -68,7 +69,7 @@ final class TestsStep extends CheckStep {
   String get name => 'tests';
 
   @override
-  String get description => 'flutter test, suites selected by the changed files';
+  String get description => 'flutter test: the tests the changed files reach (or their suites)';
 
   @override
   Set<String> get rules => const {'test_failure'};
@@ -111,27 +112,55 @@ final class TestsStep extends CheckStep {
   @override
   Future<StepResult> run(CheckContext context) async {
     final config = context.config;
-    final suites = context.isAll
-        ? {config.defaultSuite, ...config.suites.keys}
-        : selectSuites(
-            changedFiles: [...context.changedFiles, ...context.deletedFiles],
-            suites: config.suites,
-            shared: config.sharedSources,
-            defaultSuite: config.defaultSuite,
-          );
-    final paths = context.isAll ? [config.testDir] : [for (final suite in suites) ...pathsOf(context, suite)];
+    final paths = context.isAll ? [config.testDir] : selectTestPaths(context);
     final findings = <Finding>[];
     if (paths.isNotEmpty) {
       final result = await runProcess(context.root, 'flutter', [
         'test',
         '--reporter',
         'failures-only',
+        if (config.testsConcurrency > 0) ...['--concurrency', '${config.testsConcurrency}'],
         if (coverageWanted(context)) '--coverage',
         ...paths,
       ]);
       if (result.exitCode != 0) findings.addAll(_failures(result.stdout, result.stderr));
     }
     return StepResult(findings: findings);
+  }
+
+  /// The test paths a scoped run executes.
+  ///
+  /// `tests.select: impact` (the default): the test files whose import
+  /// closure reaches a changed or deleted file, plus the changed test files.
+  /// A change the import graph cannot see falls back to the suites: the
+  /// `pubspec.yaml`, anything under `assets/` (the tests load translations and
+  /// fonts from there) and a `flutter_test_config.dart`.
+  /// `tests.select: suites`: the whole suites the changed files select.
+  List<String> selectTestPaths(CheckContext context) {
+    final config = context.config;
+    final changed = {...context.changedFiles, ...context.deletedFiles};
+    final graphBlind = changed.any(
+      (file) => file == 'pubspec.yaml' || file.startsWith('assets/') || file.endsWith('flutter_test_config.dart'),
+    );
+    if (config.testsSelect == 'impact' && !graphBlind) {
+      return impactedTests(
+        tests: testFilesIn(context.root, config.testDir),
+        changed: changed,
+        packageName: config.projectName,
+        read: (file) {
+          final source = File(context.absolute(file));
+          return source.existsSync() ? source.readAsStringSync() : null;
+        },
+      ).toList()
+        ..sort();
+    }
+    final suites = selectSuites(
+      changedFiles: changed,
+      suites: config.suites,
+      shared: config.sharedSources,
+      defaultSuite: config.defaultSuite,
+    );
+    return [for (final suite in suites) ...pathsOf(context, suite)];
   }
 
   /// One finding per failing test: `<file>: <test name>`.

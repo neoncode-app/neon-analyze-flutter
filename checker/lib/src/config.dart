@@ -12,7 +12,11 @@ enum IntegrationMode {
   affected,
 
   /// Every flow.
-  all;
+  all,
+
+  /// The affected flows, started detached so the run does not wait for them;
+  /// the next run reports their result (`stop` trigger, NCC0000075).
+  background;
 
   static IntegrationMode parse(Object? value, IntegrationMode fallback) {
     for (final mode in values) {
@@ -215,7 +219,7 @@ final class CheckConfig {
 
   /// Builds a config from a YAML string alone: no preset, no detection, and
   /// every step enabled (tests).
-  factory CheckConfig.parse(String source, {List<Pack> packs = const []}) {
+  factory CheckConfig.parse(String source, {List<Pack> packs = const [], ProjectFacts facts = const ProjectFacts()}) {
     final errors = <String>[];
     final yaml = _plain(_loadYaml(source, 'source', errors));
     final map = yaml is Map<String, Object?> ? yaml : <String, Object?>{};
@@ -223,7 +227,7 @@ final class CheckConfig {
     return CheckConfig._(
       map,
       layout: Layout.fromMap(layoutSection is Map ? layoutSection : const {}),
-      facts: const ProjectFacts(),
+      facts: facts,
       allPacks: packs,
       packsGiven: map.containsKey('packs'),
       errors: errors,
@@ -337,6 +341,16 @@ final class CheckConfig {
     for (final value in ruleOverrides.values) {
       if (!const {'true', 'false', 'error', 'warning', 'info'}.contains(value)) {
         errors.add('rules: `$value` is not one of true, false, error, warning, info');
+      }
+    }
+    if (!const {'impact', 'suites'}.contains(testsSelect)) {
+      errors.add('tests.select: `$testsSelect` is not one of impact, suites');
+    }
+    for (final entry in _section('triggers').entries) {
+      final mode = entry.value is Map<String, Object?> ? (entry.value as Map<String, Object?>)['integration'] : null;
+      if (mode != null && !IntegrationMode.values.any((value) => value.name == '$mode')) {
+        errors.add('triggers.${entry.key}.integration: `$mode` is not one of '
+            '${IntegrationMode.values.map((value) => value.name).join(', ')}');
       }
     }
   }
@@ -557,6 +571,15 @@ final class CheckConfig {
   /// Source globs whose change runs every suite.
   List<String> get sharedSources => _strings(_tests['shared']);
 
+  /// How a scoped run picks its tests (`tests.select`): `impact` (default)
+  /// runs the test files whose imports reach a changed file, `suites` the
+  /// whole suites the changed files select. `--all` always runs everything.
+  String get testsSelect => _string(_tests['select']) ?? 'impact';
+
+  /// `flutter test --concurrency` (`tests.concurrency`); 0 = Flutter's default
+  /// (half the cores), which can run a busy machine out of memory.
+  int get testsConcurrency => (_tests['concurrency'] as int?) ?? 0;
+
   /// Named suites: their test folders and the source globs that select them.
   /// `name: [globs]` is short for `name: {tests: [test/name], sources: [globs]}`.
   Map<String, ({List<String> tests, List<String> sources})> get suites {
@@ -621,6 +644,22 @@ final class CheckConfig {
   String get integrationDefinesFile => _string(_integration['defines_file']) ?? '';
   bool get requireFlowForPages => _integration['require_flow_for_pages'] == true;
   List<String> get integrationExemptPages => _strings(_integration['exempt_pages']);
+
+  /// Run several flows from ONE build (`integration.combine`): a generated
+  /// target imports every flow as a group, so the app compiles once instead
+  /// of once per flow. A failure is confirmed by running the failing flows
+  /// on their own.
+  bool get integrationCombine => _integration['combine'] == true;
+
+  /// The app's file with `Future<void> resetBetweenFlows()`
+  /// (`integration.reset`), run after every flow of a combined run so the
+  /// next one starts from a fresh install; empty = no reset.
+  String get integrationReset => _string(_integration['reset']) ?? '';
+
+  /// A background run starts only with at least this much memory available
+  /// (`integration.background_min_memory_mb`, MemAvailable); a busy machine
+  /// leaves the flows to `--trigger ci` instead of being run out of memory.
+  int get integrationBackgroundMinMemoryMb => (_integration['background_min_memory_mb'] as int?) ?? 8192;
 
   /// Where the ESME rules are exported (`.claude/rules/shared`).
   String get ruleDocsDir => _string(_section('rule_docs')['dir']) ?? '.claude/rules/shared';

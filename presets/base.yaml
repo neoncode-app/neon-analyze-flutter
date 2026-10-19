@@ -46,6 +46,11 @@ tests:
   dir: test
   # default_suite: the project name (pubspec.yaml `name:`) unless set.
   shared: [lib/utils, lib/model, lib/repository, lib/bloc/global, lib/app, lib/main.dart, lib/main_*.dart]
+  # impact: a scoped run tests what the changed files reach through imports;
+  # suites: the whole suites they select. --all runs everything.
+  select: impact
+  # flutter test --concurrency; 0 = Flutter's default (half the cores).
+  concurrency: 0
   existence:
     cubits:
       suffix: _cubit.dart
@@ -68,6 +73,15 @@ integration:
   # Every page needs a flow that opens it (rule integration_missing).
   require_flow_for_pages: false
   exempt_pages: []
+  # Run several flows from ONE build (a generated target imports each flow as
+  # a group) instead of compiling the app once per flow; a failure is
+  # confirmed by running the failing flow alone. Needs flows that can share
+  # one page: `reset` names the app's file with `resetBetweenFlows()`.
+  combine: false
+  reset: ''
+  # A background run (stop trigger) starts only with this much memory
+  # available; otherwise the flows are left to --trigger ci.
+  background_min_memory_mb: 8192
 
 # The burndown (`neon-check burndown start`, then `neon-check next`): how
 # many findings one batch holds, how many turns the Stop hook drives per
@@ -92,7 +106,9 @@ triggers:
   stop:
     scope: changed
     steps: all
-    integration: affected
+    # The affected flows start detached and the next check reports them
+    # (NCC0000075): a turn does not wait minutes for a browser.
+    integration: background
   commit:
     scope: staged
     steps: [config_sync, format, fix, analyze, ignores, translations_parity, translations_dashes, translations_missing, translations_order]

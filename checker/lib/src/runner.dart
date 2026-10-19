@@ -194,6 +194,7 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
   ];
 
   final fixed = <String>[];
+  final notes = <String>[];
   final lowered = <(String, String, int, int)>[];
   final collected = <Finding>[];
   var ran = 0;
@@ -203,6 +204,7 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
     ran++;
     final result = await step.run(context);
     fixed.addAll(result.fixed.map((file) => '${step.name}: $file'));
+    notes.addAll(result.notes);
     if (reportOnly) {
       collected.addAll(result.findings);
       continue;
@@ -264,6 +266,9 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
   _printFixed(sink, fixed);
   for (final (rule, file, from, to) in lowered) {
     sink.writeln('baseline lowered: $rule $file $from -> $to');
+  }
+  for (final note in notes) {
+    sink.writeln(note);
   }
   final scopeLabel = mode == ScopeMode.all ? 'all' : '${mode.name}, ${scope.existing.length} file(s)';
   final label = [

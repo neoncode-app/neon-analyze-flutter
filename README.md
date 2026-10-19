@@ -23,8 +23,9 @@ read a file ──► brief: the rules and gates of that kind of file ──► 
   on that file: a new problem goes back to the AI at once.
 - **When the AI finishes a turn** (Claude Code Stop hook) the `stop` trigger
   checks every changed file: all static checks, the unit tests the change
-  selects, coverage of changed cubit code and the integration flows it affects.
-  The turn cannot end while it fails.
+  reaches through its imports and coverage of changed cubit code. The
+  integration flows it affects start in the background; the next check reports
+  them. The turn cannot end while it fails.
 - **On `git commit`** the `commit` trigger checks the staged files (fast checks
   only, nothing is changed).
 - **In CI and `/done`** the `ci` trigger checks the whole project, every test
@@ -99,7 +100,9 @@ triggers, layout, suites, flows, hooks, and any configuration error.
 | `flavors`, `translations.languages` | only when detection is wrong |
 | `tests.suites` | `name: [source globs]`: which sources select `test/<name>` and the `integration_test/<name>_*` flows |
 | `tests.shared` | sources whose change runs every suite (preset) |
-| `integration` | `driver` (`web-server`, `device`, `none`), `device`, `defines_file`, `require_flow_for_pages`, `exempt_pages` |
+| `tests.select` | `impact` (default): a scoped run tests what the changed files reach through imports; `suites`: the whole suites they select |
+| `tests.concurrency` | `flutter test --concurrency`; 0 = Flutter's default (half the cores) |
+| `integration` | `driver` (`web-server`, `device`, `none`), `device`, `defines_file`, `require_flow_for_pages`, `exempt_pages`, `combine`, `reset`, `background_min_memory_mb` |
 | `triggers` | when what runs (below) |
 
 A mistake (an unknown preset, pack, rule or layout role) is a hard
@@ -228,7 +231,7 @@ data and the clock in widgets. Pure stateless logic goes to
 | Trigger | Called by | Scope | Steps (base preset) | Changes files | Integration |
 | --- | --- | --- | --- | --- | --- |
 | `edit` | Claude Code PostToolUse after a `.dart` edit | the edited file | `analyze`, `ignores` | no | off |
-| `stop` | Claude Code Stop hook; a bare `neon-check` | changed against the base | all | yes (format, fix, order, generators) | affected flows |
+| `stop` | Claude Code Stop hook; a bare `neon-check` | changed against the base | all | yes (format, fix, order, generators) | affected flows, in the background |
 | `commit` | `hooks/pre-commit` | staged | config, format, fix, analyze, ignores, translations | no | off |
 | `push` | `hooks/pre-push` | changed | none (CI and `/done` run everything) | no | off |
 | `ci` | CI (`.woodpecker.yml`), `/done` | everything | all | no | all |
@@ -239,7 +242,7 @@ An app changes a trigger in its `triggers:` (for example
 ## Commands
 
 ```bash
-neon-analyze-flutter/bin/neon-check                    # the stop trigger: changed files, all steps, affected flows
+neon-analyze-flutter/bin/neon-check                    # the stop trigger: changed files, all steps, affected flows in the background
 neon-analyze-flutter/bin/neon-check --all              # the whole project (fixes what it can)
 neon-analyze-flutter/bin/neon-check --trigger ci       # exactly what CI and /done run
 neon-analyze-flutter/bin/neon-check explain            # what was detected and will be checked
@@ -258,7 +261,7 @@ neon-analyze-flutter/bin/neon-check init               # start a new app (below)
 
 Scope flags override the trigger's: `--changed`, `--all`, `--staged`,
 `--files a b`, `--base <branch>`; `--ci` never changes a file;
-`--integration off|affected|all`; `--max-failures <n>`.
+`--integration off|affected|all|background`; `--max-failures <n>`.
 
 ## The steps
 
@@ -289,9 +292,9 @@ only when a pack of the app lists it and the run touches what it checks.
 | `duplicates` | core | token clone detection across `lib/` (generated files skipped): after dropping comments, blank lines, directives and punctuation-only lines, a run of 12 identical normalised lines in two places is a copy; overlapping windows of a file merge into one region, one `duplicates` finding per region naming another place of the copy (ratchet, NCC0000064) | no |
 | `test_existence` | bloc, go_router | every cubit has `<name>_cubit_test.dart` (bloc), every GoRoute `<route>_route_test.dart` (go_router); ratchet `test_missing` | no |
 | `integration_pages` | integration | every page has a flow that imports it or finds its class (ratchet `integration_missing`) | no |
-| `tests` | core | `flutter test`, suites selected by the changed files | no |
+| `tests` | core | `flutter test`: the tests the changed files reach (`tests.select`), or their suites | no |
 | `coverage` | bloc | changed lines under `tests.coverage.sources` covered by the tests that ran (hard `coverage_low`) | no |
-| `integration` | integration | the flows the change affects (`stop`) or all (`ci`) on the driver; a failing flow is hard | no |
+| `integration` | integration | the flows the change affects (`stop`, in the background) or all (`ci`) on the driver; a failing flow is hard | no |
 
 **Scope.** `--changed`: files changed against the merge base with the branch
 base (`--base`, else `branch.<name>.neonBase`, else `default_base`), plus
@@ -305,10 +308,19 @@ the baseline automatically, so a fixed violation cannot come back. The
 baseline is written by `--update-baseline` (when a rule or gate lands) and is
 never raised by hand. `--ci` never writes it.
 
+**Test selection.** `--all` (CI, `/done`) runs every test. A scoped run with
+`tests.select: impact` (the default) runs the test files whose import closure
+(imports, exports and parts, followed through the app) reaches a changed or
+deleted file, plus the changed tests; a page change runs the tests of that
+page, not the whole suite. What imports cannot see falls back to the suites:
+`pubspec.yaml`, anything under `assets/` (translations and fonts the tests
+load) and a `flutter_test_config.dart`.
+
 **Test suites.** `tests.default_suite` (the project name) always runs and owns
 every test outside the other suites' folders; a changed source matching a
 suite's globs (or a changed test in its folder) adds that suite; a
-`tests.shared` source runs every suite.
+`tests.shared` source runs every suite. Suites select the tests with
+`tests.select: suites` and the integration flows always.
 
 **Integration flows.** A flow is `integration_test/<suite>_<flow>_test.dart`;
 shared steps live in subfolders. `affected` runs a changed flow, the flows
@@ -318,6 +330,40 @@ translations and assets select none. Credentials go in `defines_file`
 (default `integration_test/defines.json`, never committed), passed as
 `--dart-define-from-file`. A missing driver (no chromedriver, no device) skips
 with a notice; `NEON_INTEGRATION_REQUIRED=1` turns that into a failure.
+
+**One build for all flows** (`integration.combine: true`). Run one by one,
+every flow compiles the whole app again (about 40 s of each minute in
+neoncode). Combined, neon-check generates
+`integration_test/_neon_check_flows.dart` (kept out of git through
+`.git/info/exclude`, deleted after the run) that imports every flow as a group,
+and the app builds once: 14 flows took 4 minutes instead of 15. The flows then
+share one page, so the app must be able to boot again (no `late final`
+globals, Hive initialised only once) and names a `reset` file with
+`Future<void> resetBetweenFlows()`, run after every flow, that returns it to a
+fresh install (tokens, Hive data, device settings). A failing combined run is
+confirmed by running the flows it names on their own: only a flow that fails
+alone too is reported, with its own log; a failure that names no flow (a
+compile error) runs every flow alone.
+
+**Flows in the background** (`stop` trigger, `integration: background`). The
+check does not wait for the browser. It starts the affected flows detached and
+at low priority (`neon-check integration --record`, state and log in
+`build/neon-check/background/`) and ends; the next check reports them:
+
+- still running on the same tree: left alone; on an older tree: cancelled,
+  and its flows run again with the new ones;
+- passed on the same tree: nothing to do;
+- failed: those flows run again at once, in the foreground, and only a flow
+  that still fails blocks the turn (the tree may have changed under the old
+  run).
+
+A foreground run (`--trigger ci`, `/done`, `neon-check integration`) cancels a
+background run first: both would share the driver and the test accounts. With
+less memory available than `integration.background_min_memory_mb` (default
+8192, MemAvailable) nothing starts and the flows are left to `--trigger ci`:
+a browser build beside two IDEs can run the machine out of memory, and the
+kernel then kills the editor. A tree the Stop hook has already seen green is
+not checked again, so a background failure surfaces with the next change.
 
 ## Burndown: bringing a broken app to zero
 

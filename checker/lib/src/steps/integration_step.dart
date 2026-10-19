@@ -2,8 +2,8 @@ import 'dart:io';
 
 import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
-import 'package:neon_check/src/process.dart';
 import 'package:neon_check/src/step.dart';
+import 'package:neon_check/src/steps/integration_runner.dart';
 import 'package:neon_check/src/steps/tests_step.dart';
 import 'package:neon_lints/layout.dart';
 
@@ -63,7 +63,8 @@ String _normalize(String path) {
 }
 
 /// The flows a run executes: every flow for [IntegrationMode.all]; for
-/// [IntegrationMode.affected] the flows the changed files reach.
+/// [IntegrationMode.affected] and [IntegrationMode.background] the flows the
+/// changed files reach.
 ///
 /// * a changed flow runs itself, a changed shared step every flow that
 ///   imports it;
@@ -103,26 +104,20 @@ List<String> selectFlows(CheckContext context) {
   return selected.toList()..sort();
 }
 
-/// Runs [flows] with the app's driver (`integration.driver`) through
-/// `integration/run.sh`; returns the exit code and the output.
-Future<({int exitCode, String output})> runFlows(CheckContext context, List<String> flows) async {
-  final config = context.config;
-  final defines = config.integrationDefinesFile;
-  final result = await runProcess(context.root, '${context.toolRoot}/integration/run.sh', [
-    '--driver',
-    config.integrationDriver,
-    if (config.integrationDevice.isNotEmpty) ...['--device', config.integrationDevice],
-    if (defines.isNotEmpty && File(context.absolute(defines)).existsSync()) ...['--defines', defines],
-    '--',
-    ...flows,
-  ]);
-  return (exitCode: result.exitCode, output: '${result.stdout}\n${result.stderr}');
-}
-
 /// Runs the integration flows the run selects ([selectFlows]) on the app's
 /// driver. A failing flow is a hard failure; a driver that is missing
 /// (no chromedriver, no device) skips with a notice unless
 /// `NEON_INTEGRATION_REQUIRED=1`.
+///
+/// [IntegrationMode.background] (the `stop` trigger, NCC0000075) does not wait
+/// for the flows. It first settles the previous background run: still running
+/// on the same tree, it is left alone; running on an older tree, it is
+/// cancelled and its flows run again in the new one; finished with failures,
+/// those flows run again now, in the foreground, and only a flow that still
+/// fails is a hard failure (the tree may have changed under the old run).
+/// Then it starts the selected flows detached and reports that it did. With
+/// less memory available than `integration.background_min_memory_mb` it
+/// starts nothing and leaves the flows to `--trigger ci`.
 final class IntegrationStep extends CheckStep {
   const IntegrationStep();
 
@@ -139,35 +134,88 @@ final class IntegrationStep extends CheckStep {
   bool appliesTo(CheckContext context) =>
       context.integration != IntegrationMode.off &&
       context.config.integrationDriver != 'none' &&
-      selectFlows(context).isNotEmpty;
+      (selectFlows(context).isNotEmpty ||
+          (context.integration == IntegrationMode.background && BackgroundRun(context.root).exists));
 
   @override
   Future<StepResult> run(CheckContext context) async {
-    final flows = selectFlows(context);
-    final result = await runFlows(context, flows);
-    if (result.exitCode == 0) return const StepResult();
-    final failed =
-        RegExp(r'^integration: FAILED (\S+)(?: (\S+))?$', multiLine: true).allMatches(result.output).toList();
-    return StepResult(
-      findings: [
-        if (failed.isEmpty)
-          Finding(
-              rule: 'integration_failure',
-              file: context.config.integrationDir,
-              message: tail(result.output),
-              hard: true)
-        else
-          for (final match in failed)
-            Finding(
-              rule: 'integration_failure',
-              file: match.group(1) ?? context.config.integrationDir,
-              message: 'the flow failed: ${failureSummary(context.absolute(match.group(2) ?? ''))} '
-                  '(full log ${match.group(2) ?? '-'}; rerun with `neon-check integration ${match.group(1)}`)',
-              hard: true,
-            ),
-      ],
-    );
+    if (context.integration == IntegrationMode.background) return _background(context);
+    // A foreground run owns the driver and the test accounts.
+    BackgroundRun(context.root).cancel(integrationDir: context.config.integrationDir);
+    final result = await runFlows(context, selectFlows(context));
+    return StepResult(findings: [for (final failure in result.failed) _finding(context, failure)]);
   }
+
+  Future<StepResult> _background(CheckContext context) async {
+    final config = context.config;
+    final previous = BackgroundRun(context.root);
+    final fingerprint = treeFingerprint(context.root);
+    final notes = <String>[];
+    final carried = <String>{};
+    if (previous.running) {
+      if (previous.fingerprint == fingerprint) {
+        return StepResult(
+          notes: [
+            'integration: ${previous.flows.length} flow(s) still running in the background on this tree '
+                '(log ${previous.logPath})',
+          ],
+        );
+      }
+      carried.addAll(previous.flows);
+      previous.cancel(integrationDir: config.integrationDir);
+    } else if (previous.exists && previous.result == null) {
+      // Ended without writing a result (killed, or the tool failed to start):
+      // nothing is known, its flows run again.
+      notes.add('integration: the background run started ${previous.startedAt} ended without a result '
+          '(log ${previous.logPath}); its flows start again');
+      carried.addAll(previous.flows);
+      previous.clear();
+    } else if (previous.exists) {
+      final failed = previous.result?.failed ?? const <FlowFailure>[];
+      if (failed.isEmpty && previous.fingerprint == fingerprint) {
+        return StepResult(notes: ['integration: the background flows passed on this tree']);
+      }
+      final startedAt = previous.startedAt;
+      previous.clear();
+      if (failed.isNotEmpty) {
+        final again = await runFlows(context, {for (final failure in failed) failure.flow}.toList()..sort());
+        if (again.failed.isNotEmpty) {
+          return StepResult(
+            findings: [
+              for (final failure in again.failed)
+                _finding(context, failure, prefix: 'failed in the background run started $startedAt and again now: '),
+            ],
+          );
+        }
+        notes.add('integration: ${failed.length} flow(s) that failed in the background pass now');
+      }
+    }
+    final flows = {...selectFlows(context), ...carried}.toList()..sort();
+    if (flows.isEmpty) return StepResult(notes: notes);
+    final memory = availableMemoryMb();
+    if (memory != null && memory < config.integrationBackgroundMinMemoryMb) {
+      notes.add(
+        'integration: ${flows.length} flow(s) NOT started in the background, only $memory MB of memory available '
+        '(minimum ${config.integrationBackgroundMinMemoryMb} MB); they run with --trigger ci (/done)',
+      );
+      return StepResult(notes: notes);
+    }
+    await BackgroundRun(context.root).start(toolRoot: context.toolRoot, flows: flows, fingerprint: fingerprint);
+    notes.add(
+      'integration: ${flows.length} flow(s) started in the background (log ${previous.logPath}); '
+      'the next check reports the result',
+    );
+    return StepResult(notes: notes);
+  }
+
+  static Finding _finding(CheckContext context, FlowFailure failure, {String prefix = ''}) => Finding(
+        rule: 'integration_failure',
+        file: failure.flow,
+        message: '${prefix}the flow failed: '
+            '${failure.log.isEmpty ? 'see the output above' : failureSummary(context.absolute(failure.log))} '
+            '(full log ${failure.log.isEmpty ? '-' : failure.log}; rerun with `neon-check integration ${failure.flow}`)',
+        hard: true,
+      );
 }
 
 /// Every page has an integration flow that reaches it (rule

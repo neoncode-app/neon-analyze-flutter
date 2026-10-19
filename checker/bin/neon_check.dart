@@ -49,7 +49,7 @@ Future<void> main(List<String> arguments) async {
     ..addMultiOption('files', help: 'Explicit files; the rest of the arguments are files too.')
     ..addOption('base', help: 'Base branch for --changed (default: branch.<name>.neonBase, else default_base).')
     ..addFlag('ci', negatable: false, help: 'Never change files or the baseline; auto-fix steps only check.')
-    ..addOption('integration', allowed: ['off', 'affected', 'all'], help: 'Which integration flows run.')
+    ..addOption('integration', allowed: ['off', 'affected', 'all', 'background'], help: 'Which integration flows run.')
     ..addMultiOption('zero', help: 'Rules that must have no finding at all (implies --all).')
     ..addOption('rule', help: 'List every finding of one rule (whole project) and exit 0.')
     ..addMultiOption('step', help: 'Run only these steps (see --list).')
@@ -61,6 +61,7 @@ Future<void> main(List<String> arguments) async {
     ..addOption('ticket', help: 'burndown start: the ticket key.')
     ..addOption('reason', help: 'burndown skip: why a person must decide.')
     ..addFlag('peek', negatable: false, help: 'next: one line for the hooks, no analysis.')
+    ..addFlag('record', negatable: false, hide: true, help: 'integration: the background run, writes its result.')
     ..addFlag('help', abbr: 'h', negatable: false);
   final ArgResults args;
   try {
@@ -95,7 +96,7 @@ Future<void> main(List<String> arguments) async {
       case 'install':
         exit(commands.install(root, stdout));
       case 'integration':
-        exit(await commands.integration(root, tool, rest.sublist(1)));
+        exit(await commands.integration(root, tool, rest.sublist(1), record: args.flag('record')));
       case 'next':
         if (args.flag('peek')) {
           stdout.writeln(burndown.peek(root, tool));

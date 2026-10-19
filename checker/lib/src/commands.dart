@@ -4,6 +4,7 @@ import 'package:neon_check/src/config.dart';
 import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/runner.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
+import 'package:neon_check/src/steps/integration_runner.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
 import 'package:neon_check/src/steps/rule_docs_step.dart';
 import 'package:neon_lints/layout.dart';
@@ -87,13 +88,16 @@ int explain(String root, String toolRoot, StringSink out) {
   out
     ..writeln()
     ..writeln('Tests')
-    ..writeln('  default suite ${config.defaultSuite}; suites ${list(config.suites.keys)}')
+    ..writeln('  default suite ${config.defaultSuite}; suites ${list(config.suites.keys)}; '
+        'scoped runs select ${config.testsSelect == 'impact' ? 'the tests the change reaches' : 'whole suites'}'
+        '${config.testsConcurrency > 0 ? ', concurrency ${config.testsConcurrency}' : ''}')
     ..writeln('  providers files: ${list(config.providersFiles)}')
     ..writeln('  routers: ${list(config.routeRouters)}')
     ..writeln('  page help: ${list(config.pageHelpEntries.map((entry) => entry.enumFile))}')
     ..writeln('  integration: driver ${config.integrationDriver}'
         '${config.integrationDevice.isEmpty ? '' : ' (${config.integrationDevice})'}, ${flows.length} flow(s), '
         'flow required for every page: ${config.requireFlowForPages ? 'yes' : 'no'}, '
+        '${config.integrationCombine ? 'one build (reset ${config.integrationReset.isEmpty ? '-' : config.integrationReset}), ' : 'one build per flow, '}'
         'defines ${definesFile.isEmpty ? '-' : '$definesFile${File('$root/$definesFile').existsSync() ? '' : ' (missing)'}'}');
   for (final flow in flows) {
     out.writeln('    ${suiteOfFlow(flow, config.defaultSuite, config.suites.keys).padRight(10)} $flow');
@@ -200,9 +204,12 @@ default_base: $base
   return 0;
 }
 
-/// `neon-check integration [flows]`: runs flows on the app's driver with
-/// the output on the terminal (all flows without arguments).
-Future<int> integration(String root, String toolRoot, List<String> files) async {
+/// `neon-check integration [flows]`: runs flows on the app's driver (all
+/// without arguments), from one build when `integration.combine` is on. A
+/// background run is cancelled first: both would share the driver and the
+/// test accounts. [record] (`--record`) is the background run itself
+/// (started by the `stop` trigger): it writes its result for the next check.
+Future<int> integration(String root, String toolRoot, List<String> files, {bool record = false}) async {
   final config = CheckConfig.load(root, toolRoot: toolRoot);
   final context = CheckContext(
     root: root,
@@ -214,20 +221,19 @@ Future<int> integration(String root, String toolRoot, List<String> files) async 
     ci: true,
     toolRoot: toolRoot,
   );
+  final background = BackgroundRun(root);
+  if (!record) background.cancel(integrationDir: config.integrationDir);
   final flows = files.isEmpty ? integrationFlows(context) : files;
-  final defines = config.integrationDefinesFile;
-  final process = await Process.start(
-    '$toolRoot/integration/run.sh',
-    [
-      '--driver',
-      config.integrationDriver,
-      if (config.integrationDevice.isNotEmpty) ...['--device', config.integrationDevice],
-      if (defines.isNotEmpty && File('$root/$defines').existsSync()) ...['--defines', defines],
-      '--',
-      ...flows,
-    ],
-    workingDirectory: root,
-    mode: ProcessStartMode.inheritStdio,
-  );
-  return process.exitCode;
+  stdout.writeln(
+      'integration: ${flows.length} flow(s)${config.integrationCombine && flows.length > 1 ? ', one build' : ''}');
+  final result = await runFlows(context, flows);
+  stdout.writeln(result.output);
+  if (record) background.writeResult(result.failed);
+  for (final failure in result.failed) {
+    stdout.writeln('integration: FAILED ${failure.flow} ${failure.log}');
+  }
+  stdout.writeln(result.failed.isEmpty
+      ? 'integration: all ${flows.length} flow(s) passed'
+      : 'integration: ${result.failed.length} flow(s) failed');
+  return result.failed.isEmpty ? 0 : 1;
 }
