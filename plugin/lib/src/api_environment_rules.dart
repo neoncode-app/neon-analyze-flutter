@@ -13,7 +13,7 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 // The API environment is fixed by the build (NCC0000068, NCC0000076, rule doc
 // `api_environment`): every value that differs per environment is written on
 // the ApiEnvironment enum, and the one decision point is the enum's resolver,
-// `static final ApiEnvironment current = resolve(const String.fromEnvironment('API_ENV'),
+// `static ApiEnvironment get current => resolve(const String.fromEnvironment('API_ENV'),
 // isRelease: kReleaseMode);`. Nothing assigns, persists or switches it later.
 
 const _enumName = 'ApiEnvironment';
@@ -42,10 +42,13 @@ bool _isEnvironmentConstant(Expression expression) {
 bool _inEnvironmentEnum(AstNode node) =>
     node.thisOrAncestorOfType<EnumDeclaration>()?.namePart.typeName.lexeme == _enumName;
 
-/// Whether [node] sits inside the initializer of the enum's resolver field
-/// (`static final ApiEnvironment current = ...`).
+/// Whether [node] sits inside the enum's resolver `current`: a static getter
+/// (`static ApiEnvironment get current => resolve(...)`, which dart2js folds so
+/// a build carries only its own environment's values) or a static field.
 bool _inResolver(AstNode node) {
   if (!_inEnvironmentEnum(node)) return false;
+  final getter = node.thisOrAncestorOfType<MethodDeclaration>();
+  if (getter != null) return getter.isStatic && getter.isGetter && getter.name.lexeme == _resolverField;
   final field = node.thisOrAncestorOfType<FieldDeclaration>();
   if (field == null || !field.isStatic) return false;
   return field.fields.variables.any((variable) => variable.name.lexeme == _resolverField);
@@ -65,7 +68,7 @@ class ApiEnvironmentValuesOnEnum extends AnalysisRule {
     'api_environment_values_on_enum',
     '[NEON] {0}; a value that differs per environment is a field of ApiEnvironment.',
     correctionMessage: 'Read the value from ApiConfig.environment (a field of the ApiEnvironment enum). The only '
-        "decision point is ApiEnvironment.current = resolve(const String.fromEnvironment('API_ENV'), "
+        "decision point is ApiEnvironment.current => resolve(const String.fromEnvironment('API_ENV'), "
         'isRelease: kReleaseMode).',
     severity: DiagnosticSeverity.WARNING,
   );
@@ -173,7 +176,7 @@ class ApiEnvironmentFixedByBuild extends AnalysisRule {
   static const LintCode code = LintCode(
     'api_environment_fixed_by_build',
     '[NEON] {0}; the API environment is fixed by the build (API_ENV) and never switched at runtime.',
-    correctionMessage: 'Read ApiConfig.environment (ApiEnvironment.current, resolved once from '
+    correctionMessage: 'Read ApiConfig.environment (ApiEnvironment.current, resolved from '
         "const String.fromEnvironment('API_ENV')). Build TEST and PROD with --dart-define=API_ENV=test|prod "
         '(tool/build.sh --env, f-build build.config); no switch, no persisted choice, no setter.',
     severity: DiagnosticSeverity.WARNING,

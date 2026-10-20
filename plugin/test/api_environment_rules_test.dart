@@ -22,7 +22,7 @@ enum ApiEnvironment {
 
   final String baseUrl;
 
-  static final ApiEnvironment current = resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode);
+  static ApiEnvironment get current => resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode);
 
   static ApiEnvironment resolve(String define, {required bool isRelease}) {
     if (define.isEmpty) return isRelease ? prod : test;
@@ -105,6 +105,21 @@ abstract class FlavorConfig {
       ['environment == ApiEnvironment.prod', 'kReleaseMode', 'kDebugMode', 'environment', 'kReleaseMode'],
     );
   }
+
+  Future<void> test_a_resolver_field_is_clean_too() => expectIn(
+        _enumPath,
+        '''
+import 'package:test/utils/modes.dart';
+
+enum ApiEnvironment {
+  test,
+  prod;
+
+  static final ApiEnvironment current = kReleaseMode ? prod : test;
+}
+''',
+        [],
+      );
 
   Future<void> test_the_build_mode_outside_the_resolver_is_flagged() => expectIn(
         _enumPath,

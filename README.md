@@ -578,7 +578,7 @@ Checks: `api_environment` (reads the `enum ApiEnvironment` under `lib/`: a `test
 
 | Rule | What it enforces |
 | --- | --- |
-| `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in the resolver `static final ApiEnvironment current = resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)` of the enum; no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068, NCC0000076) |
+| `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in the resolver `static ApiEnvironment get current => resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)` of the enum (a static field `current` is accepted too); no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068, NCC0000076) |
 | `api_environment_fixed_by_build` | nothing changes the environment at runtime: no assignment to an `ApiEnvironment`, no mutable field or top-level variable of that type (`static late ApiEnvironment environment`, `environmentOverride`), `String.fromEnvironment('API_ENV')` only in `ApiEnvironment.current`, no `setBaseUrl(...)`, and no persisted choice (a key `api_environment` / `key_api_environment` / `apiEnvironment` is allowed only as the argument of `remove` / `delete`, to clean up what an older build stored) (NCC0000076) |
 
 ### `go_router`

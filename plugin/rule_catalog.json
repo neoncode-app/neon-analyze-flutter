@@ -449,13 +449,13 @@
       "kind": "lint",
       "description": "Values that differ per API environment live on ApiEnvironment; no branch picks them.",
       "message": "{0}; a value that differs per environment is a field of ApiEnvironment.",
-      "correction": "Read the value from ApiConfig.environment (a field of the ApiEnvironment enum). The only decision point is ApiEnvironment.current = resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)."
+      "correction": "Read the value from ApiConfig.environment (a field of the ApiEnvironment enum). The only decision point is ApiEnvironment.current => resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)."
     },
     "api_environment_fixed_by_build": {
       "kind": "lint",
       "description": "The API environment is fixed by the build (API_ENV); nothing switches or persists it.",
       "message": "{0}; the API environment is fixed by the build (API_ENV) and never switched at runtime.",
-      "correction": "Read ApiConfig.environment (ApiEnvironment.current, resolved once from const String.fromEnvironment('API_ENV')). Build TEST and PROD with --dart-define=API_ENV=test|prod (tool/build.sh --env, f-build build.config); no switch, no persisted choice, no setter."
+      "correction": "Read ApiConfig.environment (ApiEnvironment.current, resolved from const String.fromEnvironment('API_ENV')). Build TEST and PROD with --dart-define=API_ENV=test|prod (tool/build.sh --env, f-build build.config); no switch, no persisted choice, no setter."
     },
     "secure_storage_only_in_repository": {
       "kind": "lint",
