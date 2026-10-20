@@ -89,7 +89,7 @@ class UseSharedUtils extends BannedApiRule {
       types: {'Timer'},
       constructors: {'new'},
       onlyIn: {LayoutRole.bloc},
-      when: isStoredInField,
+      when: isDebounceTimer,
     ),
   ];
 
@@ -127,6 +127,38 @@ bool isContactPattern(AstNode node) {
       pattern.contains(r'\d{9') ||
       pattern.contains('[0-9]{9');
   return email || phone;
+}
+
+/// Whether [node] is a hand-made debounce: a `Timer(duration, ...)` stored in
+/// a field ([isStoredInField]) whose duration is a constant (`const
+/// Duration(...)`, `Duration.zero`, a `const` or `static final` field). A timer
+/// armed for a computed moment (`next.difference(now)`) is a scheduler, not a
+/// debounce, and Debouncer (one fixed duration) cannot replace it.
+bool isDebounceTimer(AstNode node) {
+  if (!isStoredInField(node) || node is! InstanceCreationExpression) return false;
+  final arguments = node.argumentList.arguments;
+  return arguments.isNotEmpty && _isConstantValue(arguments.first);
+}
+
+/// Whether [expression] always has the same value: a literal, a `const`
+/// construction, or a read of a `const` / `static final` / top-level `final`
+/// variable.
+bool _isConstantValue(Expression expression) {
+  final value = expression.unParenthesized;
+  if (value is Literal) return true;
+  if (value is InstanceCreationExpression) return value.isConst;
+  final element = switch (value) {
+    Identifier() => value.element,
+    PropertyAccess() => value.propertyName.element,
+    _ => null,
+  };
+  final variable = element is PropertyAccessorElement ? element.variable : element;
+  return switch (variable) {
+    FieldElement() => variable.isConst || (variable.isStatic && variable.isFinal),
+    TopLevelVariableElement() => variable.isConst || variable.isFinal,
+    LocalVariableElement() => variable.isConst,
+    _ => false,
+  };
 }
 
 /// Whether [node] is a construction assigned to a field (`_debounce =
