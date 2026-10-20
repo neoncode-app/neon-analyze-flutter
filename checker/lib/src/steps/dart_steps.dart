@@ -130,7 +130,8 @@ final class AnalyzeStep extends CheckStep {
   @override
   Future<StepResult> run(CheckContext context) async {
     final findings = <Finding>[];
-    final batches = context.isAll ? [<String>[]] : chunks(context.dartFiles).toList();
+    final batches =
+        context.isAll ? allBatches(context.dartFiles, nestedPackageFiles(context)) : chunks(context.dartFiles).toList();
     for (final batch in batches) {
       var output = await _analyze(context, batch);
       if (_crashed(output)) output = await _analyze(context, batch);
@@ -148,6 +149,48 @@ final class AnalyzeStep extends CheckStep {
       findings.addAll(parseMachineOutput(output, context.relative));
     }
     return StepResult(findings: findings);
+  }
+
+  /// The batches of an `--all` run. Without nested packages one bare
+  /// `dart analyze` covers the app. A nested package (its own pubspec, like
+  /// vernakapp's `packages/conversation_shortcuts`) is a second analysis
+  /// context, and with two contexts in one run the CLI reports the plugin's
+  /// findings of the nested one only: the app's own [NEON] findings vanish
+  /// while the IDE still shows them (NCC0000078). So then every package runs
+  /// on its own, by file paths, never two packages in one process.
+  static List<List<String>> allBatches(List<String> appFiles, Map<String, List<String>> nested) {
+    if (nested.isEmpty) return [<String>[]];
+    return [
+      ...chunks(appFiles),
+      for (final files in nested.values) ...chunks(files),
+    ];
+  }
+
+  /// Root-relative Dart files of every nested package tracked in the app's
+  /// git checkout, by package folder. Submodules (neon-analyze-flutter) are
+  /// not listed by `git ls-files`, and generated files are left out.
+  static Map<String, List<String>> nestedPackageFiles(CheckContext context) {
+    final result = Process.runSync('git', ['ls-files', '--', '*pubspec.yaml'], workingDirectory: context.root);
+    if (result.exitCode != 0) return const {};
+    final packages = [
+      for (final line in (result.stdout as String).split('\n'))
+        if (line.trim().endsWith('/pubspec.yaml'))
+          line.trim().substring(0, line.trim().length - '/pubspec.yaml'.length),
+    ];
+    return {
+      for (final package in packages)
+        if (Directory(context.absolute(package)).existsSync())
+          package: [
+            for (final entity in Directory(context.absolute(package)).listSync(recursive: true))
+              if (entity is File &&
+                  entity.path.endsWith('.dart') &&
+                  !entity.path.endsWith('.g.dart') &&
+                  !entity.path.endsWith('.freezed.dart') &&
+                  !entity.path.contains('/.dart_tool/') &&
+                  !entity.path.contains('/build/'))
+                context.relative(entity.path),
+          ]..sort(),
+    }..removeWhere((_, files) => files.isEmpty);
   }
 
   Future<String> _analyze(CheckContext context, List<String> files) async {

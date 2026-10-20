@@ -159,6 +159,56 @@ void main() {
     expect(findings.map((finding) => finding.hard), [false, true]);
   });
 
+  group('analyze batches of an --all run (NCC0000078)', () {
+    test('without nested packages one bare dart analyze covers the app', () {
+      expect(AnalyzeStep.allBatches(['lib/a.dart'], const {}), [<String>[]]);
+    });
+
+    test('a nested package never shares a process with the app', () {
+      final batches = AnalyzeStep.allBatches(
+        ['lib/a.dart', 'test/a_test.dart'],
+        {
+          'packages/p': ['packages/p/lib/p.dart']
+        },
+      );
+      expect(batches, [
+        ['lib/a.dart', 'test/a_test.dart'],
+        ['packages/p/lib/p.dart'],
+      ]);
+    });
+
+    test('nested packages are the tracked pubspecs below the root', () {
+      final dir = Directory.systemTemp.createTempSync('neon_nested_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'pubspec.yaml');
+      _write(dir, 'lib/a.dart');
+      _write(dir, 'packages/p/pubspec.yaml');
+      _write(dir, 'packages/p/lib/p.dart');
+      _write(dir, 'packages/p/lib/p.g.dart');
+      _write(dir, 'packages/p/.dart_tool/x.dart');
+      _write(dir, 'packages/untracked/pubspec.yaml');
+      _write(dir, 'packages/untracked/lib/u.dart');
+      for (final args in [
+        ['init', '-q'],
+        ['add', 'pubspec.yaml', 'lib', 'packages/p/pubspec.yaml', 'packages/p/lib/p.dart'],
+      ]) {
+        Process.runSync('git', args, workingDirectory: dir.path);
+      }
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse(''),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      expect(AnalyzeStep.nestedPackageFiles(context), {
+        'packages/p': ['packages/p/lib/p.dart'],
+      });
+    });
+  });
+
   group('translations', () {
     late Directory dir;
     late CheckContext context;
