@@ -257,6 +257,42 @@ void main() {
       // Without a base only the staged move is seen.
       expect(gitRenames(dir.path), {'lib/b.dart': 'lib/bloc/b.dart'});
     });
+
+    test('a moved file counts only its edited lines as changed for coverage', () {
+      final dir = Directory.systemTemp.createTempSync('neon_moved_coverage_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      void git(List<String> args) {
+        final result =
+            Process.runSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], workingDirectory: dir.path);
+        expect(result.exitCode, 0, reason: '${result.stderr}');
+      }
+
+      final lines = List.generate(30, (i) => 'final value$i = $i;');
+      _write(dir, 'pubspec.yaml', 'name: app\nenvironment:\n  sdk: ^3.0.0\n');
+      _write(dir, 'lib/a.dart', '${lines.join('\n')}\n');
+      git(['init', '-q', '-b', 'main']);
+      git(['add', '.']);
+      git(['commit', '-q', '-m', 'base']);
+      final base = (Process.runSync('git', ['rev-parse', 'HEAD'], workingDirectory: dir.path).stdout as String).trim();
+      Directory('${dir.path}/lib/app').createSync();
+      Directory('${dir.path}/.dart_tool').createSync();
+      git(['mv', 'lib/a.dart', 'lib/app/a.dart']);
+      lines[4] = 'final value4 = 40;';
+      _write(dir, 'lib/app/a.dart', '${lines.join('\n')}\n');
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse(''),
+        mode: ScopeMode.changed,
+        changedFiles: const {'lib/app/a.dart'},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+
+      expect(CoverageStep.changedLinesOf(context, base, 'lib/app/a.dart', basePath: 'lib/a.dart'), {5});
+      // Without its old path the whole moved file looks new.
+      expect(CoverageStep.changedLinesOf(context, base, 'lib/app/a.dart'), hasLength(30));
+    });
   });
 
   group('translations', () {
