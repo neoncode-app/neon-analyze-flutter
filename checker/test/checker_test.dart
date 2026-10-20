@@ -286,6 +286,23 @@ void main() {
       expect(result.findings.single.message, startsWith('`b_two`'));
     });
 
+    test('the children of a used plural group are used, those of an unused one are not (NCC0000078)', () async {
+      File('${dir.path}/assets/translations/cs.json').writeAsStringSync(
+        '{\n  "points": {\n    "one": "{} bod",\n    "few": "{} body",\n    "other": "{} bodů"\n  },\n'
+        '  "stale": {\n    "one": "a",\n    "other": "b"\n  },\n'
+        '  "nested": {\n    "title": "c"\n  }\n}\n',
+      );
+      File('${dir.path}/lib/page.dart').writeAsStringSync(
+        "final p = plural(\n  'points',\n  3,\n);\nfinal n = tr('nested');\n",
+      );
+      final result = await const TranslationUnusedStep().run(context);
+      expect(result.findings.map((finding) => finding.message.split(' ').first), [
+        '`stale.one`',
+        '`stale.other`',
+        '`nested.title`',
+      ]);
+    });
+
     test('order is checked against the primary file and fixed', () async {
       expect((await const TranslationOrderStep().run(context)).findings, hasLength(1));
       final fixing = CheckContext(
