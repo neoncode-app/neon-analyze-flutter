@@ -102,6 +102,11 @@ final class RuleLayout {
 
   static final _cache = <String, ({int stamp, RuleLayout layout})>{};
 
+  /// Forgets every cached config. Tests need it: each test gets a fresh
+  /// in-memory file system whose modification stamps start over, so a config
+  /// written by an earlier test would otherwise be served again.
+  static void clearCache() => _cache.clear();
+
   static String _rootOf(RuleContext context, String path) {
     final packageRoot = context.package?.root.path.replaceAll(r'\', '/');
     if (packageRoot != null && path.startsWith('$packageRoot/')) return packageRoot;

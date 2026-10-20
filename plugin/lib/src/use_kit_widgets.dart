@@ -20,7 +20,8 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// neoncode, the default of the `admin` preset. In any other app a row comes
 /// from its `kit:` entry; a row it has not declared yet still reports, and
 /// the message says to add the widget and declare it. A [BannedApi.portable]
-/// row (an SVG for `Icons.x`, AlertCubit for a SnackBar) holds everywhere.
+/// row (an SVG for `Icons.x`, AlertCubit for a SnackBar) holds everywhere;
+/// a [BannedApi.optIn] row (`SvgPicture.asset`) holds only where declared.
 ///
 /// Source of the table: ticket NCR0000014, "Kit components instead of raw
 /// Flutter". `Clipboard` and `DateFormat` moved to `use_shared_utils`
@@ -310,24 +311,35 @@ class UseKitWidgets extends BannedApiRule {
       types: {'ReorderableListView'},
       owners: ['$_kit/app_reorderable_list/', '$_kit/app_reorderable_tile_grid/'],
     ),
+    BannedApi(
+      id: 'svg_picture',
+      optIn: true,
+      label: 'SvgPicture.asset',
+      replacement: "the app's SVG widget",
+      package: 'flutter_svg',
+      types: {'SvgPicture'},
+      constructors: {'asset'},
+    ),
   ];
 
   @override
   List<BannedApi> get table => rows;
 
   @override
-  List<BannedApi> tableFor(RuleLayout layout) => [for (final row in rows) resolve(row, layout)];
+  List<BannedApi> tableFor(RuleLayout layout) => [for (final row in rows) resolve(row, layout)].nonNulls.toList();
 
   /// [row] in the app of [layout]: its `kit:` entry, else the admin kit (the
   /// `admin` preset, or a package without a config) or a portable row as
-  /// written, else a row that asks for the missing kit widget.
-  static BannedApi resolve(BannedApi row, RuleLayout layout) {
+  /// written, else a row that asks for the missing kit widget. An opt-in row
+  /// the app does not declare does not apply (`null`).
+  static BannedApi? resolve(BannedApi row, RuleLayout layout) {
     final own = layout.kit[row.id];
     if (own != null) {
       return row.withReplacement(own.use, [
         for (final owner in own.owners) owner.startsWith('lib/') ? owner.substring('lib/'.length) : owner,
       ]);
     }
+    if (row.optIn) return null;
     final preset = layout.preset;
     if (preset == null || preset == 'admin' || row.portable) return row;
     return row.withReplacement(

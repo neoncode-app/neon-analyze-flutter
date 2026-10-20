@@ -61,6 +61,7 @@ final class BannedApi {
     required this.label,
     this.id,
     this.portable = false,
+    this.optIn = false,
     required this.replacement,
     this.package = 'flutter',
     this.types = const {},
@@ -90,6 +91,11 @@ final class BannedApi {
   /// Whether [replacement] and [owners] hold in every app (an SVG for
   /// `Icons.x`), so an app's `kit:` section need not declare the row.
   final bool portable;
+
+  /// Whether the row applies only in an app whose `kit:` declares it: a
+  /// convention some kits have and others do not (vernakapp draws every SVG
+  /// through its AppIcon variants, neoncode calls SvgPicture.asset).
+  final bool optIn;
 
   /// What to use instead; named in the message, e.g. `RoundedContainer`.
   final String replacement;
@@ -155,6 +161,7 @@ final class BannedApi {
         label: label,
         id: id,
         portable: portable,
+        optIn: optIn,
         replacement: replacement,
         package: package,
         types: types,

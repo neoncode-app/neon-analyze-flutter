@@ -1,5 +1,6 @@
 import 'package:analyzer_testing/analysis_rule/analysis_rule.dart';
 import 'package:neon_lints/src/banned_api/banned_api.dart';
+import 'package:neon_lints/src/support/rule_layout.dart';
 import 'package:neon_lints/src/use_kit_widgets.dart';
 import 'package:test/test.dart';
 import 'package:test_reflective_loader/test_reflective_loader.dart';
@@ -175,6 +176,12 @@ const _violations = <({String row, String source, List<String> flagged})>[
     source: '${_material}Object f() => ReorderableListView();',
     flagged: ['ReorderableListView'],
   ),
+  (
+    row: 'SvgPicture.asset',
+    source:
+        "import 'package:flutter_svg/flutter_svg.dart';\nObject f() => [SvgPicture.asset('a'), SvgPicture.network('b')];",
+    flagged: ['SvgPicture.asset'],
+  ),
 ];
 
 @reflectiveTest
@@ -182,6 +189,7 @@ class UseKitWidgetsTest extends AnalysisRuleTest {
   @override
   void setUp() {
     rule = UseKitWidgets();
+    RuleLayout.clearCache();
     addStubPackages(this);
     super.setUp();
   }
@@ -197,6 +205,7 @@ class UseKitWidgetsTest extends AnalysisRuleTest {
 
   Future<void> test_violation_per_row_names_the_replacement() async {
     for (final (index, violation) in _violations.indexed) {
+      if (_row(violation.row).optIn) continue;
       final path = '$testPackageLibPath/pages/violation_$index.dart';
       newFile(path, violation.source);
       await assertDiagnosticsInFile(
@@ -351,6 +360,28 @@ Object f() => [
       lintsAt(this, source, ['Icons.add'],
           messageContainsAll: [_row('Icons.x (Material / Cupertino icons)').replacement]),
     );
+  }
+
+  Future<void> test_an_opt_in_row_does_not_hold_where_the_kit_does_not_declare_it() async {
+    const source = "import 'package:flutter_svg/flutter_svg.dart';\nObject f() => [SvgPicture.asset('a')];";
+    newFile('$testPackageRootPath/neon_check.yaml', 'preset: app\n');
+    final page = '$testPackageLibPath/pages/a_page.dart';
+    newFile(page, source);
+    await assertNoDiagnosticsInFile(page);
+  }
+
+  Future<void> test_an_opt_in_row_holds_where_the_kit_declares_it() async {
+    const source = "import 'package:flutter_svg/flutter_svg.dart';\nObject f() => [SvgPicture.asset('a')];";
+    newFile(
+      '$testPackageRootPath/neon_check.yaml',
+      'preset: app\nkit:\n  svg_picture: {use: AppIcon, owners: [lib/utils/ui/app_icon.dart]}\n',
+    );
+    final page = '$testPackageLibPath/pages/a_page.dart';
+    newFile(page, source);
+    final owner = '$testPackageLibPath/utils/ui/app_icon.dart';
+    newFile(owner, source);
+    await assertDiagnosticsInFile(page, lintsAt(this, source, ['SvgPicture.asset'], messageContainsAll: ['AppIcon']));
+    await assertNoDiagnosticsInFile(owner);
   }
 
   Future<void> test_type_annotations_are_not_flagged() async {

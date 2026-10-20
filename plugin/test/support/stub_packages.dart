@@ -40,6 +40,14 @@ Future<bool> canLaunchUrl(Uri url) async => true;
 Future<bool> launchUrlString(String url) async => true;
 Future<bool> canLaunchUrlString(String url) async => true;
 ''');
+  test.newPackage('flutter_svg').addFile('lib/flutter_svg.dart', r'''
+import 'package:flutter/widgets.dart';
+
+class SvgPicture extends Widget {
+  const SvgPicture.asset(String name);
+  const SvgPicture.network(String url);
+}
+''');
   test.newPackage('fl_chart').addFile('lib/fl_chart.dart', r'''
 import 'package:flutter/widgets.dart';
 
