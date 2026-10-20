@@ -145,6 +145,12 @@
       "message": "setState in a page; keep selection, filters and search in the cubit and render its state with BlocBuilder.",
       "correction": "Add a cubit method that emits the new state and call it here."
     },
+    "pop_scope_matches_back_action": {
+      "kind": "lint",
+      "description": "The system back runs the same action as the back-action widget (PopScope beside it).",
+      "message": "`{0}.{1}` runs `{2}`, but no PopScope in this file runs it on the system back; the system back and the bar must do the same thing.",
+      "correction": "Wrap the page in PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) { if (!didPop) {2}(); })."
+    },
     "no_private_methods_in_page_state": {
       "kind": "lint",
       "description": "A page or feature State has only lifecycle methods and build.",

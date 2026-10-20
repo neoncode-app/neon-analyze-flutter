@@ -13,7 +13,8 @@ export 'package:neon_lints/layout.dart' show Layout, LayoutRole;
 /// through the analyzer's resource provider (so tests can provide one) and
 /// cached until the file changes.
 final class RuleLayout {
-  RuleLayout(this.root, this.layout, {this.secureStorageKeys = const [], this.preset, this.kit = const {}});
+  RuleLayout(this.root, this.layout,
+      {this.secureStorageKeys = const [], this.preset, this.kit = const {}, this.backActions = const {}});
 
   /// The layout of the package [context] analyses.
   factory RuleLayout.of(RuleContext context) {
@@ -37,6 +38,7 @@ final class RuleLayout {
       secureStorageKeys: _secureStorageKeys(source),
       preset: _preset(source),
       kit: kitOf(source),
+      backActions: _backActions(source),
     );
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
@@ -91,6 +93,15 @@ final class RuleLayout {
     };
   }
 
+  /// `back_actions:` of a config: widget class -> the parameter holding the
+  /// action the system back must run too (rule pop_scope_matches_back_action).
+  static Map<String, String> _backActions(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['back_actions'] : null;
+    if (section is! YamlMap) return const {};
+    return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
+  }
+
   static Object? _yaml(String? source) {
     if (source == null) return null;
     try {
@@ -127,6 +138,10 @@ final class RuleLayout {
 
   /// The app's kit, by row id of use_kit_widgets (`kit:`).
   final Map<String, KitReplacement> kit;
+
+  /// Widgets whose action the system back runs too, with the parameter that
+  /// holds it (`back_actions:`).
+  final Map<String, String> backActions;
 
   /// [path] (absolute) relative to the root, or `null` outside the package.
   String? relative(String path) {

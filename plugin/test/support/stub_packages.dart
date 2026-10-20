@@ -346,6 +346,10 @@ class $name extends Widget {
 }
 ''').join()}
 
+class PopScope extends Widget {
+  const PopScope({Object? child, bool canPop = true, Object? onPopInvokedWithResult, Object? onPopInvoked});
+}
+
 class TextButton extends Widget {
   const TextButton({Object? child, Object? onPressed});
   static Object styleFrom() => Object();
