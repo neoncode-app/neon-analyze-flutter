@@ -592,17 +592,74 @@ enum ApiEnvironment {
       expect(check('enum ApiEnvironment { live(baseUrl: \'x\'); }'), [contains('no `test` and `prod`')]);
     });
 
-    test('every flavour declares its switch policy', () async {
+    test('the resolver must read the define', () {
+      expect(
+          ApiEnvironmentStep.readsDefine(
+              "static final current = resolve(const String.fromEnvironment('API_ENV'));", 'API_ENV'),
+          isTrue);
+      expect(ApiEnvironmentStep.readsDefine('static final current = kReleaseMode ? prod : test;', 'API_ENV'), isFalse);
+    });
+
+    test('a runtime switch, picker or override is found, comments are skipped', () {
+      expect(
+        ApiEnvironmentStep.switches('''
+/// No ApiEnvironmentSwitch here.
+class ApiEnvironmentSwitch {}
+  static ApiEnvironment? environmentOverride;
+  ApiEnvironmentSwitchPolicy get environmentSwitch => none; // environmentPicker
+Future<void> _pickApiEnvironment() async {}
+class _ApiEnvironmentSheet {}
+static ApiEnvironment get environment => ApiEnvironment.current;
+'''),
+        [
+          (2, 'ApiEnvironmentSwitch'),
+          (3, 'environmentOverride'),
+          (4, 'ApiEnvironmentSwitchPolicy'),
+          (4, 'environmentSwitch'),
+          (5, '_pickApiEnvironment'),
+          (6, '_ApiEnvironmentSheet'),
+        ],
+      );
+    });
+
+    Future<List<String>> run(Directory dir) async {
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      final result = await const ApiEnvironmentStep().run(_context(dir.path, config, changed: {'lib/a.dart'}));
+      return [for (final finding in result.findings) '${finding.file}:${finding.line} ${finding.message}'];
+    }
+
+    const resolver = "\n  static final current = resolve(const String.fromEnvironment('API_ENV'));\n";
+
+    test('an app with the resolver and a build entry passing API_ENV is clean', () async {
+      final dir = Directory.systemTemp.createTempSync('api_env');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'lib/model/enums/common/api_environment.dart', environments() + resolver);
+      _write(dir, 'tool/build.sh', 'flutter build web --dart-define=API_ENV=\$ENV');
+      _write(dir, 'neon_check.yaml', '');
+      expect(await run(dir), isEmpty);
+    });
+
+    test('a switch, a missing resolver and a build entry without API_ENV are findings', () async {
       final dir = Directory.systemTemp.createTempSync('api_env');
       addTearDown(() => dir.deleteSync(recursive: true));
       _write(dir, 'lib/model/enums/common/api_environment.dart', environments());
-      _write(dir, 'lib/flavors/a/a_flavor.dart', 'class A { get environmentSwitch => 0; }');
-      _write(dir, 'lib/flavors/b/b_flavor.dart', 'class B {}');
+      _write(dir, 'lib/flavors/a/a_flavor.dart', 'class A {\n  get environmentSwitch => 0;\n}');
+      _write(dir, 'tool/build.sh', 'flutter build web');
+      _write(dir, 'build.config', 'DART_DEFINES_API_ENV_test=test');
       _write(dir, 'neon_check.yaml', '');
-      final config = CheckConfig.load(dir.path, toolRoot: _tool);
-      final result =
-          await const ApiEnvironmentStep().run(_context(dir.path, config, changed: {'lib/flavors/b/b_flavor.dart'}));
-      expect([for (final finding in result.findings) finding.file], ['lib/flavors/b/b_flavor.dart']);
+      expect(await run(dir), [
+        contains('lib/flavors/a/a_flavor.dart:2 a runtime environment switch (`environmentSwitch`)'),
+        contains('lib/model/enums/common/api_environment.dart:1 ApiEnvironment does not resolve'),
+        contains('tool/build.sh:1 the build entry passes no API_ENV'),
+      ]);
+    });
+
+    test('an app with no build entry at all is a finding', () async {
+      final dir = Directory.systemTemp.createTempSync('api_env');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'lib/model/enums/common/api_environment.dart', environments() + resolver);
+      _write(dir, 'neon_check.yaml', '');
+      expect(await run(dir), [contains('no build entry (tool/build.sh, build.config) exists')]);
     });
   });
   group('hive_types', () {

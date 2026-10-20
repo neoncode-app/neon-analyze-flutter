@@ -661,6 +661,19 @@ final class CheckConfig {
   /// leaves the flows to `--trigger ci` instead of being run out of memory.
   int get integrationBackgroundMinMemoryMb => (_integration['background_min_memory_mb'] as int?) ?? 8192;
 
+  // ---------------------------------------------------------------- API environment
+
+  Map<String, Object?> get _apiEnvironment => _section('api_environment');
+
+  /// The compile-time define that names the API environment
+  /// (`api_environment.define`, rule `api_environment`).
+  String get apiEnvironmentDefine => _string(_apiEnvironment['define']) ?? 'API_ENV';
+
+  /// The build entries of the app that must pass [apiEnvironmentDefine]
+  /// (`api_environment.build_entries`): the build script, f-build's
+  /// `build.config`. Only the ones that exist are checked.
+  List<String> get apiEnvironmentBuildEntries => _strings(_apiEnvironment['build_entries']);
+
   /// Where the ESME rules are exported (`.claude/rules/shared`).
   String get ruleDocsDir => _string(_section('rule_docs')['dir']) ?? '.claude/rules/shared';
 

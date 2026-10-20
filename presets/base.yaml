@@ -36,6 +36,14 @@ assets:
 generated:
   enabled: true
 
+# The API environment is fixed by the build (NCC0000076, step api_environment,
+# pack api_environment): the compile-time define the ApiEnvironment resolver
+# reads, and the build entries that must pass it (each one the app has; at
+# least one must exist).
+api_environment:
+  define: API_ENV
+  build_entries: [tool/build.sh, build.config]
+
 # The rules of the ESME context layer, exported by the session-start hook.
 # Each one that governs app code names the checks that enforce it (step
 # rule_docs).

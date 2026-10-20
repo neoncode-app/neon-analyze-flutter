@@ -158,8 +158,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(RouteUsesPageFactory())
       // NCC0000064: identical logic exists once.
       ..registerLintRule(SharedFunctions())
-      // NCC0000068: the API environment can never be swapped.
+      // NCC0000068 / NCC0000076: the API environment is fixed by the build.
       ..registerLintRule(ApiEnvironmentValuesOnEnum())
+      ..registerLintRule(ApiEnvironmentFixedByBuild())
       // NCC0000069: the secure store has one owner, every option, secrets only.
       ..registerLintRule(SecureStorageOnlyInRepository())
       ..registerLintRule(SecureStorageOptions())

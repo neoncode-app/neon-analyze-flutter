@@ -572,13 +572,14 @@ Checks: `hive_types` (`lib/hive/hive_adapters.dart` lists every stored type with
 
 ### `api_environment`
 
-The API environment can never be swapped. Values per environment live on the ApiEnvironment enum, the build mode decides only the default, every flavour declares its switch policy.
+The API environment is fixed by the build. Values per environment live on the ApiEnvironment enum, the API_ENV define picks one in a single resolver, nothing switches, assigns or persists it at runtime, and every build entry passes API_ENV.
 
-Checks: `api_environment` (reads the `enum ApiEnvironment` under `lib/`: a `test` and a `prod` constant, no `test` in the prod `baseUrl` / `webOrigin`, `test` in the test `baseUrl`, two different `apiKey`s, and an `environmentSwitch` in every `lib/flavors/<f>/<f>_flavor.dart`).
+Checks: `api_environment` (reads the `enum ApiEnvironment` under `lib/`: a `test` and a `prod` constant, no `test` in the prod `baseUrl` / `webOrigin`, `test` in the test `baseUrl`, two different `apiKey`s, and the resolver reading `String.fromEnvironment('API_ENV')`; no identifier under `lib/` names a runtime switch (`*EnvironmentSwitch*`, `*EnvironmentPicker*`, `*EnvironmentSheet*`, `*EnvironmentOverride*`, `*EnvironmentPolicy*`, `pick*Environment` ...); every build entry of `api_environment.build_entries` the app has (default `tool/build.sh`, `build.config`) passes the define, and at least one exists). Config: `api_environment: {define: API_ENV, build_entries: [...]}` (NCC0000076).
 
 | Rule | What it enforces |
 | --- | --- |
-| `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in `defaultApiEnvironment => kReleaseMode ? ApiEnvironment.prod : ApiEnvironment.test`; no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068) |
+| `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in the resolver `static final ApiEnvironment current = resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)` of the enum; no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068, NCC0000076) |
+| `api_environment_fixed_by_build` | nothing changes the environment at runtime: no assignment to an `ApiEnvironment`, no mutable field or top-level variable of that type (`static late ApiEnvironment environment`, `environmentOverride`), `String.fromEnvironment('API_ENV')` only in `ApiEnvironment.current`, no `setBaseUrl(...)`, and no persisted choice (a key `api_environment` / `key_api_environment` / `apiEnvironment` is allowed only as the argument of `remove` / `delete`, to clean up what an older build stored) (NCC0000076) |
 
 ### `go_router`
 

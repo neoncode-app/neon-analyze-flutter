@@ -210,9 +210,10 @@ admin:
     no_access_guard_in_pages: [pages]
 
 api_environment:
-  description: The API environment can never be swapped. Values per environment live on the ApiEnvironment enum, the build mode decides only the default, every flavour declares its switch policy.
+  description: The API environment is fixed by the build. Values per environment live on the ApiEnvironment enum, the API_ENV define picks one in a single resolver, nothing switches, assigns or persists it at runtime, and every build entry passes API_ENV.
   rules:
     - api_environment_values_on_enum
+    - api_environment_fixed_by_build
   steps:
     - api_environment
 
