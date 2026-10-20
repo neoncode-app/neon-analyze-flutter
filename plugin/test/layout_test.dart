@@ -51,6 +51,23 @@ layout:
       expect(Layout.fromConfigSource(null).patterns(LayoutRole.bloc), LayoutRole.bloc.defaults);
     });
 
+    test('an app without flavours keeps its router and providers under lib/app/ (NCC0000078)', () {
+      final single = Layout.fromConfigSource('preset: app\n', flavorsFolder: false);
+      expect(single.patterns(LayoutRole.providers), ['lib/app/app_providers.dart']);
+      expect(single.patterns(LayoutRole.routing), ['lib/app/']);
+      expect(single.patterns(LayoutRole.routers), ['lib/app/app_router.dart']);
+      expect(single.patterns(LayoutRole.pages), LayoutRole.pages.defaults);
+
+      final flavoured = Layout.fromConfigSource('preset: admin\ntree:\n  use: [flavors]\n', flavorsFolder: false);
+      expect(flavoured.patterns(LayoutRole.providers), LayoutRole.providers.defaults);
+      expect(flavoured.patterns(LayoutRole.routers), LayoutRole.routers.defaults);
+
+      expect(Layout.fromConfigSource('preset: admin\n').patterns(LayoutRole.routers), LayoutRole.routers.defaults);
+
+      final overridden = Layout.fromConfigSource('layout:\n  routers: lib/router.dart\n', flavorsFolder: false);
+      expect(overridden.patterns(LayoutRole.routers), ['lib/router.dart']);
+    });
+
     test('UI code is pages, features and the widget kit', () {
       final layout = Layout.defaults();
       expect(layout.isUi('lib/pages/a_page.dart'), isTrue);

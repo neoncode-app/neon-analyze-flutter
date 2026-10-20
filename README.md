@@ -121,7 +121,10 @@ Every rule and check that depends on where code lives asks a role. Defaults
 follow the shared structure; an app overrides only the roles it keeps
 elsewhere. Patterns are root-relative: a trailing `/` is a folder, `*` stays in
 one segment, `**/` crosses folders, `{name}` is one segment that must repeat
-the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
+the same text (`lib/flavors/{flavor}/{flavor}_router.dart`). An app has
+flavours when `tree: use:` lists `flavors` or it has a `lib/flavors/` folder;
+an app without them (vernakapp) keeps its router and providers under `lib/app/`,
+so those roles default there.
 
 | Role | Default |
 | --- | --- |
@@ -137,10 +140,10 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `hive` | `lib/hive/` |
 | `enums` | `lib/model/enums/*/` (the scope folders; neoncode lists them: `common`, `vernak`, `neoncode`, `doordrop`, `quest`) |
 | `role_enums` | `lib/model/enums/` |
-| `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
-| `routing` | `lib/flavors/` |
+| `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart`; without flavours `lib/app/app_providers.dart` |
+| `routing` | `lib/flavors/`; without flavours `lib/app/` |
 | `app_root` | `lib/app/bootstrap.dart` |
-| `routers` | `lib/flavors/{flavor}/{flavor}_router.dart` |
+| `routers` | `lib/flavors/{flavor}/{flavor}_router.dart`; without flavours `lib/app/app_router.dart` |
 | `dialog_helper` | `lib/utils/utils.dart` |
 | `tokens` | `lib/utils/ui/tokens/` |
 | `widget_dimens` | `lib/**/*_dimens.dart` |

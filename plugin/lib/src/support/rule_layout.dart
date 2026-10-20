@@ -31,7 +31,11 @@ final class RuleLayout {
         source = null;
       }
     }
-    final layout = RuleLayout(root, Layout.fromConfigSource(source), secureStorageKeys: _secureStorageKeys(source));
+    final layout = RuleLayout(
+      root,
+      Layout.fromConfigSource(source, flavorsFolder: file.provider.getFolder('$root/lib/flavors').exists),
+      secureStorageKeys: _secureStorageKeys(source),
+    );
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
   }
