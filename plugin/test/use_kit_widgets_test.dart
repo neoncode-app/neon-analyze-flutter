@@ -306,6 +306,53 @@ Object f() => [
 ''');
   }
 
+  void test_every_row_has_a_unique_id() {
+    final ids = [for (final row in UseKitWidgets.rows) row.id];
+    expect(ids, everyElement(isNotNull));
+    expect(ids.toSet().length, ids.length);
+  }
+
+  Future<void> test_an_app_kit_names_its_widget_and_owns_its_folder() async {
+    newFile(
+      '$testPackageRootPath/neon_check.yaml',
+      'preset: app\nkit:\n  gesture_detector: {use: AppTapArea, owners: [lib/global_widgets/behaviors/app_tap_area/]}\n',
+    );
+    const source = '${_material}Object f() => [GestureDetector()];';
+    final page = '$testPackageLibPath/pages/a_page.dart';
+    newFile(page, source);
+    await assertDiagnosticsInFile(page, lintsAt(this, source, ['GestureDetector'], messageContainsAll: ['AppTapArea']));
+    final owner = '$testPackageLibPath/global_widgets/behaviors/app_tap_area/app_tap_area.dart';
+    newFile(owner, source);
+    await assertNoDiagnosticsInFile(owner);
+    // The admin kit's folder owns nothing in an app with its own kit.
+    final adminOwner = '$testPackageLibPath/global_widgets/global/app_tap_area/app_tap_area.dart';
+    newFile(adminOwner, source);
+    await assertDiagnosticsInFile(adminOwner, lintsAt(this, source, ['GestureDetector']));
+  }
+
+  Future<void> test_an_undeclared_row_asks_for_the_app_kit_widget() async {
+    newFile('$testPackageRootPath/neon_check.yaml', 'preset: app\n');
+    const source = '${_material}Object f() => [Container(decoration: 1)];';
+    final page = '$testPackageLibPath/pages/a_page.dart';
+    newFile(page, source);
+    await assertDiagnosticsInFile(
+      page,
+      lintsAt(this, source, ['Container'], messageContainsAll: ['kit: decorated_container:']),
+    );
+  }
+
+  Future<void> test_a_portable_row_holds_in_every_app() async {
+    newFile('$testPackageRootPath/neon_check.yaml', 'preset: app\n');
+    const source = '${_material}Object f() => [Icons.add];';
+    final page = '$testPackageLibPath/pages/a_page.dart';
+    newFile(page, source);
+    await assertDiagnosticsInFile(
+      page,
+      lintsAt(this, source, ['Icons.add'],
+          messageContainsAll: [_row('Icons.x (Material / Cupertino icons)').replacement]),
+    );
+  }
+
   Future<void> test_type_annotations_are_not_flagged() async {
     await assertNoDiagnostics('''
 $_material

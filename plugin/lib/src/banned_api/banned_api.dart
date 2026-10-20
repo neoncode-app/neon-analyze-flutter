@@ -59,6 +59,8 @@ typedef BannedApiCondition = bool Function(AstNode node);
 final class BannedApi {
   const BannedApi({
     required this.label,
+    this.id,
+    this.portable = false,
     required this.replacement,
     this.package = 'flutter',
     this.types = const {},
@@ -80,6 +82,14 @@ final class BannedApi {
 
   /// How the banned API is named in the message, e.g. `Container(decoration:)`.
   final String label;
+
+  /// Stable key of the row in an app's `kit:` section of `neon_check.yaml`
+  /// (`gesture_detector`), for a table whose replacements differ per app.
+  final String? id;
+
+  /// Whether [replacement] and [owners] hold in every app (an SVG for
+  /// `Icons.x`), so an app's `kit:` section need not declare the row.
+  final bool portable;
 
   /// What to use instead; named in the message, e.g. `RoundedContainer`.
   final String replacement;
@@ -138,6 +148,31 @@ final class BannedApi {
 
   /// An extra condition on the matched node; `null` accepts every match.
   final BannedApiCondition? when;
+
+  /// This row with an app's own [replacement] and [owners] (its `kit:` entry);
+  /// owners by category or class still count.
+  BannedApi withReplacement(String replacement, List<String> owners) => BannedApi(
+        label: label,
+        id: id,
+        portable: portable,
+        replacement: replacement,
+        package: package,
+        types: types,
+        constructors: constructors,
+        onlyWithArgs: onlyWithArgs,
+        functions: functions,
+        methods: methods,
+        variables: variables,
+        bansImport: bansImport,
+        subclassing: subclassing,
+        owners: owners,
+        ownerCategory: ownerCategory,
+        ownerClasses: ownerClasses,
+        scope: scope,
+        onlyIn: onlyIn,
+        exceptIn: exceptIn,
+        when: when,
+      );
 
   /// Whether the row applies to the file at [path] of [layout] (scope and
   /// roles; owners are separate).
@@ -251,6 +286,10 @@ abstract class BannedApiRule extends AnalysisRule {
   /// The rows this rule enforces.
   List<BannedApi> get table;
 
+  /// The rows this rule enforces in the app of [layout]; a rule whose
+  /// replacements differ per app resolves them here.
+  List<BannedApi> tableFor(RuleLayout layout) => table;
+
   @override
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
     final visitor = _Visitor(this, RuleLayout.of(context));
@@ -267,11 +306,13 @@ abstract class BannedApiRule extends AnalysisRule {
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule, this.layout);
+  _Visitor(this.rule, this.layout) : rows = rule.tableFor(layout);
 
   final BannedApiRule rule;
 
   final RuleLayout layout;
+
+  final List<BannedApi> rows;
 
   /// Reports [node] for the first row [matches] accepts (and whose scope and
   /// condition, checked on [subject], hold), unless the file is generated or
@@ -284,7 +325,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (!path.contains('/lib/')) return;
     // The plugin API (0.3.10) does not honour the analyzer `exclude` globs.
     if (path.endsWith('.g.dart') || path.endsWith('.freezed.dart')) return;
-    for (final row in rule.table) {
+    for (final row in rows) {
       if (!matches(row)) continue;
       if (!row.appliesTo(path, layout)) continue;
       final condition = row.when;

@@ -96,6 +96,7 @@ triggers, layout, suites, flows, hooks, and any configuration error.
 | `packs` / `skip_packs` | replace the preset's packs / drop some of them |
 | `rules` | one rule: `true`, `false`, `error`, `warning`, `info` |
 | `layout` | roles whose folders differ from the default (below) |
+| `kit` | the app's own widget kit: per row id of `use_kit_widgets`, the widget that replaces the raw API and the files that implement it, `gesture_detector: {use: AppTapArea, owners: [lib/global_widgets/behaviors/app_tap_area/]}`. The `admin` preset defaults to the neoncode kit; any other app declares its own, and an undeclared row with findings asks for the widget |
 | `tree.use` | optional folders of the canonical `lib/` tree the app has (`[flavors]`); the folder names themselves are fixed (below) |
 | `flavors`, `translations.languages` | only when detection is wrong |
 | `tests.suites` | `name: [source globs]`: which sources select `test/<name>` and the `integration_test/<name>_*` flows |

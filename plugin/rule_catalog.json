@@ -39,7 +39,7 @@
     },
     "use_kit_widgets": {
       "kind": "lint",
-      "description": "Use the admin widget kit instead of raw Flutter widgets.",
+      "description": "Use the app's widget kit instead of raw Flutter widgets.",
       "message": "{0} is raw Flutter that the widget kit replaces; use {1}.",
       "correction": "Replace it with {1}."
     },
