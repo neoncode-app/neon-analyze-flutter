@@ -131,6 +131,40 @@ String? mergeBase(String root, String base) {
   return null;
 }
 
+/// The files git sees as renamed in the checkout at [root] (old path -> new
+/// path, relative to [root]): committed on this branch since the merge base
+/// with [base] (when it exists) and staged since HEAD, so a `git mv` is
+/// followed before and after its commit. Empty outside a git checkout.
+Map<String, String> gitRenames(String root, {String? base}) {
+  Map<String, String> renamesSince(String ref) {
+    final result = Process.runSync(
+      'git',
+      ['diff', '-M', '--name-status', '--relative', '-z', ref],
+      workingDirectory: root,
+    );
+    if (result.exitCode != 0) return const {};
+    final fields = (result.stdout as String).split('\u0000');
+    final renames = <String, String>{};
+    var i = 0;
+    while (i < fields.length) {
+      final status = fields[i];
+      if (status.startsWith('R') || status.startsWith('C')) {
+        if (status.startsWith('R') && i + 2 < fields.length) renames[fields[i + 1]] = fields[i + 2];
+        i += 3;
+      } else {
+        i += status.isEmpty ? 1 : 2;
+      }
+    }
+    return renames;
+  }
+
+  final mergeBaseSha = base == null || base.isEmpty ? null : mergeBase(root, base);
+  return {
+    if (mergeBaseSha != null) ...renamesSince(mergeBaseSha),
+    ...renamesSince('HEAD'),
+  };
+}
+
 /// Resolves the changed / staged files of the git checkout at [root].
 /// [base] is the branch the work is compared against (`--base`, else
 /// `branch.<name>.neonBase`, else the app's `default_base`).

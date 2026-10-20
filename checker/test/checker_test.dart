@@ -209,6 +209,56 @@ void main() {
     });
   });
 
+  group('moved files (NCC0000078)', () {
+    test('followRenames moves the counts of a renamed file and adds nothing', () {
+      final baseline = Baseline({
+        'no_app_dimens': {'lib/a.dart': 3, 'lib/kept.dart': 1, 'lib/b.dart': 2},
+        'use_kit_widgets': {'lib/a.dart': 1},
+      })
+        ..followRenames(
+          {'lib/a.dart': 'lib/x/a.dart', 'lib/kept.dart': 'lib/x/kept.dart', 'lib/c.dart': 'lib/b.dart'},
+          exists: (path) => path == 'lib/kept.dart',
+        );
+      expect(baseline.allowed('no_app_dimens', 'lib/x/a.dart'), 3);
+      expect(baseline.allowed('no_app_dimens', 'lib/a.dart'), 0);
+      expect(baseline.allowed('use_kit_widgets', 'lib/x/a.dart'), 1);
+      // Still on disk: not a move, the counts stay where they are.
+      expect(baseline.allowed('no_app_dimens', 'lib/kept.dart'), 1);
+      expect(baseline.allowed('no_app_dimens', 'lib/x/kept.dart'), 0);
+      expect(baseline.allowed('no_app_dimens', 'lib/b.dart'), 2);
+      expect(baseline.isDirty, isTrue);
+    });
+
+    test('gitRenames follows a staged git mv and a move committed on the branch', () {
+      final dir = Directory.systemTemp.createTempSync('neon_renames_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      void git(List<String> args) {
+        final result = Process.runSync('git', args, workingDirectory: dir.path);
+        expect(result.exitCode, 0, reason: '${result.stderr}');
+      }
+
+      final body = List.generate(30, (i) => 'final value$i = $i;').join('\n');
+      _write(dir, 'lib/a.dart', body);
+      _write(dir, 'lib/b.dart', '$body\nfinal b = 1;');
+      git(['init', '-q', '-b', 'main']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '.']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'base']);
+      git(['checkout', '-q', '-b', 'work']);
+      Directory('${dir.path}/lib/app').createSync();
+      Directory('${dir.path}/lib/bloc').createSync();
+      git(['mv', 'lib/a.dart', 'lib/app/a.dart']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'move a']);
+      git(['mv', 'lib/b.dart', 'lib/bloc/b.dart']);
+
+      expect(gitRenames(dir.path, base: 'main'), {
+        'lib/a.dart': 'lib/app/a.dart',
+        'lib/b.dart': 'lib/bloc/b.dart',
+      });
+      // Without a base only the staged move is seen.
+      expect(gitRenames(dir.path), {'lib/b.dart': 'lib/bloc/b.dart'});
+    });
+  });
+
   group('translations', () {
     late Directory dir;
     late CheckContext context;

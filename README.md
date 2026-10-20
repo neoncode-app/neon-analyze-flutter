@@ -310,7 +310,11 @@ errors, failing tests and flows and low coverage is counted per rule and file
 against `tool/lint_baseline.json`. More than the baseline fails; fewer lowers
 the baseline automatically, so a fixed violation cannot come back. The
 baseline is written by `--update-baseline` (when a rule or gate lands) and is
-never raised by hand. `--ci` never writes it.
+never raised by hand. `--ci` never writes it. A file moved with `git mv` keeps
+its counts: the ratchet follows the renames git reports (committed on the
+branch since the merge base with the base branch, and staged since HEAD) and
+moves the counts of the old path to the new one; nothing is added, and a
+path that is still a file keeps its own (NCC0000078).
 
 **Test selection.** `--all` (CI, `/done`) runs every test. A scoped run with
 `tests.select: impact` (the default) runs the test files whose import closure
