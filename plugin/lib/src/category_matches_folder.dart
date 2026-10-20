@@ -45,7 +45,8 @@ class CategoryMatchesFolder extends AnalysisRule {
     '[NEON] the folder of `{0}` does not say its layer: {1}.',
     correctionMessage: 'Put the widget in the folder of its layer: Component components/, Layout layouts/, '
         'Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, '
-        'any *Dialog or *Sheet dialogs/; under lib/global_widgets/<owner>/ and in widgets/ of a page or feature.',
+        'any *Dialog or *Sheet dialogs/; under lib/global_widgets/ (or lib/global_widgets/<owner>/ in a kit with '
+        'owners) and in widgets/ of a page or feature.',
     severity: DiagnosticSeverity.WARNING,
   );
 
@@ -165,6 +166,14 @@ class _Visitor extends SimpleAstVisitor<void> {
     return provider.getFile('$dir/$widget.dart').exists;
   }
 
+  /// Whether the kit at [folder] has no owner level: a layer folder
+  /// (`components/`, `layouts/`, ...) sits directly in it, where a kit with
+  /// owners has `global/`, `vernak/` ...
+  bool _ownerless(String folder) {
+    final kit = folder.endsWith('/') ? folder : '$folder/';
+    return layerFolderNames.any((layer) => provider.getFolder('$kit$layer').exists);
+  }
+
   /// The folder the layer folder of [path] goes into, or null when the file
   /// is not placed by layer (a page, a feature piece, the kit root).
   _Anchor? _anchorOf(String path, {required bool inKit}) {
@@ -180,7 +189,10 @@ class _Visitor extends SimpleAstVisitor<void> {
         final rest = path.substring(folder.length);
         final slash = rest.indexOf('/');
         if (slash < 0) return null;
-        final owner = '$folder${rest.substring(0, slash)}';
+        // A kit without an owner level (an app whose whole kit is its own,
+        // vernakapp): the layer folders sit right under the kit folder.
+        final kit = folder.endsWith('/') ? folder.substring(0, folder.length - 1) : folder;
+        final owner = _ownerless(folder) ? kit : '$folder${rest.substring(0, slash)}';
         final src = path.indexOf('/src/', owner.length);
         return _Anchor(src >= 0 ? path.substring(0, src + '/src'.length) : owner);
       }

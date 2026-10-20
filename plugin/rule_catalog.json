@@ -341,7 +341,7 @@
       "kind": "lint",
       "description": "A widget's folder says its layer: its {@category} matches the layer folder it sits in.",
       "message": "the folder of `{0}` does not say its layer: {1}.",
-      "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/<owner>/ and in widgets/ of a page or feature."
+      "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/ (or lib/global_widgets/<owner>/ in a kit with owners) and in widgets/ of a page or feature."
     },
     "labels_only_in_kit": {
       "kind": "lint",
