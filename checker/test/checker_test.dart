@@ -256,6 +256,21 @@ void main() {
       ]);
     });
 
+    test('a plural group needs only the categories its language uses (NCC0000078)', () async {
+      File('${dir.path}/assets/translations/cs.json').writeAsStringSync(
+        '{\n  "n": {\n    "one": "{} bod",\n    "few": "{} body",\n    "other": "{} bodů"\n  },\n'
+        '  "v": {\n    "one": "a",\n    "other": "b"\n  }\n}\n',
+      );
+      File('${dir.path}/assets/translations/en.json').writeAsStringSync(
+        '{\n  "n": {\n    "one": "{} point",\n    "many": "{} points",\n    "other": "{} points"\n  },\n'
+        '  "v": {\n    "one": "a"\n  }\n}\n',
+      );
+      final result = await const TranslationParityStep().run(context);
+      expect(result.findings.map((finding) => '${finding.file} ${finding.message}'), [
+        contains('en.json key `v.other` is missing'),
+      ]);
+    });
+
     test('dashes are reported with their line', () async {
       final result = await const TranslationDashesStep().run(context);
       expect(result.findings.single.format(), startsWith('assets/translations/cs.json:4 translation_dash'));
@@ -347,6 +362,27 @@ void main() {
     final result = await const AssetsStep().run(context);
     expect(result.findings.map((finding) => finding.format()),
         ['lib/app_assets.dart:4 asset_missing: `assets/icons/gone.svg` does not exist']);
+  });
+
+  test('pubspec tool sections use assets, the flutter: bundle list does not (NCC0000078)', () {
+    expect(
+      AssetsStep.pubspecReferences('''
+name: app
+flutter:
+  assets:
+    - assets/images/
+    - assets/images/bundled.png
+flutter_launcher_icons:
+  image_path: "assets/images/icon.png"
+  adaptive_icon_foreground: assets/images/fg.png
+flutter_native_splash:
+  image: assets/images/splash.png
+  android_12:
+    image: assets/images/splash12.png
+'''),
+      {'assets/images/icon.png', 'assets/images/fg.png', 'assets/images/splash.png', 'assets/images/splash12.png'},
+    );
+    expect(AssetsStep.pubspecReferences('name: [broken'), isEmpty);
   });
 
   group('test existence (NCR0000022)', () {
