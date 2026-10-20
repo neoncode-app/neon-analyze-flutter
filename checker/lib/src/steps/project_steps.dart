@@ -7,6 +7,7 @@ import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/process.dart';
 import 'package:neon_check/src/step.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
+import 'package:yaml/yaml.dart';
 
 int _lineOf(List<String> lines, Pattern pattern) {
   for (var i = 0; i < lines.length; i++) {
@@ -43,6 +44,33 @@ final class AssetsStep extends CheckStep {
   static RegExp _templatePattern(String template) {
     final parts = template.split(RegExp(r'\$\{[^}]*\}|\$\w+'));
     return RegExp('^${parts.map(RegExp.escape).join('[^/]+')}\$');
+  }
+
+  /// Asset paths `pubspec.yaml` uses as tool input outside its `flutter:`
+  /// section: `flutter_launcher_icons` (`image_path`, `adaptive_icon_foreground`)
+  /// and `flutter_native_splash` (`image`) build the app icon and splash from
+  /// them, so they are used although no Dart code names them. The `flutter:`
+  /// section only bundles assets, which is no use.
+  static Set<String> pubspecReferences(String source) {
+    Object? yaml;
+    try {
+      yaml = loadYaml(source);
+    } on YamlException {
+      return const {};
+    }
+    final found = <String>{};
+    void collect(Object? node) {
+      if (node is String && node.startsWith('assets/')) found.add(node);
+      if (node is Map) node.values.forEach(collect);
+      if (node is List) node.forEach(collect);
+    }
+
+    if (yaml is Map) {
+      for (final entry in yaml.entries) {
+        if (entry.key != 'flutter') collect(entry.value);
+      }
+    }
+    return found;
   }
 
   /// Roots of the app's dependencies, by package name, from
@@ -86,9 +114,11 @@ final class AssetsStep extends CheckStep {
     }
     if (context.isAll) {
       final sources = [for (final file in context.allLibDartFiles) File(context.absolute(file)).readAsStringSync()];
+      final pubspec = File(context.absolute('pubspec.yaml'));
       final referenced = {
         for (final source in sources)
           for (final match in _assetLiteral.allMatches(source)) match.group(1) ?? '',
+        if (pubspec.existsSync()) ...pubspecReferences(pubspec.readAsStringSync()),
       };
       final templates = [
         for (final source in sources)
@@ -102,7 +132,10 @@ final class AssetsStep extends CheckStep {
           final path = context.relative(entity.path);
           if (!referenced.contains(path) && !templates.any((pattern) => pattern.hasMatch(path))) {
             findings.add(
-              Finding(rule: 'asset_unused', file: path, message: 'no code references this asset; delete it or use it'),
+              Finding(
+                  rule: 'asset_unused',
+                  file: path,
+                  message: 'no code (nor a pubspec.yaml tool section) references this asset; delete it or use it'),
             );
           }
         }
