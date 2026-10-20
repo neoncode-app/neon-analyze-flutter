@@ -68,7 +68,7 @@ So an app's file holds only what is really its own. neoncode:
 
 ```yaml
 preset: admin
-default_base: feature/testing
+default_base: main
 page_help:
   exempt: [vernak_login_page.dart, vernak_register_page.dart]
 tests:
@@ -371,7 +371,7 @@ The baseline keeps old findings from breaking every session, but a project
 also needs them gone. The burndown does that without a prompt:
 
 ```bash
-neon-analyze-flutter/bin/neon-check burndown start --base feature/testing
+neon-analyze-flutter/bin/neon-check burndown start --base main
 ```
 
 From then on, in every Claude Code session of that checkout (neon-flutter
