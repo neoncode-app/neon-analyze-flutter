@@ -13,7 +13,7 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// No `TextStyle(...)` and no `copyWith(fontWeight / fontSize /
 /// letterSpacing / height ...)` outside the text style files
 /// (`*_text_styles.dart`) and the theme assembly (`lib/utils/ui/app_style.dart`).
-/// The only override is `copyWith(color: ...)`.
+/// The only overrides are the colours, `copyWith(color: ..., decorationColor: ...)`.
 ///
 /// Typography that comes from data is not a design choice a named style can
 /// hold: a `TextStyle(...)` whose `fontSize` or `fontWeight` is a runtime
@@ -28,7 +28,7 @@ class NoRawTextStyle extends AnalysisRule {
   static const LintCode code = LintCode(
     'no_raw_text_style',
     '[NEON] {0}; every weight / size combination is a named style in AppTextStyles '
-        '(context.appText.x). Only copyWith(color: ...) is allowed here.',
+        '(context.appText.x). Only copyWith(color: / decorationColor: ...) is allowed here.',
     correctionMessage: 'Add a named style to app_text_styles.dart and use it.',
     severity: DiagnosticSeverity.WARNING,
   );
@@ -76,7 +76,9 @@ class _TextStyleVisitor extends SimpleAstVisitor<void> {
     if (target?.name != 'TextStyle' || !isFromPackage(target, 'flutter') || !_applies(node)) return;
     final changed = [
       for (final argument in node.argumentList.arguments)
-        if (argument is NamedExpression && argument.name.label.name != 'color' && isConstantValue(argument.expression))
+        if (argument is NamedExpression &&
+            !const {'color', 'decorationColor'}.contains(argument.name.label.name) &&
+            isConstantValue(argument.expression))
           argument.name.label.name,
     ];
     if (changed.isNotEmpty) {

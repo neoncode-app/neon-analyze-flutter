@@ -213,6 +213,7 @@ class NoRawTextStyleTest extends _DimensTest {
 ${_flutter}const base = TextStyle(fontSize: 14);
 final bold = base.copyWith(fontWeight: FontWeight.bold);
 final tinted = base.copyWith(color: 1);
+final underlineTinted = base.copyWith(color: 1, decorationColor: 1);
 ''';
 
   Future<void> test_hand_built_styles_are_flagged() => expectIn(

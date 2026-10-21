@@ -304,7 +304,7 @@
     "no_raw_text_style": {
       "kind": "lint",
       "description": "Text styles come from AppTextStyles.",
-      "message": "{0}; every weight / size combination is a named style in AppTextStyles (context.appText.x). Only copyWith(color: ...) is allowed here.",
+      "message": "{0}; every weight / size combination is a named style in AppTextStyles (context.appText.x). Only copyWith(color: / decorationColor: ...) is allowed here.",
       "correction": "Add a named style to app_text_styles.dart and use it."
     },
     "no_debug_print": {

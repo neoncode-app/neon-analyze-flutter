@@ -404,7 +404,7 @@ class FontWeight {
 
 class TextStyle {
   const TextStyle({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color});
-  TextStyle copyWith({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color}) =>
+  TextStyle copyWith({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color, Object? decorationColor}) =>
       this;
 }
 
