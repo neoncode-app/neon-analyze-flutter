@@ -14,6 +14,12 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// letterSpacing / height ...)` outside the text style files
 /// (`*_text_styles.dart`) and the theme assembly (`lib/utils/ui/app_style.dart`).
 /// The only override is `copyWith(color: ...)`.
+///
+/// Typography that comes from data is not a design choice a named style can
+/// hold: a `TextStyle(...)` whose `fontSize` or `fontWeight` is a runtime
+/// value (the size and weight of a card text set by its company, a label
+/// scaled with the map zoom), and a `copyWith` argument with a runtime value,
+/// are not reported. A constant size or weight still is.
 class NoRawTextStyle extends AnalysisRule {
   NoRawTextStyle() : super(name: 'no_raw_text_style', description: _desc);
 
@@ -55,6 +61,11 @@ class _TextStyleVisitor extends SimpleAstVisitor<void> {
   void visitInstanceCreationExpression(InstanceCreationExpression node) {
     final type = node.constructorName.element?.enclosingElement;
     if (type?.name != 'TextStyle' || !isFromPackage(type, 'flutter') || !_applies(node)) return;
+    final fromData = node.argumentList.arguments.whereType<NamedExpression>().any(
+      (argument) =>
+          const {'fontSize', 'fontWeight'}.contains(argument.name.label.name) && !isConstantValue(argument.expression),
+    );
+    if (fromData) return;
     rule.reportAtNode(node.constructorName, arguments: ['`TextStyle(...)` is built by hand']);
   }
 
@@ -65,7 +76,8 @@ class _TextStyleVisitor extends SimpleAstVisitor<void> {
     if (target?.name != 'TextStyle' || !isFromPackage(target, 'flutter') || !_applies(node)) return;
     final changed = [
       for (final argument in node.argumentList.arguments)
-        if (argument is NamedExpression && argument.name.label.name != 'color') argument.name.label.name,
+        if (argument is NamedExpression && argument.name.label.name != 'color' && isConstantValue(argument.expression))
+          argument.name.label.name,
     ];
     if (changed.isNotEmpty) {
       rule.reportAtNode(node.methodName, arguments: ['copyWith changes ${changed.join(', ')}']);

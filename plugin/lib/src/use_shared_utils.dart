@@ -3,6 +3,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/banned_api/banned_api.dart';
+import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Bans the raw APIs that `package:neon_flutter_utils` wraps, and names the
@@ -137,28 +138,7 @@ bool isContactPattern(AstNode node) {
 bool isDebounceTimer(AstNode node) {
   if (!isStoredInField(node) || node is! InstanceCreationExpression) return false;
   final arguments = node.argumentList.arguments;
-  return arguments.isNotEmpty && _isConstantValue(arguments.first);
-}
-
-/// Whether [expression] always has the same value: a literal, a `const`
-/// construction, or a read of a `const` / `static final` / top-level `final`
-/// variable.
-bool _isConstantValue(Expression expression) {
-  final value = expression.unParenthesized;
-  if (value is Literal) return true;
-  if (value is InstanceCreationExpression) return value.isConst;
-  final element = switch (value) {
-    Identifier() => value.element,
-    PropertyAccess() => value.propertyName.element,
-    _ => null,
-  };
-  final variable = element is PropertyAccessorElement ? element.variable : element;
-  return switch (variable) {
-    FieldElement() => variable.isConst || (variable.isStatic && variable.isFinal),
-    TopLevelVariableElement() => variable.isConst || variable.isFinal,
-    LocalVariableElement() => variable.isConst,
-    _ => false,
-  };
+  return arguments.isNotEmpty && isConstantValue(arguments.first);
 }
 
 /// Whether [node] is a construction assigned to a field (`_debounce =

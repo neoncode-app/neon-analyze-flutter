@@ -131,3 +131,24 @@ String? categoryOf(Element? element) {
 /// Absolute path of the library an import directive resolves to.
 String? importedPath(ImportDirective node) =>
     node.libraryImport?.importedLibrary?.firstFragment.source.fullName.replaceAll(r'\', '/');
+
+/// Whether [expression] always has the same value: a literal, a `const`
+/// construction, or a read of a `const` / `static final` / top-level `final`
+/// variable.
+bool isConstantValue(Expression expression) {
+  final value = expression.unParenthesized;
+  if (value is Literal) return true;
+  if (value is InstanceCreationExpression) return value.isConst;
+  final element = switch (value) {
+    Identifier() => value.element,
+    PropertyAccess() => value.propertyName.element,
+    _ => null,
+  };
+  final variable = element is PropertyAccessorElement ? element.variable : element;
+  return switch (variable) {
+    FieldElement() => variable.isConst || (variable.isStatic && variable.isFinal),
+    TopLevelVariableElement() => variable.isConst || variable.isFinal,
+    LocalVariableElement() => variable.isConst,
+    _ => false,
+  };
+}
