@@ -42,6 +42,23 @@ class Branding {
   const Branding(this.name);
   final String name;
 }
+
+class Company {
+  const Company(this.id);
+  final String id;
+}
+''');
+    newFile('$testPackageLibPath/repository/hive_repository.dart', '''
+import 'package:test/model/coupon.dart';
+
+abstract final class Hive {
+  static Future<Object> openBox<T>(String name) async => Object();
+}
+
+Future<void> openBoxes() async {
+  await Hive.openBox<dynamic>('app');
+  await Hive.openBox<Company>('companies');
+}
 ''');
     newFile('$testPackageLibPath/hive/boxes.dart', '''
 import 'package:neon_flutter_hive/neon_flutter_hive.dart';
@@ -95,6 +112,23 @@ class CardsLoaded extends CardsState {
 ''',
         ['coupons', 'selected', 'byId'],
         after: 'this.byId);',
+      );
+
+  Future<void> test_a_type_with_a_hand_opened_typed_box_is_an_entity() => expectIn(
+        'bloc/home/home_state.dart',
+        '''
+${_models}sealed class HomeState {
+  const HomeState();
+}
+
+class HomeLoaded extends HomeState {
+  const HomeLoaded(this.companies, this.settings);
+  final List<Company> companies;
+  final Map<String, Object?> settings;
+}
+''',
+        ['companies'],
+        after: 'this.settings);',
       );
 
   Future<void> test_outside_the_bloc_role_is_clean() => expectIn(

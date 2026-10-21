@@ -13,15 +13,20 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 
 // Cubit states carry ids, the UI reads entities from Hive (NCC0000071, rule
 // doc `state_ids_ui_hive`). A Hive entity is a type with its own typed box:
-// an `EntityBox<T>` declared in the app's lib/hive/ or lib/repository/, or a
-// class still annotated `@HiveType`. A value type that is only stored inside
-// an entity (a branding, a style) has an adapter but no box, and is fine.
+// an `EntityBox<T>` declared in the app's lib/hive/ or lib/repository/, a
+// typed box the app still opens by hand there (`Hive.openBox<T>(...)`, an app
+// moving to EntityBox), or a class still annotated `@HiveType`. A value type
+// that is only stored inside an entity (a branding, a style) has an adapter
+// but no box, and is fine.
 
 final _entityBox = RegExp(r'EntityBox<(\w+)>');
 
+final _openBox = RegExp(r'openBox<(\w+)>');
+
 final _entitiesCache = <String, ({int stamp, Set<String> types})>{};
 
-/// The types that have an `EntityBox` in the app's lib/hive/ or lib/repository/.
+/// The types that have an `EntityBox` or a typed `Hive.openBox<T>` in the
+/// app's lib/hive/ or lib/repository/.
 Set<String> _persistedTypes(RuleContext context, RuleLayout layout) {
   final provider = context.definingUnit.file.provider;
   final files = <File>[];
@@ -44,7 +49,12 @@ Set<String> _persistedTypes(RuleContext context, RuleLayout layout) {
   final types = <String>{};
   for (final file in files) {
     try {
-      types.addAll([for (final match in _entityBox.allMatches(file.readAsStringSync())) match.group(1) ?? '']);
+      final source = file.readAsStringSync();
+      types.addAll([for (final match in _entityBox.allMatches(source)) match.group(1) ?? '']);
+      types.addAll([
+        for (final match in _openBox.allMatches(source))
+          if (match.group(1) case final type? when type != 'dynamic') type,
+      ]);
     } on FileSystemException {
       continue;
     }
