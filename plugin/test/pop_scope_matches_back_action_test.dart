@@ -78,6 +78,52 @@ class ReportActionBlock extends StatelessWidget {
     await assertNoDiagnosticsInFile(path);
   }
 
+  Future<void> test_a_page_whose_shell_runs_the_action_on_back_is_clean() async {
+    RuleLayout.clearCache();
+    newFile(
+      '$testPackageRootPath/neon_check.yaml',
+      'preset: app\nback_actions: {SubmitBar: onTap}\n'
+          'back_scopes: {lib/pages/map/map_page.dart: lib/pages/shell/shell.dart}\n',
+    );
+    newFile('$testPackageLibPath/pages/shell/shell.dart', '''
+$_imports
+class Shell extends StatelessWidget {
+  void _onPopInvoked(bool didPop) {
+    if (didPop) return;
+    cubit.save();
+  }
+  @override
+  Widget build(BuildContext context) =>
+      PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) => _onPopInvoked(didPop), child: this);
+}
+''');
+    final path = '$testPackageLibPath/pages/map/map_page.dart';
+    newFile(path, '${_imports}Widget f() => SubmitBar(onTap: cubit.save);');
+    await assertNoDiagnosticsInFile(path);
+  }
+
+  Future<void> test_a_shell_that_does_something_else_on_back_is_reported() async {
+    RuleLayout.clearCache();
+    newFile(
+      '$testPackageRootPath/neon_check.yaml',
+      'preset: app\nback_actions: {SubmitBar: onTap}\n'
+          'back_scopes: {lib/pages/map/map_page.dart: lib/pages/shell/shell.dart}\n',
+    );
+    newFile('$testPackageLibPath/pages/shell/shell.dart', '''
+$_imports
+class Shell extends StatelessWidget {
+  @override
+  Widget build(BuildContext context) => PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) {}, child: this);
+}
+''');
+    await expectIn(
+      'pages/map/map_page.dart',
+      '${_imports}Widget f() => SubmitBar(onTap: cubit.save);',
+      ['SubmitBar'],
+      after: 'Widget f()',
+    );
+  }
+
   Future<void> test_the_kit_is_not_checked() async {
     final path = '$testPackageLibPath/global_widgets/submit_bar_row.dart';
     newFile(path, '${_imports}Widget f() => SubmitBar(onTap: cubit.save);');

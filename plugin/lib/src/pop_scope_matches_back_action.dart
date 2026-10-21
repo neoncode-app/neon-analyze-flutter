@@ -1,9 +1,11 @@
 import 'package:analyzer/analysis_rule/analysis_rule.dart';
 import 'package:analyzer/analysis_rule/rule_context.dart';
 import 'package:analyzer/analysis_rule/rule_visitor_registry.dart';
+import 'package:analyzer/dart/analysis/utilities.dart';
 import 'package:analyzer/dart/ast/ast.dart';
 import 'package:analyzer/dart/ast/visitor.dart';
 import 'package:analyzer/error/error.dart';
+import 'package:analyzer/file_system/file_system.dart';
 import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
@@ -26,6 +28,16 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// action that is a field of the widget class building the bar is a callback
 /// forwarded from the page that composes it, and that page carries the
 /// PopScope; a file cannot see its composer, so it is not reported here.
+///
+/// A page shown inside a shell whose PopScope handles the system back for
+/// it (the home / map shell) is declared in `neon_check.yaml`:
+///
+/// ```yaml
+/// back_scopes: {lib/pages/map_page/map_page.dart: lib/pages/search_bar_shell/search_bar_shell.dart}
+/// ```
+///
+/// Its bar's action is then looked for in that file's PopScope callbacks and
+/// in the bodies of the methods they call.
 class PopScopeMatchesBackAction extends AnalysisRule {
   PopScopeMatchesBackAction() : super(name: 'pop_scope_matches_back_action', description: _desc);
 
@@ -47,7 +59,7 @@ class PopScopeMatchesBackAction extends AnalysisRule {
   void registerNodeProcessors(RuleVisitorRegistry registry, RuleContext context) {
     final layout = RuleLayout.of(context);
     if (layout.backActions.isEmpty) return;
-    registry.addCompilationUnit(this, _Visitor(this, layout));
+    registry.addCompilationUnit(this, _Visitor(this, layout, context.definingUnit.file.provider));
   }
 
   /// The action [expression] runs, as source: a tear-off as written, a
@@ -79,11 +91,44 @@ class PopScopeMatchesBackAction extends AnalysisRule {
 }
 
 class _Visitor extends SimpleAstVisitor<void> {
-  _Visitor(this.rule, this.layout);
+  _Visitor(this.rule, this.layout, this.provider);
 
   final AnalysisRule rule;
 
   final RuleLayout layout;
+
+  final ResourceProvider provider;
+
+  /// The sources of the back handling in the declared shell of [relative]:
+  /// its PopScope callbacks and the bodies of the methods they call.
+  List<String> _scopeSources(String? relative) {
+    final owner = relative == null ? null : layout.backScopes[relative];
+    if (owner == null) return const [];
+    final file = provider.getFile('${layout.root}/$owner');
+    if (!file.exists) return const [];
+    final String content;
+    try {
+      content = file.readAsStringSync();
+    } on FileSystemException {
+      return const [];
+    }
+    final unit = parseString(content: content, throwIfDiagnostics: false).unit;
+    final collector = _UnresolvedPopScopes();
+    unit.accept(collector);
+    final sources = [for (final callback in collector.callbacks) callback.toSource()];
+    final called = <String>{
+      for (final source in sources)
+        for (final match in RegExp(r'([A-Za-z_][A-Za-z0-9_]*)\(').allMatches(source)) match.group(1) ?? '',
+    };
+    for (final declaration in unit.declarations.whereType<ClassDeclaration>()) {
+      final body = declaration.body;
+      if (body is! BlockClassBody) continue;
+      for (final method in body.members.whereType<MethodDeclaration>()) {
+        if (called.contains(method.name.lexeme)) sources.add(method.body.toSource());
+      }
+    }
+    return sources;
+  }
 
   @override
   void visitCompilationUnit(CompilationUnit node) {
@@ -93,7 +138,10 @@ class _Visitor extends SimpleAstVisitor<void> {
     }
     final collector = _Collector(layout.backActions);
     node.accept(collector);
-    final popSources = [for (final callback in collector.popCallbacks) callback.toSource()];
+    final popSources = [
+      for (final callback in collector.popCallbacks) callback.toSource(),
+      ..._scopeSources(layout.relative(path)),
+    ];
     for (final found in collector.backActions) {
       final action = PopScopeMatchesBackAction.actionOf(found.action);
       if (action == null || collector.isForwarded(found.creation, action)) continue;
@@ -155,5 +203,32 @@ class _Collector extends RecursiveAstVisitor<void> {
           .whereType<FieldDeclaration>()
           .any((field) => field.fields.variables.any((variable) => variable.name.lexeme == name)),
     );
+  }
+}
+
+/// The PopScope callbacks of a file parsed without resolution (the declared
+/// shell of a page): `PopScope(...)` there is an invocation of that name.
+class _UnresolvedPopScopes extends RecursiveAstVisitor<void> {
+  final callbacks = <Expression>[];
+
+  void _collect(String name, ArgumentList arguments) {
+    if (name != 'PopScope') return;
+    for (final argument in arguments.arguments.whereType<NamedExpression>()) {
+      if (const {'onPopInvokedWithResult', 'onPopInvoked'}.contains(argument.name.label.name)) {
+        callbacks.add(argument.expression);
+      }
+    }
+  }
+
+  @override
+  void visitMethodInvocation(MethodInvocation node) {
+    if (node.target == null) _collect(node.methodName.name, node.argumentList);
+    super.visitMethodInvocation(node);
+  }
+
+  @override
+  void visitInstanceCreationExpression(InstanceCreationExpression node) {
+    _collect(node.constructorName.type.name.lexeme, node.argumentList);
+    super.visitInstanceCreationExpression(node);
   }
 }

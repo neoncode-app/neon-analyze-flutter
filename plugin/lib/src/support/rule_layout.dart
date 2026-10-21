@@ -14,7 +14,11 @@ export 'package:neon_lints/layout.dart' show Layout, LayoutRole;
 /// cached until the file changes.
 final class RuleLayout {
   RuleLayout(this.root, this.layout,
-      {this.secureStorageKeys = const [], this.preset, this.kit = const {}, this.backActions = const {}});
+      {this.secureStorageKeys = const [],
+      this.preset,
+      this.kit = const {},
+      this.backActions = const {},
+      this.backScopes = const {}});
 
   /// The layout of the package [context] analyses.
   factory RuleLayout.of(RuleContext context) {
@@ -39,6 +43,7 @@ final class RuleLayout {
       preset: _preset(source),
       kit: kitOf(source),
       backActions: _backActions(source),
+      backScopes: _backScopes(source),
     );
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
@@ -102,6 +107,16 @@ final class RuleLayout {
     return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
   }
 
+  /// `back_scopes:` of the config: page files (root-relative) whose system
+  /// back is handled by the PopScope of another file, the shell they are
+  /// shown in (rule pop_scope_matches_back_action).
+  static Map<String, String> _backScopes(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['back_scopes'] : null;
+    if (section is! YamlMap) return const {};
+    return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
+  }
+
   static Object? _yaml(String? source) {
     if (source == null) return null;
     try {
@@ -142,6 +157,10 @@ final class RuleLayout {
   /// Widgets whose action the system back runs too, with the parameter that
   /// holds it (`back_actions:`).
   final Map<String, String> backActions;
+
+  /// Page files whose system back the PopScope of another file handles, with
+  /// that file (`back_scopes:`, root-relative).
+  final Map<String, String> backScopes;
 
   /// [path] (absolute) relative to the root, or `null` outside the package.
   String? relative(String path) {
