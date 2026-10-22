@@ -31,6 +31,9 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 ///   that type;
 /// * any type declared in the cubits (role `bloc`, e.g. a state or a
 ///   presentation event) or the repositories (role `repository`);
+/// * Hive read the way rule `state_ids_ui_hive` wants it: a type of
+///   package:neon_flutter_hive (a `HiveEntityBuilder`, an `EntityBox`) or one
+///   declared with the app's boxes (role `hive`, `VernakBoxes`);
 /// * another `{@category Feature}` widget it builds (a shell built from
 ///   features is one, too).
 class FeatureReadsState extends AnalysisRule {
@@ -114,6 +117,7 @@ class _StateReadFinder extends RecursiveAstVisitor<void> {
     if (isBloc(type)) return true;
     final element = type.element;
     if (_declaredIn(element, LayoutRole.bloc) || _declaredIn(element, LayoutRole.repository)) return true;
+    if (isFromPackage(element, 'neon_flutter_hive') || _declaredIn(element, LayoutRole.hive)) return true;
     return element != feature && categoryOf(element) == 'Feature';
   }
 

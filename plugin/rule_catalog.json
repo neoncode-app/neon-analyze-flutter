@@ -39,7 +39,7 @@
     },
     "use_kit_widgets": {
       "kind": "lint",
-      "description": "Use the admin widget kit instead of raw Flutter widgets.",
+      "description": "Use the app's widget kit instead of raw Flutter widgets.",
       "message": "{0} is raw Flutter that the widget kit replaces; use {1}.",
       "correction": "Replace it with {1}."
     },
@@ -144,6 +144,12 @@
       "description": "Pages keep no local state; the cubit does.",
       "message": "setState in a page; keep selection, filters and search in the cubit and render its state with BlocBuilder.",
       "correction": "Add a cubit method that emits the new state and call it here."
+    },
+    "pop_scope_matches_back_action": {
+      "kind": "lint",
+      "description": "The system back runs the same action as the back-action widget (PopScope beside it).",
+      "message": "`{0}.{1}` runs `{2}`, but no PopScope in this file runs it on the system back; the system back and the bar must do the same thing.",
+      "correction": "Wrap the page in PopScope(canPop: false, onPopInvokedWithResult: (didPop, _) { if (!didPop) {2}(); })."
     },
     "no_private_methods_in_page_state": {
       "kind": "lint",
@@ -298,7 +304,7 @@
     "no_raw_text_style": {
       "kind": "lint",
       "description": "Text styles come from AppTextStyles.",
-      "message": "{0}; every weight / size combination is a named style in AppTextStyles (context.appText.x). Only copyWith(color: ...) is allowed here.",
+      "message": "{0}; every weight / size combination is a named style in AppTextStyles (context.appText.x). Only copyWith(color: / decorationColor: ...) is allowed here.",
       "correction": "Add a named style to app_text_styles.dart and use it."
     },
     "no_debug_print": {
@@ -335,7 +341,7 @@
       "kind": "lint",
       "description": "A widget's folder says its layer: its {@category} matches the layer folder it sits in.",
       "message": "the folder of `{0}` does not say its layer: {1}.",
-      "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/<owner>/ and in widgets/ of a page or feature."
+      "correction": "Put the widget in the folder of its layer: Component components/, Layout layouts/, Behavior behaviors/, Pattern patterns/, Template templates/, Skeleton skeletons/, Feature features/, any *Dialog or *Sheet dialogs/; under lib/global_widgets/ (or lib/global_widgets/<owner>/ in a kit with owners) and in widgets/ of a page or feature."
     },
     "labels_only_in_kit": {
       "kind": "lint",

@@ -3,6 +3,7 @@ import 'package:analyzer/dart/element/element.dart';
 import 'package:analyzer/error/error.dart';
 
 import 'package:neon_lints/src/banned_api/banned_api.dart';
+import 'package:neon_lints/src/support/ast_support.dart';
 import 'package:neon_lints/src/support/rule_layout.dart';
 
 /// Bans the raw APIs that `package:neon_flutter_utils` wraps, and names the
@@ -89,7 +90,7 @@ class UseSharedUtils extends BannedApiRule {
       types: {'Timer'},
       constructors: {'new'},
       onlyIn: {LayoutRole.bloc},
-      when: isStoredInField,
+      when: isDebounceTimer,
     ),
   ];
 
@@ -127,6 +128,17 @@ bool isContactPattern(AstNode node) {
       pattern.contains(r'\d{9') ||
       pattern.contains('[0-9]{9');
   return email || phone;
+}
+
+/// Whether [node] is a hand-made debounce: a `Timer(duration, ...)` stored in
+/// a field ([isStoredInField]) whose duration is a constant (`const
+/// Duration(...)`, `Duration.zero`, a `const` or `static final` field). A timer
+/// armed for a computed moment (`next.difference(now)`) is a scheduler, not a
+/// debounce, and Debouncer (one fixed duration) cannot replace it.
+bool isDebounceTimer(AstNode node) {
+  if (!isStoredInField(node) || node is! InstanceCreationExpression) return false;
+  final arguments = node.argumentList.arguments;
+  return arguments.isNotEmpty && isConstantValue(arguments.first);
 }
 
 /// Whether [node] is a construction assigned to a field (`_debounce =

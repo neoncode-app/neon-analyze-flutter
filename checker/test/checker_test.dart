@@ -159,6 +159,142 @@ void main() {
     expect(findings.map((finding) => finding.hard), [false, true]);
   });
 
+  group('analyze batches of an --all run (NCC0000078)', () {
+    test('without nested packages one bare dart analyze covers the app', () {
+      expect(AnalyzeStep.allBatches(['lib/a.dart'], const {}), [<String>[]]);
+    });
+
+    test('a nested package never shares a process with the app', () {
+      final batches = AnalyzeStep.allBatches(
+        ['lib/a.dart', 'test/a_test.dart'],
+        {
+          'packages/p': ['packages/p/lib/p.dart']
+        },
+      );
+      expect(batches, [
+        ['lib/a.dart', 'test/a_test.dart'],
+        ['packages/p/lib/p.dart'],
+      ]);
+    });
+
+    test('nested packages are the tracked pubspecs below the root', () {
+      final dir = Directory.systemTemp.createTempSync('neon_nested_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'pubspec.yaml');
+      _write(dir, 'lib/a.dart');
+      _write(dir, 'packages/p/pubspec.yaml');
+      _write(dir, 'packages/p/lib/p.dart');
+      _write(dir, 'packages/p/lib/p.g.dart');
+      _write(dir, 'packages/p/.dart_tool/x.dart');
+      _write(dir, 'packages/untracked/pubspec.yaml');
+      _write(dir, 'packages/untracked/lib/u.dart');
+      for (final args in [
+        ['init', '-q'],
+        ['add', 'pubspec.yaml', 'lib', 'packages/p/pubspec.yaml', 'packages/p/lib/p.dart'],
+      ]) {
+        Process.runSync('git', args, workingDirectory: dir.path);
+      }
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse(''),
+        mode: ScopeMode.all,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      expect(AnalyzeStep.nestedPackageFiles(context), {
+        'packages/p': ['packages/p/lib/p.dart'],
+      });
+    });
+  });
+
+  group('moved files (NCC0000078)', () {
+    test('followRenames moves the counts of a renamed file and adds nothing', () {
+      final baseline = Baseline({
+        'no_app_dimens': {'lib/a.dart': 3, 'lib/kept.dart': 1, 'lib/b.dart': 2},
+        'use_kit_widgets': {'lib/a.dart': 1},
+      })
+        ..followRenames(
+          {'lib/a.dart': 'lib/x/a.dart', 'lib/kept.dart': 'lib/x/kept.dart', 'lib/c.dart': 'lib/b.dart'},
+          exists: (path) => path == 'lib/kept.dart',
+        );
+      expect(baseline.allowed('no_app_dimens', 'lib/x/a.dart'), 3);
+      expect(baseline.allowed('no_app_dimens', 'lib/a.dart'), 0);
+      expect(baseline.allowed('use_kit_widgets', 'lib/x/a.dart'), 1);
+      // Still on disk: not a move, the counts stay where they are.
+      expect(baseline.allowed('no_app_dimens', 'lib/kept.dart'), 1);
+      expect(baseline.allowed('no_app_dimens', 'lib/x/kept.dart'), 0);
+      expect(baseline.allowed('no_app_dimens', 'lib/b.dart'), 2);
+      expect(baseline.isDirty, isTrue);
+    });
+
+    test('gitRenames follows a staged git mv and a move committed on the branch', () {
+      final dir = Directory.systemTemp.createTempSync('neon_renames_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      void git(List<String> args) {
+        final result = Process.runSync('git', args, workingDirectory: dir.path);
+        expect(result.exitCode, 0, reason: '${result.stderr}');
+      }
+
+      final body = List.generate(30, (i) => 'final value$i = $i;').join('\n');
+      _write(dir, 'lib/a.dart', body);
+      _write(dir, 'lib/b.dart', '$body\nfinal b = 1;');
+      git(['init', '-q', '-b', 'main']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'add', '.']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'base']);
+      git(['checkout', '-q', '-b', 'work']);
+      Directory('${dir.path}/lib/app').createSync();
+      Directory('${dir.path}/lib/bloc').createSync();
+      git(['mv', 'lib/a.dart', 'lib/app/a.dart']);
+      git(['-c', 'user.email=t@t', '-c', 'user.name=t', 'commit', '-q', '-m', 'move a']);
+      git(['mv', 'lib/b.dart', 'lib/bloc/b.dart']);
+
+      expect(gitRenames(dir.path, base: 'main'), {
+        'lib/a.dart': 'lib/app/a.dart',
+        'lib/b.dart': 'lib/bloc/b.dart',
+      });
+      // Without a base only the staged move is seen.
+      expect(gitRenames(dir.path), {'lib/b.dart': 'lib/bloc/b.dart'});
+    });
+
+    test('a moved file counts only its edited lines as changed for coverage', () {
+      final dir = Directory.systemTemp.createTempSync('neon_moved_coverage_');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      void git(List<String> args) {
+        final result =
+            Process.runSync('git', ['-c', 'user.email=t@t', '-c', 'user.name=t', ...args], workingDirectory: dir.path);
+        expect(result.exitCode, 0, reason: '${result.stderr}');
+      }
+
+      final lines = List.generate(30, (i) => 'final value$i = $i;');
+      _write(dir, 'pubspec.yaml', 'name: app\nenvironment:\n  sdk: ^3.0.0\n');
+      _write(dir, 'lib/a.dart', '${lines.join('\n')}\n');
+      git(['init', '-q', '-b', 'main']);
+      git(['add', '.']);
+      git(['commit', '-q', '-m', 'base']);
+      final base = (Process.runSync('git', ['rev-parse', 'HEAD'], workingDirectory: dir.path).stdout as String).trim();
+      Directory('${dir.path}/lib/app').createSync();
+      Directory('${dir.path}/.dart_tool').createSync();
+      git(['mv', 'lib/a.dart', 'lib/app/a.dart']);
+      lines[4] = 'final value4 = 40;';
+      _write(dir, 'lib/app/a.dart', '${lines.join('\n')}\n');
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse(''),
+        mode: ScopeMode.changed,
+        changedFiles: const {'lib/app/a.dart'},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+
+      expect(CoverageStep.changedLinesOf(context, base, 'lib/app/a.dart', basePath: 'lib/a.dart'), {5});
+      // Without its old path the whole moved file looks new.
+      expect(CoverageStep.changedLinesOf(context, base, 'lib/app/a.dart'), hasLength(30));
+    });
+  });
+
   group('translations', () {
     late Directory dir;
     late CheckContext context;
@@ -206,6 +342,21 @@ void main() {
       ]);
     });
 
+    test('a plural group needs only the categories its language uses (NCC0000078)', () async {
+      File('${dir.path}/assets/translations/cs.json').writeAsStringSync(
+        '{\n  "n": {\n    "one": "{} bod",\n    "few": "{} body",\n    "other": "{} bodů"\n  },\n'
+        '  "v": {\n    "one": "a",\n    "other": "b"\n  }\n}\n',
+      );
+      File('${dir.path}/assets/translations/en.json').writeAsStringSync(
+        '{\n  "n": {\n    "one": "{} point",\n    "many": "{} points",\n    "other": "{} points"\n  },\n'
+        '  "v": {\n    "one": "a"\n  }\n}\n',
+      );
+      final result = await const TranslationParityStep().run(context);
+      expect(result.findings.map((finding) => '${finding.file} ${finding.message}'), [
+        contains('en.json key `v.other` is missing'),
+      ]);
+    });
+
     test('dashes are reported with their line', () async {
       final result = await const TranslationDashesStep().run(context);
       expect(result.findings.single.format(), startsWith('assets/translations/cs.json:4 translation_dash'));
@@ -219,6 +370,23 @@ void main() {
     test('unused keys exclude literal and dynamic uses', () async {
       final result = await const TranslationUnusedStep().run(context);
       expect(result.findings.single.message, startsWith('`b_two`'));
+    });
+
+    test('the children of a used plural group are used, those of an unused one are not (NCC0000078)', () async {
+      File('${dir.path}/assets/translations/cs.json').writeAsStringSync(
+        '{\n  "points": {\n    "one": "{} bod",\n    "few": "{} body",\n    "other": "{} bodů"\n  },\n'
+        '  "stale": {\n    "one": "a",\n    "other": "b"\n  },\n'
+        '  "nested": {\n    "title": "c"\n  }\n}\n',
+      );
+      File('${dir.path}/lib/page.dart').writeAsStringSync(
+        "final p = plural(\n  'points',\n  3,\n);\nfinal n = tr('nested');\n",
+      );
+      final result = await const TranslationUnusedStep().run(context);
+      expect(result.findings.map((finding) => finding.message.split(' ').first), [
+        '`stale.one`',
+        '`stale.other`',
+        '`nested.title`',
+      ]);
     });
 
     test('order is checked against the primary file and fixed', () async {
@@ -297,6 +465,27 @@ void main() {
     final result = await const AssetsStep().run(context);
     expect(result.findings.map((finding) => finding.format()),
         ['lib/app_assets.dart:4 asset_missing: `assets/icons/gone.svg` does not exist']);
+  });
+
+  test('pubspec tool sections use assets, the flutter: bundle list does not (NCC0000078)', () {
+    expect(
+      AssetsStep.pubspecReferences('''
+name: app
+flutter:
+  assets:
+    - assets/images/
+    - assets/images/bundled.png
+flutter_launcher_icons:
+  image_path: "assets/images/icon.png"
+  adaptive_icon_foreground: assets/images/fg.png
+flutter_native_splash:
+  image: assets/images/splash.png
+  android_12:
+    image: assets/images/splash12.png
+'''),
+      {'assets/images/icon.png', 'assets/images/fg.png', 'assets/images/splash.png', 'assets/images/splash12.png'},
+    );
+    expect(AssetsStep.pubspecReferences('name: [broken'), isEmpty);
   });
 
   group('test existence (NCR0000022)', () {

@@ -47,6 +47,23 @@ final class Baseline {
     }
   }
 
+  /// Moves the counts of every renamed file to its new path ([renames]: old
+  /// path -> new path, both relative to the app root), so a file moved with
+  /// `git mv` keeps the findings it was allowed. Nothing is added: an old path
+  /// that is still a file ([exists]) keeps its counts, and a new path that had
+  /// counts of its own gets the sum.
+  void followRenames(Map<String, String> renames, {required bool Function(String path) exists}) {
+    for (final files in _counts.values) {
+      for (final MapEntry(key: from, value: to) in renames.entries) {
+        if (from == to || exists(from)) continue;
+        final count = files.remove(from);
+        if (count == null) continue;
+        files[to] = (files[to] ?? 0) + count;
+        _dirty = true;
+      }
+    }
+  }
+
   /// Replaces the whole baseline with the counts of [findings].
   void resetTo(Iterable<Finding> findings) {
     _counts.clear();

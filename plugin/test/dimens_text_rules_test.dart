@@ -213,6 +213,7 @@ class NoRawTextStyleTest extends _DimensTest {
 ${_flutter}const base = TextStyle(fontSize: 14);
 final bold = base.copyWith(fontWeight: FontWeight.bold);
 final tinted = base.copyWith(color: 1);
+final underlineTinted = base.copyWith(color: 1, decorationColor: 1);
 ''';
 
   Future<void> test_hand_built_styles_are_flagged() => expectIn(
@@ -221,6 +222,25 @@ final tinted = base.copyWith(color: 1);
         ['TextStyle', 'copyWith'],
         message: ['named style in AppTextStyles'],
         after: 'const base',
+      );
+
+  Future<void> test_typography_from_data_is_clean() => expectIn(
+        'global_widgets/styled_text.dart',
+        '''
+${_flutter}TextStyle fromApi(double size, FontWeight weight) => TextStyle(fontSize: size, fontWeight: weight, height: 1);
+TextStyle scaled(TextStyle base, double zoom) => base.copyWith(fontSize: zoom * 12);
+''',
+        [],
+      );
+
+  Future<void> test_a_constant_size_beside_data_is_still_flagged() => expectIn(
+        'pages/x_page.dart',
+        '''
+${_flutter}TextStyle f(TextStyle base, double zoom) => base.copyWith(fontSize: zoom, fontWeight: FontWeight.bold);
+''',
+        ['copyWith'],
+        message: ['copyWith changes fontWeight'],
+        after: 'TextStyle f(',
       );
 
   Future<void> test_text_style_files_own_styles() async {

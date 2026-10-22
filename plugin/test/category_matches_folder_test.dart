@@ -77,6 +77,43 @@ class CategoryMatchesFolderTest extends BlocRuleTest {
         after: 'class',
       );
 
+  // A kit without an owner level (NCC0000078, vernakapp): the layer folders
+  // sit right under lib/global_widgets/.
+  Future<void> test_an_ownerless_kit_piece_in_its_layer_folder_is_clean() async {
+    await expectIn('global_widgets/layouts/centered_scroll_column/centered_scroll_column.dart',
+        _widget('CenteredScrollColumn', 'Layout'), []);
+    await expectIn(
+        'global_widgets/components/custom_button/custom_button.dart', _widget('CustomButton', 'Component'), []);
+  }
+
+  Future<void> test_an_ownerless_kit_piece_in_the_wrong_layer_folder_is_told_the_right_one() async {
+    newFile('$testPackageLibPath/global_widgets/layouts/centered_scroll_column/centered_scroll_column.dart',
+        _widget('CenteredScrollColumn', 'Layout'));
+    await expectIn(
+      'global_widgets/components/share_sheet_tile/share_sheet_tile.dart',
+      _widget('ShareSheetTile', 'Pattern'),
+      ['ShareSheetTile'],
+      message: [
+        'a Pattern',
+        'sits in `components/`',
+        'lib/global_widgets/patterns/share_sheet_tile/share_sheet_tile.dart'
+      ],
+      after: 'class',
+    );
+  }
+
+  Future<void> test_an_ownerless_kit_piece_at_its_old_location_is_told_its_layer_folder() async {
+    newFile('$testPackageLibPath/global_widgets/layouts/centered_scroll_column/centered_scroll_column.dart',
+        _widget('CenteredScrollColumn', 'Layout'));
+    await expectIn(
+      'global_widgets/app_switch/app_switch.dart',
+      _widget('AppSwitch', 'Component'),
+      ['AppSwitch'],
+      message: ['a Component', 'no layer folder', 'lib/global_widgets/components/app_switch/app_switch.dart'],
+      after: 'class',
+    );
+  }
+
   Future<void> test_dialogs_and_sheets_go_to_dialogs_whatever_their_category() async {
     await expectIn('global_widgets/global/dialogs/confirm_action_sheet/confirm_action_sheet.dart',
         _widget('ConfirmActionSheet', 'Pattern'), []);

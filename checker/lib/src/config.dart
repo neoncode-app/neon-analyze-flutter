@@ -194,7 +194,10 @@ final class CheckConfig {
     }
     final merged = _merge(_merge(base, preset), appMap);
     final layoutSection = appMap['layout'];
-    final layout = Layout.fromMap(layoutSection is Map ? layoutSection : const {});
+    final layout = Layout.fromMap(
+      layoutSection is Map ? layoutSection : const {},
+      flavors: Layout.usesFlavors(appMap['tree']) || Directory('$root/lib/flavors').existsSync(),
+    );
     for (final key in layout.unknownKeys) {
       errors.add('layout: `$key` is not a role (roles: ${LayoutRole.values.map((role) => role.key).join(', ')})');
     }

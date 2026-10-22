@@ -40,6 +40,14 @@ Future<bool> canLaunchUrl(Uri url) async => true;
 Future<bool> launchUrlString(String url) async => true;
 Future<bool> canLaunchUrlString(String url) async => true;
 ''');
+  test.newPackage('flutter_svg').addFile('lib/flutter_svg.dart', r'''
+import 'package:flutter/widgets.dart';
+
+class SvgPicture extends Widget {
+  const SvgPicture.asset(String name);
+  const SvgPicture.network(String url);
+}
+''');
   test.newPackage('fl_chart').addFile('lib/fl_chart.dart', r'''
 import 'package:flutter/widgets.dart';
 
@@ -338,6 +346,10 @@ class $name extends Widget {
 }
 ''').join()}
 
+class PopScope extends Widget {
+  const PopScope({Object? child, bool canPop = true, Object? onPopInvokedWithResult, Object? onPopInvoked});
+}
+
 class TextButton extends Widget {
   const TextButton({Object? child, Object? onPressed});
   static Object styleFrom() => Object();
@@ -392,7 +404,7 @@ class FontWeight {
 
 class TextStyle {
   const TextStyle({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color});
-  TextStyle copyWith({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color}) =>
+  TextStyle copyWith({double? fontSize, FontWeight? fontWeight, double? letterSpacing, double? height, Object? color, Object? decorationColor}) =>
       this;
 }
 

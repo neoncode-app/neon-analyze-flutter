@@ -13,7 +13,12 @@ export 'package:neon_lints/layout.dart' show Layout, LayoutRole;
 /// through the analyzer's resource provider (so tests can provide one) and
 /// cached until the file changes.
 final class RuleLayout {
-  RuleLayout(this.root, this.layout, {this.secureStorageKeys = const []});
+  RuleLayout(this.root, this.layout,
+      {this.secureStorageKeys = const [],
+      this.preset,
+      this.kit = const {},
+      this.backActions = const {},
+      this.backScopes = const {}});
 
   /// The layout of the package [context] analyses.
   factory RuleLayout.of(RuleContext context) {
@@ -31,7 +36,15 @@ final class RuleLayout {
         source = null;
       }
     }
-    final layout = RuleLayout(root, Layout.fromConfigSource(source), secureStorageKeys: _secureStorageKeys(source));
+    final layout = RuleLayout(
+      root,
+      Layout.fromConfigSource(source, flavorsFolder: file.provider.getFolder('$root/lib/flavors').exists),
+      secureStorageKeys: _secureStorageKeys(source),
+      preset: _preset(source),
+      kit: kitOf(source),
+      backActions: _backActions(source),
+      backScopes: _backScopes(source),
+    );
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
   }
@@ -52,7 +65,73 @@ final class RuleLayout {
     return value is YamlList ? [for (final item in value) '$item'] : const [];
   }
 
+  static String? _preset(String? source) {
+    final yaml = _yaml(source);
+    final value = yaml is YamlMap ? yaml['preset'] : null;
+    return value == null ? null : '$value';
+  }
+
+  /// The `kit:` section of a config: which kit widget of the app replaces each
+  /// banned raw API, by row id (rule use_kit_widgets):
+  ///
+  /// ```yaml
+  /// kit:
+  ///   gesture_detector: {use: AppTapArea, owners: [lib/global_widgets/behaviors/app_tap_area/]}
+  /// ```
+  ///
+  /// Owners are root-relative files or folders (a folder ends with `/`).
+  static Map<String, KitReplacement> kitOf(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['kit'] : null;
+    if (section is! YamlMap) return const {};
+    return {
+      for (final entry in section.entries)
+        if (entry.value is YamlMap)
+          '${entry.key}': KitReplacement(
+            '${(entry.value as YamlMap)['use'] ?? ''}',
+            switch ((entry.value as YamlMap)['owners']) {
+              final YamlList list => [for (final item in list) '$item'],
+              final Object value => ['$value'],
+              null => const [],
+            },
+          ),
+    };
+  }
+
+  /// `back_actions:` of a config: widget class -> the parameter holding the
+  /// action the system back must run too (rule pop_scope_matches_back_action).
+  static Map<String, String> _backActions(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['back_actions'] : null;
+    if (section is! YamlMap) return const {};
+    return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
+  }
+
+  /// `back_scopes:` of the config: page files (root-relative) whose system
+  /// back is handled by the PopScope of another file, the shell they are
+  /// shown in (rule pop_scope_matches_back_action).
+  static Map<String, String> _backScopes(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['back_scopes'] : null;
+    if (section is! YamlMap) return const {};
+    return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
+  }
+
+  static Object? _yaml(String? source) {
+    if (source == null) return null;
+    try {
+      return loadYaml(source);
+    } on YamlException {
+      return null;
+    }
+  }
+
   static final _cache = <String, ({int stamp, RuleLayout layout})>{};
+
+  /// Forgets every cached config. Tests need it: each test gets a fresh
+  /// in-memory file system whose modification stamps start over, so a config
+  /// written by an earlier test would otherwise be served again.
+  static void clearCache() => _cache.clear();
 
   static String _rootOf(RuleContext context, String path) {
     final packageRoot = context.package?.root.path.replaceAll(r'\', '/');
@@ -68,6 +147,20 @@ final class RuleLayout {
 
   /// Key values the secure store may write (`secure_storage_keys:`).
   final List<String> secureStorageKeys;
+
+  /// `preset:` of the config (`admin`, `app`), or `null`.
+  final String? preset;
+
+  /// The app's kit, by row id of use_kit_widgets (`kit:`).
+  final Map<String, KitReplacement> kit;
+
+  /// Widgets whose action the system back runs too, with the parameter that
+  /// holds it (`back_actions:`).
+  final Map<String, String> backActions;
+
+  /// Page files whose system back the PopScope of another file handles, with
+  /// that file (`back_scopes:`, root-relative).
+  final Map<String, String> backScopes;
 
   /// [path] (absolute) relative to the root, or `null` outside the package.
   String? relative(String path) {
@@ -102,4 +195,15 @@ final class RuleLayout {
 
   /// The patterns of [role], for a message.
   String describe(LayoutRole role) => layout.describe(role);
+}
+
+/// The kit widget an app uses instead of one banned raw API (`kit:` entry).
+final class KitReplacement {
+  const KitReplacement(this.use, this.owners);
+
+  /// The widget to use, named in the message (`AppTapArea`).
+  final String use;
+
+  /// Root-relative files and folders that implement it (may use the raw API).
+  final List<String> owners;
 }

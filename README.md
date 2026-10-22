@@ -96,6 +96,7 @@ triggers, layout, suites, flows, hooks, and any configuration error.
 | `packs` / `skip_packs` | replace the preset's packs / drop some of them |
 | `rules` | one rule: `true`, `false`, `error`, `warning`, `info` |
 | `layout` | roles whose folders differ from the default (below) |
+| `kit` | the app's own widget kit: per row id of `use_kit_widgets`, the widget that replaces the raw API and the files that implement it, `gesture_detector: {use: AppTapArea, owners: [lib/global_widgets/behaviors/app_tap_area/]}`. The `admin` preset defaults to the neoncode kit; any other app declares its own, and an undeclared row with findings asks for the widget |
 | `tree.use` | optional folders of the canonical `lib/` tree the app has (`[flavors]`); the folder names themselves are fixed (below) |
 | `flavors`, `translations.languages` | only when detection is wrong |
 | `tests.suites` | `name: [source globs]`: which sources select `test/<name>` and the `integration_test/<name>_*` flows |
@@ -121,7 +122,10 @@ Every rule and check that depends on where code lives asks a role. Defaults
 follow the shared structure; an app overrides only the roles it keeps
 elsewhere. Patterns are root-relative: a trailing `/` is a folder, `*` stays in
 one segment, `**/` crosses folders, `{name}` is one segment that must repeat
-the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
+the same text (`lib/flavors/{flavor}/{flavor}_router.dart`). An app has
+flavours when `tree: use:` lists `flavors` or it has a `lib/flavors/` folder;
+an app without them (vernakapp) keeps its router and providers under `lib/app/`,
+so those roles default there.
 
 | Role | Default |
 | --- | --- |
@@ -137,10 +141,10 @@ the same text (`lib/flavors/{flavor}/{flavor}_router.dart`).
 | `hive` | `lib/hive/` |
 | `enums` | `lib/model/enums/*/` (the scope folders; neoncode lists them: `common`, `vernak`, `neoncode`, `doordrop`, `quest`) |
 | `role_enums` | `lib/model/enums/` |
-| `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart` |
-| `routing` | `lib/flavors/` |
+| `providers` | `lib/flavors/{flavor}/{flavor}_providers.dart`; without flavours `lib/app/app_providers.dart` |
+| `routing` | `lib/flavors/`; without flavours `lib/app/` |
 | `app_root` | `lib/app/bootstrap.dart` |
-| `routers` | `lib/flavors/{flavor}/{flavor}_router.dart` |
+| `routers` | `lib/flavors/{flavor}/{flavor}_router.dart`; without flavours `lib/app/app_router.dart` |
 | `dialog_helper` | `lib/utils/utils.dart` |
 | `tokens` | `lib/utils/ui/tokens/` |
 | `widget_dimens` | `lib/**/*_dimens.dart` |
@@ -306,7 +310,13 @@ errors, failing tests and flows and low coverage is counted per rule and file
 against `tool/lint_baseline.json`. More than the baseline fails; fewer lowers
 the baseline automatically, so a fixed violation cannot come back. The
 baseline is written by `--update-baseline` (when a rule or gate lands) and is
-never raised by hand. `--ci` never writes it.
+never raised by hand. `--ci` never writes it. A file moved with `git mv` keeps
+its counts: the ratchet follows the renames git reports (committed on the
+branch since the merge base with the base branch, and staged since HEAD) and
+moves the counts of the old path to the new one; nothing is added, and a
+path that is still a file keeps its own (NCC0000078). The coverage step
+compares a moved file with its old path at the base in the same way, so the
+move itself is no change that needs coverage.
 
 **Test selection.** `--all` (CI, `/done`) runs every test. A scoped run with
 `tests.select: impact` (the default) runs the test files whose import closure

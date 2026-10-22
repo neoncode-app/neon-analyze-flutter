@@ -110,9 +110,14 @@ final class CoverageStep extends CheckStep {
             config.coverageSources.any((glob) => matchesGlob(glob, file)))
           file,
     ]..sort();
+    // A file moved on this branch is compared with its old path at the base,
+    // so the move itself is no change that needs coverage.
+    final previousPath = {
+      for (final MapEntry(key: from, value: to) in gitRenames(context.root, base: base).entries) to: from
+    };
     final findings = <Finding>[];
     for (final file in sources) {
-      final changed = _changedLinesOf(context, mergeBaseSha, file);
+      final changed = changedLinesOf(context, mergeBaseSha, file, basePath: previousPath[file]);
       if (changed.isEmpty) continue;
       final hits = report[file];
       if (hits == null) {
@@ -146,20 +151,22 @@ final class CoverageStep extends CheckStep {
   }
 
   /// Lines of [file] (working tree) that differ from its version at
-  /// [mergeBaseSha]; every line of a file git does not know yet.
+  /// [mergeBaseSha] ([basePath] there when the file was moved since);
+  /// every line of a file git does not know yet.
   ///
   /// The base version is formatted (`dart format`, the app's line length)
   /// before the diff, so a reformat of old code is not a change that needs
   /// coverage: only lines whose code differs count. The copy is formatted
   /// inside the app root (`.dart_tool/`), so the formatter uses the app's
   /// language version and `formatter:` options, exactly as the tree was.
-  static Set<int> _changedLinesOf(CheckContext context, String mergeBaseSha, String file) {
+  static Set<int> changedLinesOf(CheckContext context, String mergeBaseSha, String file, {String? basePath}) {
     final tracked = Process.runSync('git', ['ls-files', '--error-unmatch', file], workingDirectory: context.root);
     if (tracked.exitCode != 0) {
       final length = File(context.absolute(file)).readAsLinesSync().length;
       return {for (var i = 1; i <= length; i++) i};
     }
-    final baseContent = Process.runSync('git', ['show', '$mergeBaseSha:$file'], workingDirectory: context.root);
+    final baseContent =
+        Process.runSync('git', ['show', '$mergeBaseSha:${basePath ?? file}'], workingDirectory: context.root);
     if (baseContent.exitCode != 0) {
       // Added on this branch: every line is new.
       final length = File(context.absolute(file)).readAsLinesSync().length;

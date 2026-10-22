@@ -126,4 +126,17 @@ Future<T> closeDialogThen<T>(Future<T> Function() work) {
 ''',
         [],
       );
+
+  Future<void> test_a_base_cubit_without_an_owner_folder_owns_them_too() => expectIn(
+        'bloc/base/base_cubit.dart',
+        '''
+import 'package:test/bloc/global/close_dialog.dart';
+
+Future<T> closeDialogThen<T>(Future<T> Function() work) {
+  emitPresentation(CloseDialog());
+  return work();
+}
+''',
+        [],
+      );
 }

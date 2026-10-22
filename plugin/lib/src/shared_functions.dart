@@ -58,8 +58,9 @@ class _Visitor extends SimpleAstVisitor<void> {
 
   bool _inScope(AstNode node) {
     final path = unitPath(node);
-    // BaseCubit is where the dialog helpers live.
-    if (!layout.isAppSource(path) || path.endsWith('/bloc/global/base/base_cubit.dart')) return false;
+    // BaseCubit is where the dialog helpers live (bloc/global/base/ in
+    // neoncode, bloc/base/ in vernakapp).
+    if (!layout.isAppSource(path) || path.endsWith('/base/base_cubit.dart')) return false;
     return layout.isIn(path, LayoutRole.bloc) ||
         layout.isIn(path, LayoutRole.features) ||
         layout.isIn(path, LayoutRole.pages);

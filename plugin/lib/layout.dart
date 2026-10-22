@@ -53,14 +53,29 @@ enum LayoutRole {
     'Scope folders of the enums (common or a project): lib/model/enums/<scope>/<name>.dart, one enum per file.',
   ),
   roleEnums('role_enums', ['lib/model/enums/'], 'Role enums, the only place backend role strings appear.'),
-  providers('providers', ['lib/flavors/{flavor}/{flavor}_providers.dart'], 'Typed context getters (context.xCubit).'),
-  routing('routing', ['lib/flavors/'], 'Routing and shells: the only place cubits are provided.'),
+  providers(
+    'providers',
+    ['lib/flavors/{flavor}/{flavor}_providers.dart'],
+    'Typed context getters (context.xCubit).',
+    withoutFlavors: ['lib/app/app_providers.dart'],
+  ),
+  routing(
+    'routing',
+    ['lib/flavors/'],
+    'Routing and shells: the only place cubits are provided.',
+    withoutFlavors: ['lib/app/'],
+  ),
   appRoot(
     'app_root',
     ['lib/app/bootstrap.dart'],
     'The app startup: builds the app-wide cubits and repositories the router needs and provides them above it.',
   ),
-  routers('routers', ['lib/flavors/{flavor}/{flavor}_router.dart'], 'Files that declare the GoRoutes.'),
+  routers(
+    'routers',
+    ['lib/flavors/{flavor}/{flavor}_router.dart'],
+    'Files that declare the GoRoutes.',
+    withoutFlavors: ['lib/app/app_router.dart'],
+  ),
   dialogHelper('dialog_helper', ['lib/utils/utils.dart'], 'The one dialog helper (Utils.showCustomModalBottomSheet).'),
   tokens('tokens', ['lib/utils/ui/tokens/'], 'The dimension scale (AppSpacing, AppRadius, ...).'),
   widgetDimens('widget_dimens', ['lib/**/*_dimens.dart'], 'Per-widget dimensions (<Widget>Dimens).'),
@@ -91,13 +106,22 @@ enum LayoutRole {
   responsive('responsive', ['lib/utils/ui/app_responsive.dart'], 'Screen size classes and breakpoints.'),
   catalogPreviews('catalog_previews', ['lib/**/widget_catalog/previews/'], 'Widget catalog previews (sample texts).');
 
-  const LayoutRole(this.key, this.defaults, this.description);
+  const LayoutRole(this.key, this.defaults, this.description, {this.withoutFlavors});
 
   /// Key in the `layout:` section of `neon_check.yaml`.
   final String key;
 
   /// Patterns used when the app does not override the role.
   final List<String> defaults;
+
+  /// The default of an app without the optional `flavors` folder (`tree: use:`
+  /// does not list it), for the roles whose [defaults] live in `lib/flavors/`:
+  /// such an app keeps its router and providers under `lib/app/`. `null` when
+  /// the role does not depend on flavours.
+  final List<String>? withoutFlavors;
+
+  /// The default of this role in an app with or without flavours.
+  List<String> defaultsFor({required bool flavors}) => flavors ? defaults : withoutFlavors ?? defaults;
 
   /// One line, for `neon-check explain`.
   final String description;
@@ -114,13 +138,16 @@ enum LayoutRole {
 final class Layout {
   Layout._(this._patterns, this.unknownKeys);
 
-  /// The shared Neon Code structure: every role at its default.
-  factory Layout.defaults() => Layout._({for (final role in LayoutRole.values) role: role.defaults}, const []);
+  /// The shared Neon Code structure: every role at its default, in an app
+  /// with [flavors] (the admin) or without (a single app, under `lib/app/`).
+  factory Layout.defaults({bool flavors = true}) =>
+      Layout._({for (final role in LayoutRole.values) role: role.defaultsFor(flavors: flavors)}, const []);
 
   /// The layout described by the `layout:` section of a `neon_check.yaml`
   /// source; roles it does not name keep their defaults. A source that does
-  /// not parse yields the defaults.
-  factory Layout.fromConfigSource(String? source) {
+  /// not parse yields the defaults. The app has flavours when its `tree:`
+  /// switches them on or [flavorsFolder] (it has a `lib/flavors/` folder).
+  factory Layout.fromConfigSource(String? source, {bool flavorsFolder = true}) {
     if (source == null) return Layout.defaults();
     Object? yaml;
     try {
@@ -129,12 +156,23 @@ final class Layout {
       return Layout.defaults();
     }
     final section = yaml is YamlMap ? yaml['layout'] : null;
-    return Layout.fromMap(section is Map ? section : const {});
+    return Layout.fromMap(
+      section is Map ? section : const {},
+      flavors: flavorsFolder || usesFlavors(yaml is Map ? yaml['tree'] : null),
+    );
   }
 
-  /// The layout described by a parsed `layout:` map.
-  factory Layout.fromMap(Map<Object?, Object?> section) {
-    final patterns = {for (final role in LayoutRole.values) role: role.defaults};
+  /// Whether a parsed `tree:` section of `neon_check.yaml` switches the
+  /// optional `flavors` folder on (`tree: {use: [flavors]}`).
+  static bool usesFlavors(Object? tree) {
+    final use = tree is Map ? tree['use'] : null;
+    return use is List && use.any((folder) => '$folder' == 'flavors');
+  }
+
+  /// The layout described by a parsed `layout:` map; roles it does not name
+  /// keep their default for an app with or without [flavors].
+  factory Layout.fromMap(Map<Object?, Object?> section, {bool flavors = true}) {
+    final patterns = {for (final role in LayoutRole.values) role: role.defaultsFor(flavors: flavors)};
     final unknown = <String>[];
     for (final entry in section.entries) {
       final key = '${entry.key}';

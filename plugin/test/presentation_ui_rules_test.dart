@@ -133,6 +133,15 @@ Future<bool> h(BuildContext context) {
 }
 void showLabel() {}
 void k() => showLabel();
+
+class Notifications {
+  Future<void> show(int id, String title) async {}
+}
+
+Future<void> notify(Notifications notifications, CounterCubit cubit) async {
+  await notifications.show(1, 'title');
+  cubit.save();
+}
 ''',
         [],
       );
@@ -295,10 +304,11 @@ class UiCallbackCallsCubitTest extends BlocRuleTest {
 
   static const _button = '''
 class Button {
-  const Button({this.onTap, this.onSelect, this.onSave});
+  const Button({this.onTap, this.onSelect, this.onSave, this.onNotification});
   final void Function()? onTap;
   final void Function(int item)? onSelect;
   final Future<void> Function()? onSave;
+  final bool Function(Object notification)? onNotification;
 }
 
 class Row {
@@ -315,6 +325,7 @@ class Row {
     Button(onTap: () => context.pop()),
     Button(onTap: () => unawaited(cubit.load())),
     Button(onTap: null),
+    Button(onNotification: (_) => true),
     Mark(onAccent: 0xFFFFFFFF),
   ];
 }

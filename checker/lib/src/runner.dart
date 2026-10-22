@@ -185,7 +185,9 @@ Future<int> runChecks(String root, RunOptions options, {StringSink? out}) async 
     toolRoot: options.toolRoot,
   );
   final baselinePath = context.absolute(config.baselinePath);
-  final baseline = Baseline.load(baselinePath);
+  final baseline = Baseline.load(baselinePath)
+    // A file moved on this branch keeps its tolerated findings (`git mv`).
+    ..followRenames(gitRenames(root, base: base), exists: (path) => File(context.absolute(path)).existsSync());
 
   final checkRules = {for (final step in steps) ...?step.rules};
   final selected = [

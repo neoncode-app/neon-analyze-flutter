@@ -265,6 +265,45 @@ class ClockCubit {
 ''');
   }
 
+  Future<void> test_timer_field_armed_for_a_computed_moment_is_clean() async {
+    // A scheduler (NCC0000078): the delay is computed every time, so it is no
+    // debounce and Debouncer (one fixed duration) cannot replace it.
+    await _expectNoneIn('bloc/schedule/schedule_cubit.dart', '''
+import 'dart:async';
+
+class ScheduleCubit {
+  Timer? _boundary;
+
+  void arm(int untilNextMs, Duration delay) {
+    _boundary?.cancel();
+    _boundary = Timer(_until(untilNextMs), () {});
+    _boundary = Timer(delay, () {});
+  }
+
+  Duration _until(int ms) => Duration(milliseconds: ms);
+}
+''');
+  }
+
+  Future<void> test_timer_field_with_a_constant_field_duration_is_flagged() async {
+    const source = '''
+import 'dart:async';
+
+class SearchCubit {
+  static const _wait = Duration(milliseconds: 300);
+  static final _slow = Duration(seconds: 1);
+
+  void search() {
+    _debounce = Timer(_wait, () {});
+    _debounce = Timer(SearchCubit._slow, () {});
+  }
+
+  Timer? _debounce;
+}
+''';
+    await _expectIn('bloc/search/search_cubit.dart', source, ['Timer', 'Timer']);
+  }
+
   Future<void> test_timer_field_outside_bloc_is_clean() async {
     await _expectNoneIn('utils/helpers/delay.dart', '''
 import 'dart:async';

@@ -74,7 +74,25 @@ List<TranslationFile> _load(CheckContext context) => [
 
 bool _touchesTranslations(CheckContext context) => context.touches([context.config.translationsDir]);
 
-/// Every language file has the same keys.
+/// Plural categories (CLDR) a language uses for whole-number counts, the only
+/// counts the apps pass to `plural()`. A plural group of a language needs these
+/// and `other`; a category the language never selects (English `few`) is not
+/// required just because another language has it. A language missing here
+/// needs every category any file has.
+const pluralCategoriesByLanguage = <String, Set<String>>{
+  'cs': {'one', 'few', 'other'},
+  'sk': {'one', 'few', 'other'},
+  'en': {'one', 'other'},
+  'de': {'one', 'other'},
+  'uk': {'one', 'few', 'many', 'other'},
+  'ru': {'one', 'few', 'many', 'other'},
+  'pl': {'one', 'few', 'many', 'other'},
+};
+
+const _pluralCategories = {'zero', 'one', 'two', 'few', 'many', 'other'};
+
+/// Every language file has the same keys; a plural group only the categories
+/// its language uses ([pluralCategoriesByLanguage]).
 final class TranslationParityStep extends CheckStep {
   const TranslationParityStep();
 
@@ -94,10 +112,18 @@ final class TranslationParityStep extends CheckStep {
   Future<StepResult> run(CheckContext context) async {
     final files = _load(context);
     final all = {for (final file in files) ...file.values.keys};
+    final pluralGroups = _pluralGroups(all);
+    bool required(TranslationFile file, String key) {
+      final dot = key.lastIndexOf('.');
+      if (dot < 0 || !pluralGroups.contains(key.substring(0, dot))) return true;
+      final categories = pluralCategoriesByLanguage[file.language];
+      return categories == null || categories.contains(key.substring(dot + 1));
+    }
+
     final findings = <Finding>[
       for (final file in files)
         for (final key in all)
-          if (!file.values.containsKey(key))
+          if (!file.values.containsKey(key) && required(file, key))
             Finding(
               rule: 'translation_parity',
               file: file.path,
@@ -106,6 +132,19 @@ final class TranslationParityStep extends CheckStep {
             ),
     ];
     return StepResult(findings: findings, findingsScope: (file) => file.startsWith(context.config.translationsDir));
+  }
+
+  /// Keys whose children are all plural categories and include `other`.
+  static Set<String> _pluralGroups(Set<String> keys) {
+    final children = <String, Set<String>>{};
+    for (final key in keys) {
+      final dot = key.lastIndexOf('.');
+      if (dot > 0) children.putIfAbsent(key.substring(0, dot), () => {}).add(key.substring(dot + 1));
+    }
+    return {
+      for (final entry in children.entries)
+        if (entry.value.contains('other') && _pluralCategories.containsAll(entry.value)) entry.key,
+    };
   }
 }
 
@@ -280,9 +319,20 @@ final class TranslationUnusedStep extends CheckStep {
     bool isAllowed(String key) => allowed.any(
           (entry) => entry.endsWith('*') ? key.startsWith(entry.substring(0, entry.length - 1)) : key == entry,
         );
+    // A plural group is used as a whole: plural('group', n) picks one of its
+    // category children (`group.one`, `group.other` ...) at runtime.
+    final pluralGroups = TranslationParityStep._pluralGroups(primary.values.keys.toSet());
+    bool isUsed(String key) {
+      if (usage.uses(key)) return true;
+      final dot = key.lastIndexOf('.');
+      if (dot < 0) return false;
+      final group = key.substring(0, dot);
+      return pluralGroups.contains(group) && usage.uses(group);
+    }
+
     final unused = [
       for (final key in primary.values.keys)
-        if (!usage.uses(key) && !isAllowed(key)) key,
+        if (!isUsed(key) && !isAllowed(key)) key,
     ];
     if (prune && context.fix && unused.isNotEmpty) {
       for (final file in files) {

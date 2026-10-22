@@ -39,6 +39,7 @@ import 'package:neon_lints/src/no_unawaited_dialog_opener.dart';
 import 'package:neon_lints/src/no_value_notifier_state.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
 import 'package:neon_lints/src/page_state_rules.dart';
+import 'package:neon_lints/src/pop_scope_matches_back_action.dart';
 import 'package:neon_lints/src/page_template_rules.dart';
 import 'package:neon_lints/src/piece_rules.dart';
 import 'package:neon_lints/src/provider_in_router.dart';
@@ -93,6 +94,7 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(NoNavigationInUi())
       ..registerLintRule(UiCallbackCallsCubit())
       ..registerLintRule(NoSetStateInPages())
+      ..registerLintRule(PopScopeMatchesBackAction())
       ..registerLintRule(NoPrivateMethodsInPageState())
       ..registerLintRule(StatefulPageOnlyForControllers())
       ..registerLintRule(NoEditorControllerInPages())

@@ -18,6 +18,20 @@ void main() {
 abstract class _PlacementTest extends BlocRuleTest {
   @override
   void setUp() {
+    newPackage('neon_flutter_hive').addFile('lib/neon_flutter_hive.dart', '''
+import 'package:flutter/widgets.dart';
+
+class EntityBox<T> {}
+
+class HiveEntityBuilder<T> extends StatelessWidget {
+  const HiveEntityBuilder({required this.box, required this.id, required this.builder});
+  final EntityBox<T> box;
+  final String id;
+  final Widget Function(BuildContext context, T entity) builder;
+  @override
+  Widget build(BuildContext context) => Widget();
+}
+''');
     super.setUp();
     patchMockSdk(this);
     newFile('$testPackageLibPath/bloc/vernak/cards/cards_cubit.dart', '''
@@ -42,6 +56,14 @@ extension VernakProviders on BuildContext {
     newFile('$testPackageLibPath/repository/api_repository.dart', '''
 class ApiRepository {
   Future<void> load() async {}
+}
+''');
+    newFile('$testPackageLibPath/hive/boxes.dart', '''
+import 'package:neon_flutter_hive/neon_flutter_hive.dart';
+import 'package:test/model/coupon.dart';
+
+abstract final class Boxes {
+  static final coupons = EntityBox<Coupon>();
 }
 ''');
     newFile('$testPackageLibPath/utils/ui/theme_extensions.dart', '''
@@ -105,6 +127,26 @@ class _Body extends StatelessWidget {
         ['Banner'],
         message: ['the Feature `Banner` reads no state', 'belongs to the kit'],
         after: 'class Banner',
+      );
+
+  Future<void> test_an_entity_read_from_hive_through_a_builder_is_a_read() => expectIn(
+        'features/vernak/coupon_tile/coupon_tile.dart',
+        '''
+${_imports}import 'package:neon_flutter_hive/neon_flutter_hive.dart';
+import 'package:test/hive/boxes.dart';
+
+/// A coupon by its id.
+///
+/// {@category Feature}
+class CouponTile extends StatelessWidget {
+  const CouponTile({required this.id});
+  final String id;
+  @override
+  Widget build(BuildContext context) =>
+      HiveEntityBuilder<Coupon>(box: Boxes.coupons, id: id, builder: (context, coupon) => Widget());
+}
+''',
+        [],
       );
 
   Future<void> test_a_typed_context_getter_is_a_read() => expectIn(

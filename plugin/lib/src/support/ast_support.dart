@@ -86,12 +86,24 @@ String? packagePrefixOf(AstNode node) {
   return slash < 0 ? null : uri.substring(0, slash + 1);
 }
 
+/// Whether [type] is Flutter's `BuildContext`.
+bool isBuildContext(DartType? type) =>
+    type is InterfaceType && type.element.name == 'BuildContext' && isFromPackage(type.element, 'flutter');
+
+/// Whether [invocation] passes a `BuildContext`, positional or named: a
+/// dialog is opened on a context, so a `show*` call without one (a system
+/// notification, `FlutterLocalNotificationsPlugin.show`) opens none.
+bool passesBuildContext(MethodInvocation invocation) => invocation.argumentList.arguments.any(
+  (argument) => isBuildContext((argument is NamedExpression ? argument.expression : argument).staticType),
+);
+
 /// Whether [invocation] calls an app dialog opener that returns a Future: a
 /// `show*` function or method declared in the same package as [invocation]
-/// whose static type is a Future (`showCouponEditor(context, event)`,
-/// `EditRolesSheet.show(context)`). Flutter's own `showDialog` is not one.
+/// whose static type is a Future and which gets a `BuildContext`
+/// (`showCouponEditor(context, event)`, `EditRolesSheet.show(context)`).
+/// Flutter's own `showDialog` is not one.
 bool callsFutureOpener(MethodInvocation invocation) {
-  if (!isOpenerName(invocation.methodName.name)) return false;
+  if (!isOpenerName(invocation.methodName.name) || !passesBuildContext(invocation)) return false;
   final type = invocation.staticType;
   if (type == null || !type.isDartAsyncFuture) return false;
   final declared = invocation.methodName.element?.library?.uri.toString();
@@ -131,3 +143,24 @@ String? categoryOf(Element? element) {
 /// Absolute path of the library an import directive resolves to.
 String? importedPath(ImportDirective node) =>
     node.libraryImport?.importedLibrary?.firstFragment.source.fullName.replaceAll(r'\', '/');
+
+/// Whether [expression] always has the same value: a literal, a `const`
+/// construction, or a read of a `const` / `static final` / top-level `final`
+/// variable.
+bool isConstantValue(Expression expression) {
+  final value = expression.unParenthesized;
+  if (value is Literal) return true;
+  if (value is InstanceCreationExpression) return value.isConst;
+  final element = switch (value) {
+    Identifier() => value.element,
+    PropertyAccess() => value.propertyName.element,
+    _ => null,
+  };
+  final variable = element is PropertyAccessorElement ? element.variable : element;
+  return switch (variable) {
+    FieldElement() => variable.isConst || (variable.isStatic && variable.isFinal),
+    TopLevelVariableElement() => variable.isConst || variable.isFinal,
+    LocalVariableElement() => variable.isConst,
+    _ => false,
+  };
+}
