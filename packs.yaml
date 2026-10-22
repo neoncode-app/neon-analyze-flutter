@@ -44,6 +44,7 @@ core:
     - translations_order
     - assets
     - generated
+    - generated_bang
     - duplicates
     - layout_tree
     - tests

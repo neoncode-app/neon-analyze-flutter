@@ -13,6 +13,7 @@ import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/duplicates_step.dart';
 import 'package:neon_check/src/steps/integration_step.dart';
 import 'package:neon_check/src/steps/feature_used_once_step.dart';
+import 'package:neon_check/src/steps/generated_bang_step.dart';
 import 'package:neon_check/src/steps/hive_types_step.dart';
 import 'package:neon_check/src/steps/layout_tree_step.dart';
 import 'package:neon_check/src/steps/project_steps.dart';
@@ -103,6 +104,7 @@ List<CheckStep> allSteps({bool pruneTranslations = false}) => [
       const ProvidersStep(),
       const PageHelpStep(),
       const GeneratedCodeStep(),
+      const GeneratedBangStep(),
       const TestExistenceStep(),
       const IntegrationPagesStep(),
       const TestsStep(),
