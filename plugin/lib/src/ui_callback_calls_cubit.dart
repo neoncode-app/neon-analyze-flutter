@@ -16,6 +16,8 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// * forwarding a callback parameter: `onTap: widget.onTap`,
 ///   `onTap: () => onSelect(item)`,
 /// * a dialog's pure Cancel: `onCancel: () => context.pop()`,
+/// * a constant answer: `onNotification: (_) => true` (a listener that only
+///   stops a notification has no logic to move),
 /// * `null`.
 /// No `if`, no `await`, no second statement, no other function call.
 /// A named argument that is not a function (`onAccentColor: colors.onPrimary`,
@@ -82,6 +84,7 @@ class _Visitor extends SimpleAstVisitor<void> {
       };
       if (body is BlockFunctionBody && body.block.statements.isEmpty) return null;
       if (single == null) return 'has more than one statement';
+      if (single is BooleanLiteral) return null;
       return _isAllowedCall(single) ? null : 'calls `${_calleeOf(single)}`, not a cubit method';
     }
     if (value is ConditionalExpression) return 'chooses a callback with a condition';
