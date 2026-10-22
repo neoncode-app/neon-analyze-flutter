@@ -74,6 +74,10 @@ class EditorSheet {
   static void show(BuildContext context) => Utils.openModalBottomSheet(context: context);
   Future<void> showInstance(BuildContext context) => Utils.showCustomModalBottomSheet<void>(context: context);
 }
+
+Future<void> _showNotification(String message) async {}
+
+Future<void> showBackgroundNotification(String message) => _showNotification(message);
 ''',
         [],
       );

@@ -15,7 +15,9 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// presentation event).
 ///
 /// A dialog opening is `Utils.showCustomModalBottomSheet` or any `show*`
-/// function or method returning a Future (the dialog wrappers).
+/// function or method returning a Future and given a `BuildContext` (the
+/// dialog wrappers); a `show*` without a context, such as a system
+/// notification, opens no dialog.
 class NoDialogResult extends AnalysisRule {
   NoDialogResult() : super(name: 'no_dialog_result', description: _desc);
 
@@ -49,7 +51,7 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (isDialogHelperCall(node)) return true;
     final name = node.methodName.name;
     final type = node.staticType;
-    return name.startsWith('show') && type != null && type.isDartAsyncFuture;
+    return name.startsWith('show') && type != null && type.isDartAsyncFuture && passesBuildContext(node);
   }
 
   @override

@@ -133,6 +133,15 @@ Future<bool> h(BuildContext context) {
 }
 void showLabel() {}
 void k() => showLabel();
+
+class Notifications {
+  Future<void> show(int id, String title) async {}
+}
+
+Future<void> notify(Notifications notifications, CounterCubit cubit) async {
+  await notifications.show(1, 'title');
+  cubit.save();
+}
 ''',
         [],
       );
