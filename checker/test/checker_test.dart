@@ -7,6 +7,7 @@ import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/steps/project_steps.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
 import 'package:neon_check/src/steps/duplicates_step.dart';
+import 'package:neon_check/src/steps/generated_bang_step.dart';
 import 'package:neon_check/src/steps/translation_steps.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
 import 'package:neon_check/src/steps/test_existence_step.dart';
@@ -668,6 +669,42 @@ void f() {
       expect(clones['lib/a.dart'], hasLength(2));
       final repeated = List.filled(30, '  tick();').join('\n');
       expect(DuplicatesStep.findClones({'lib/b.dart': repeated})['lib/b.dart'], hasLength(1));
+    });
+  });
+
+  group('generated bang (NCI0000028)', () {
+    test('every `!` operator in generated code is found, `!=` and `!` in strings are not', () {
+      const source = r'''
+Map<String, dynamic> _$AToJson(A instance) => <String, dynamic>{
+  'carrier': _$CarrierEnumMap[instance.carrier]!,
+  'methods': instance.methods.map((e) => _$MethodEnumMap[e]!).toList(),
+  'same': instance.a != instance.b,
+  'text': 'Hello!',
+  'ok': instance.method.toJson(),
+};
+''';
+      expect(GeneratedBangStep.bangLines(source), [2, 3]);
+    });
+
+    test('a generated file with `!` fails wherever it is, a clean one and a hand-written one do not', () async {
+      final dir = Directory.systemTemp.createTempSync('neon_check');
+      addTearDown(() => dir.deleteSync(recursive: true));
+      _write(dir, 'lib/model/a.g.dart', "final a = <String, Object?>{'x': _map[instance.x]!};\n");
+      _write(dir, 'lib/model/b.g.dart', "final b = <String, Object?>{'x': instance.x.toJson()};\n");
+      _write(dir, 'lib/model/c.dart', 'final c = maybe!;\n');
+      final context = CheckContext(
+        root: dir.path,
+        config: CheckConfig.parse('source_dirs: [lib]'),
+        mode: ScopeMode.changed,
+        changedFiles: const {},
+        deletedFiles: const {},
+        fix: false,
+        ci: true,
+      );
+      final result = await const GeneratedBangStep().run(context);
+      expect(result.findings.map((finding) => '${finding.file}:${finding.line} ${finding.rule}'),
+          ['lib/model/a.g.dart:1 generated_bang']);
+      expect(result.findingsScope?.call('lib/model/a.g.dart'), isTrue);
     });
   });
 }
