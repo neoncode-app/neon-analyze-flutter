@@ -1,5 +1,5 @@
 name: neon_analysis
-version: 1.0.0
+version: 1.1.0
 description: >-
   Neon Code shared lint config (a fork of very_good_analysis) plus the neon_lints
   native analyzer plugin. Consumed by vernakapp / neoncode / baseapp.

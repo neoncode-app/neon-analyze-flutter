@@ -1,7 +1,7 @@
 name: neon_check
 description: Shared check runner for the Neon Code Flutter apps (format, fix, analyze, ratchet, translations, assets, catalog, tests).
 publish_to: none
-version: 0.1.0
+version: 0.2.0
 
 environment:
   sdk: ^3.6.0
