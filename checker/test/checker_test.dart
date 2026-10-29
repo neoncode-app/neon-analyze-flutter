@@ -368,6 +368,18 @@ void main() {
       expect(result.findings.single.format(), startsWith('lib/page.dart:3 translation_missing'));
     });
 
+    test('a plural group exists for plural(), a plain group does not (NCC0000093)', () async {
+      File('${dir.path}/assets/translations/cs.json').writeAsStringSync(
+        '{\n  "points": {\n    "one": "{} bod",\n    "few": "{} body",\n    "other": "{} bodů"\n  },\n'
+        '  "nested": {\n    "title": "c"\n  }\n}\n',
+      );
+      File('${dir.path}/lib/page.dart').writeAsStringSync(
+        "final p = plural('points', 3);\nfinal q = 'points'.plural(2);\nfinal n = tr('nested');\n",
+      );
+      final result = await const TranslationMissingStep().run(context);
+      expect(result.findings.map((finding) => finding.format()), [startsWith('lib/page.dart:3 translation_missing')]);
+    });
+
     test('unused keys exclude literal and dynamic uses', () async {
       final result = await const TranslationUnusedStep().run(context);
       expect(result.findings.single.message, startsWith('`b_two`'));
