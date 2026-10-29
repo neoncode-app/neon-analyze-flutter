@@ -276,9 +276,11 @@ final class TranslationMissingStep extends CheckStep {
   Future<StepResult> run(CheckContext context) async {
     final primary = TranslationFile.load(context, context.config.primaryLanguage);
     final usage = KeyUsage.scan(context, context.dartFiles.where((file) => file.startsWith('lib/')));
+    // plural('group', n) names a plural group, whose categories are the keys.
+    final pluralGroups = TranslationParityStep._pluralGroups(primary.values.keys.toSet());
     final findings = <Finding>[
       for (final (key, file, line) in usage.literalKeys)
-        if (!primary.values.containsKey(key))
+        if (!primary.values.containsKey(key) && !pluralGroups.contains(key))
           Finding(
             rule: 'translation_missing',
             file: file,
