@@ -13,6 +13,7 @@ import 'package:neon_lints/src/dialog_opener_returns_void.dart';
 import 'package:neon_lints/src/dimens_rules.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
 import 'package:neon_lints/src/feature_reads_state.dart';
+import 'package:neon_lints/src/header_only_in_kit.dart';
 import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
@@ -135,6 +136,7 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(CategoryMatchesFolder())
       // NCC0000059: only the kit takes *Labels; features and pages call tr() where they draw.
       ..registerLintRule(LabelsOnlyInKit())
+      ..registerLintRule(HeaderOnlyInKit())
       // NCC0000060: a Feature reads state; UI only draws, the cubit is the controller.
       ..registerLintRule(FeatureReadsState())
       ..registerLintRule(NoDataLogicInUi())

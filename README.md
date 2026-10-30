@@ -97,6 +97,7 @@ triggers, layout, suites, flows, hooks, and any configuration error.
 | `rules` | one rule: `true`, `false`, `error`, `warning`, `info` |
 | `layout` | roles whose folders differ from the default (below) |
 | `kit` | the app's own widget kit: per row id of `use_kit_widgets`, the widget that replaces the raw API and the files that implement it, `gesture_detector: {use: AppTapArea, owners: [lib/global_widgets/behaviors/app_tap_area/]}`. The `admin` preset defaults to the neoncode kit; any other app declares its own, and an undeclared row with findings asks for the widget |
+| `header` | the app's one header widget (rule `header_only_in_kit`): `use` (the widget, named in the message), `owners` (root-relative files, or folders ending with `/`, that build it), `buttons` (widget classes that draw a header control) and `icons` (`<Type>.<member>` values that make one a back / close control), `header: {use: AppHeader, owners: [lib/global_widgets/components/app_header/app_header.dart], buttons: [AppIconButton], icons: [AppIcons.arrowLeft, AppIcons.x]}`. Without it the rule checks nothing |
 | `tree.use` | optional folders of the canonical `lib/` tree the app has (`[flavors]`); the folder names themselves are fixed (below) |
 | `flavors`, `translations.languages` | only when detection is wrong |
 | `tests.suites` | `name: [source globs]`: which sources select `test/<name>` and the `integration_test/<name>_*` flows |
@@ -618,7 +619,7 @@ Screen size only through app_responsive.dart. No MediaQuery size, kIsWeb, Platfo
 
 ### `kit`
 
-The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, a Feature reads state and serves several pages.
+The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, one kit header for every page, sheet and dialog, a Feature reads state and serves several pages.
 
 Checks: `feature_used_once`.
 
@@ -627,6 +628,7 @@ Checks: `feature_used_once`.
 | `use_kit_widgets` | raw Flutter widgets and APIs the admin widget kit replaces; the message names the kit widget to use |
 | `no_tr_in_global_widget` | no `tr()` under `lib/global_widgets/` |
 | `labels_only_in_kit` | only the kit takes `*Labels` objects: no class named `*Labels` in a page or feature, no `*Labels` field or constructor parameter on a `{@category Feature}` class or a page widget; features and pages call `tr()` where they draw, per-flavour wording comes from `FlavorConfig` |
+| `header_only_in_kit` | every page / sheet / dialog header is the one kit header of `header:` in `neon_check.yaml`: outside its `owners`, no construction of a `buttons` class (`AppIconButton`) whose argument is a back / close icon of `icons` (`AppIcons.arrowLeft`, `AppIcons.x`), also as a branch of a conditional or behind an import prefix; an app without `header:` is not checked |
 | `global_widgets_layering` | `lib/global_widgets` never imports `lib/pages` or `lib/features` |
 | `component_has_no_state_access` | a Component / Layout / Pattern file imports no bloc and reads no provider |
 | `global_widget_has_category` | public kit / feature widgets end their doc comment with a valid `{@category}` |

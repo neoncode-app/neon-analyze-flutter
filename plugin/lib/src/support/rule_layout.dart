@@ -18,7 +18,8 @@ final class RuleLayout {
       this.preset,
       this.kit = const {},
       this.backActions = const {},
-      this.backScopes = const {}});
+      this.backScopes = const {},
+      this.header});
 
   /// The layout of the package [context] analyses.
   factory RuleLayout.of(RuleContext context) {
@@ -44,6 +45,7 @@ final class RuleLayout {
       kit: kitOf(source),
       backActions: _backActions(source),
       backScopes: _backScopes(source),
+      header: headerOf(source),
     );
     _cache[root] = (stamp: stamp, layout: layout);
     return layout;
@@ -117,6 +119,43 @@ final class RuleLayout {
     return {for (final entry in section.entries) '${entry.key}': '${entry.value}'};
   }
 
+  /// The `header:` section of a config: the one kit widget that draws every
+  /// page / sheet / dialog header, and what makes a hand-built one (rule
+  /// header_only_in_kit):
+  ///
+  /// ```yaml
+  /// header:
+  ///   use: AppHeader
+  ///   owners: [lib/global_widgets/components/app_header/app_header.dart]
+  ///   buttons: [AppIconButton]
+  ///   icons: [AppIcons.arrowLeft, AppIcons.x]
+  /// ```
+  ///
+  /// `null` without the section, or when it names no button or no icon.
+  static HeaderConfig? headerOf(String? source) {
+    final yaml = _yaml(source);
+    final section = yaml is YamlMap ? yaml['header'] : null;
+    if (section is! YamlMap) return null;
+    List<String> strings(Object? value) => switch (value) {
+          final YamlList list => [for (final item in list) '$item'],
+          null => const [],
+          final Object value => ['$value'],
+        };
+    final buttons = strings(section['buttons']).toSet();
+    final icons = <({String type, String member})>{
+      for (final icon in strings(section['icons']))
+        if (icon.lastIndexOf('.') case final dot when dot > 0 && dot < icon.length - 1)
+          (type: icon.substring(icon.lastIndexOf('.', dot - 1) + 1, dot), member: icon.substring(dot + 1)),
+    };
+    if (buttons.isEmpty || icons.isEmpty) return null;
+    return HeaderConfig(
+      use: '${section['use'] ?? 'the kit header'}',
+      owners: strings(section['owners']),
+      buttons: buttons,
+      icons: icons,
+    );
+  }
+
   static Object? _yaml(String? source) {
     if (source == null) return null;
     try {
@@ -162,6 +201,9 @@ final class RuleLayout {
   /// that file (`back_scopes:`, root-relative).
   final Map<String, String> backScopes;
 
+  /// The kit header and what makes a hand-built one (`header:`), or `null`.
+  final HeaderConfig? header;
+
   /// [path] (absolute) relative to the root, or `null` outside the package.
   String? relative(String path) {
     final normalized = path.replaceAll(r'\', '/');
@@ -206,4 +248,27 @@ final class KitReplacement {
 
   /// Root-relative files and folders that implement it (may use the raw API).
   final List<String> owners;
+}
+
+/// The `header:` section of a config (rule header_only_in_kit).
+final class HeaderConfig {
+  const HeaderConfig({required this.use, required this.owners, required this.buttons, required this.icons});
+
+  /// The kit header widget, named in the message (`AppHeader`).
+  final String use;
+
+  /// Root-relative files and folders (a folder ends with `/`) that may build
+  /// a back / close button: the header itself.
+  final List<String> owners;
+
+  /// Widget classes that draw a header control (`AppIconButton`).
+  final Set<String> buttons;
+
+  /// Icon values that make a button a back / close control, as type and
+  /// member (`AppIcons.arrowLeft` -> `(type: AppIcons, member: arrowLeft)`).
+  final Set<({String type, String member})> icons;
+
+  /// Whether the root-relative [relative] path is one of the [owners].
+  bool isOwner(String relative) =>
+      owners.any((owner) => owner.endsWith('/') ? relative.startsWith(owner) : relative == owner);
 }

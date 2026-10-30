@@ -349,6 +349,12 @@
       "message": "{0}; features and pages call tr() where they draw; per-flavour wording comes from FlavorConfig.",
       "correction": "Call tr('key') where the text is drawn and drop the *Labels class or parameter; when the wording differs per administration, pick the key from FlavorConfig."
     },
+    "header_only_in_kit": {
+      "kind": "lint",
+      "description": "Every page / sheet / dialog header is the one kit header widget; no hand-built back / close button outside it.",
+      "message": "A back / close button ({0}) is built outside the kit header; every header is {1}.",
+      "correction": "Use {1} (leading back / close, centred title, optional trailing action) instead of a hand-built header row."
+    },
     "feature_reads_state": {
       "kind": "lint",
       "description": "A Feature reads state; a widget that reads none belongs to the kit or to its one page.",

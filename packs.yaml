@@ -159,11 +159,12 @@ responsive:
     no_layout_builder_in_pages: [pages, features]
 
 kit:
-  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, a Feature reads state and serves several pages.
+  description: The shared widget kit (lib/global_widgets). Kit widgets instead of raw Flutter, layering, {@category}, one folder per piece with its dimens and skeleton, the folder of a widget says its layer, the scale only in dimens files, named text styles, no tr() in the kit and *Labels only in the kit, one kit header for every page, sheet and dialog, a Feature reads state and serves several pages.
   rules:
     - use_kit_widgets
     - no_tr_in_global_widget
     - labels_only_in_kit
+    - header_only_in_kit
     - global_widgets_layering
     - component_has_no_state_access
     - global_widget_has_category
