@@ -14,8 +14,8 @@ import 'package:neon_lints/src/support/rule_layout.dart';
 /// the `neon_check.yaml` `kit:` rows in [rows]. Each of those files references
 /// `NeonAnalytics` in code (a comment or a string does not count; a part of the
 /// same library does). A folder owner (it ends with `/`) stands for its entry
-/// file, `<folder>/<folder>.dart`. An app that declares none of the rows is not
-/// checked.
+/// file, `<folder>/<folder>.dart`. An owner under `lib/utils/ui/` (the theme)
+/// and an app that declares none of the rows are not checked.
 class KitIsTracked extends AnalysisRule {
   KitIsTracked() : super(name: 'kit_is_tracked', description: _desc);
 
@@ -74,6 +74,9 @@ class _Visitor extends SimpleAstVisitor<void> {
     if (relative == null || !layout.isAppSource(path)) return;
     final row = KitIsTracked.rowOwning(layout.kit, relative);
     if (row == null) return;
+    // `lib/utils/ui/` owns the theme styling a raw widget (`*.styleFrom`), the
+    // same exception use_kit_widgets makes: it takes no interaction.
+    if (relative.startsWith('lib/utils/ui/')) return;
     final finder = _ReferenceFinder();
     for (final unit in context.allUnits) {
       unit.unit.declarations.accept(finder);
