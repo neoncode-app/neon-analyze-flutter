@@ -5,7 +5,9 @@ import 'package:neon_check/src/brief.dart';
 import 'package:neon_check/src/burndown.dart';
 import 'package:neon_check/src/config.dart';
 import 'package:neon_check/src/context.dart';
+import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/runner.dart';
+import 'package:neon_check/src/steps/analytics_wired_step.dart';
 import 'package:neon_check/src/steps/api_environment_step.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/dart_steps.dart';
@@ -544,6 +546,102 @@ tests:
       expect(() => gitScope(dir.path, ScopeMode.changed), throwsStateError);
     });
   });
+  group('analytics_wired', () {
+    const pubspec = 'name: shop\ndependencies:\n  neon_flutter_analytics:\n    git: x\n';
+    const wired = '''
+void start(Object router) {
+  NeonAnalytics.init(config);
+  NeonAnalytics.attachRouter(router);
+}
+Object scope(Object child) => AnalyticsScope(child: child);
+''';
+
+    late Directory dir;
+
+    setUp(() {
+      dir = Directory.systemTemp.createTempSync('analytics_wired');
+      _write(dir, 'neon_check.yaml', '');
+    });
+
+    tearDown(() => dir.deleteSync(recursive: true));
+
+    Future<List<Finding>> run() async {
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      return (await const AnalyticsWiredStep().run(_context(dir.path, config, changed: {'lib/a.dart'}))).findings;
+    }
+
+    test('a wired app is clean, the calls may be in different files', () async {
+      _write(dir, 'pubspec.yaml', pubspec);
+      _write(dir, 'lib/app/bootstrap.dart', 'void a() => NeonAnalytics.init(config);');
+      _write(dir, 'lib/app/router.dart', 'void b() => NeonAnalytics.attachRouter(router);');
+      _write(dir, 'lib/app/app.dart', 'Object c() => const AnalyticsScope(child: x);');
+      expect(await run(), isEmpty);
+    });
+
+    test('a missing dependency names the package and the README', () async {
+      _write(dir, 'pubspec.yaml', 'name: shop\ndependencies:\n  http: any\n');
+      _write(dir, 'lib/a.dart', wired);
+      final findings = await run();
+      expect(findings, hasLength(1));
+      expect(findings.single.file, 'pubspec.yaml');
+      expect(findings.single.rule, 'analytics_wired');
+      expect(findings.single.message, contains('neon_flutter_analytics'));
+      expect(findings.single.message, contains(AnalyticsWiredStep.readme));
+    });
+
+    test('a dev dependency or a pubspec that cannot be read is not a dependency', () {
+      expect(AnalyticsWiredStep.dependsOnPackage(pubspec), isTrue);
+      expect(AnalyticsWiredStep.dependsOnPackage('dev_dependencies:\n  neon_flutter_analytics: any\n'), isFalse);
+      expect(AnalyticsWiredStep.dependsOnPackage('a: [\n'), isFalse);
+    });
+
+    test('no pubspec is a finding', () async {
+      _write(dir, 'lib/a.dart', wired);
+      expect((await run()).map((finding) => finding.file), ['pubspec.yaml']);
+    });
+
+    test('each missing call is one finding naming it and the README', () async {
+      _write(dir, 'pubspec.yaml', pubspec);
+      _write(dir, 'lib/a.dart', 'void a() => NeonAnalytics.init(config);');
+      final findings = await run();
+      expect(findings, hasLength(2));
+      expect(findings.first.message, contains('NeonAnalytics.attachRouter('));
+      expect(findings.last.message, contains('AnalyticsScope('));
+      expect(findings.map((finding) => finding.message), everyElement(contains(AnalyticsWiredStep.readme)));
+    });
+
+    test('comments, generated files and longer names do not count', () {
+      expect(
+        AnalyticsWiredStep.missingCalls([
+          '// NeonAnalytics.init(config);\nvoid a() {} // NeonAnalytics.attachRouter(r)\n',
+          'Object b() => MyAnalyticsScope(child: x);',
+        ]),
+        AnalyticsWiredStep.calls.keys,
+      );
+    });
+
+    test('a generated file is not read', () async {
+      _write(dir, 'pubspec.yaml', pubspec);
+      _write(dir, 'lib/a.g.dart', wired);
+      expect((await run()).map((finding) => finding.file), ['lib', 'lib', 'lib']);
+    });
+
+    test('it runs when lib/ or the pubspec changes', () {
+      final config = CheckConfig.load(dir.path, toolRoot: _tool);
+      const step = AnalyticsWiredStep();
+      expect(step.appliesTo(_context(dir.path, config, changed: {'lib/a.dart'})), isTrue);
+      expect(step.appliesTo(_context(dir.path, config, changed: {'pubspec.yaml'})), isTrue);
+      expect(step.appliesTo(_context(dir.path, config, changed: {'test/a_test.dart'})), isFalse);
+    });
+
+    test('the app and admin presets switch the pack on', () {
+      for (final preset in const ['app', 'admin']) {
+        _write(dir, 'neon_check.yaml', 'preset: $preset\n');
+        expect(CheckConfig.load(dir.path, toolRoot: _tool).enabledPacks, contains('analytics'), reason: preset);
+      }
+    });
+  });
+
   group('api_environment', () {
     String environments(
             {String testUrl = 'https://test-api.x.cz', String prodUrl = 'https://api.x.cz', String prodKey = 'p'}) =>

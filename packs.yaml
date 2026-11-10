@@ -238,6 +238,17 @@ storage:
     state_carries_ids: [bloc]
     ui_reads_entities_through_builder: [pages, features]
 
+analytics:
+  description: Anonymous usage analytics (neon_flutter_analytics). The app depends on it and wires it in lib/, the kit widgets users interact with report to it, and a component with a trackId parameter is told what the element is.
+  rules:
+    - pass_track_id
+    - kit_is_tracked
+  steps:
+    - analytics_wired
+  where:
+    pass_track_id: [ui]
+    kit_is_tracked: [global_widgets]
+
 flavors:
   description: Several flavours in one code base. Every typed context getter reads a cubit its flavour's router or shell provides.
   steps:

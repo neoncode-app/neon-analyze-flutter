@@ -6,6 +6,7 @@ import 'package:neon_check/src/config.dart';
 import 'package:neon_check/src/context.dart';
 import 'package:neon_check/src/finding.dart';
 import 'package:neon_check/src/step.dart';
+import 'package:neon_check/src/steps/analytics_wired_step.dart';
 import 'package:neon_check/src/steps/api_environment_step.dart';
 import 'package:neon_check/src/steps/config_sync_step.dart';
 import 'package:neon_check/src/steps/coverage_step.dart';
@@ -98,6 +99,7 @@ List<CheckStep> allSteps({bool pruneTranslations = false}) => [
       const FeatureUsedOnceStep(),
       const DuplicatesStep(),
       const ApiEnvironmentStep(),
+      const AnalyticsWiredStep(),
       const HiveTypesStep(),
       const CatalogIndexStep(),
       const CatalogPreviewsStep(),
