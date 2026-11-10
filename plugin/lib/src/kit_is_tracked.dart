@@ -87,20 +87,22 @@ class _Visitor extends SimpleAstVisitor<void> {
   }
 }
 
-/// Finds a use of `NeonAnalytics` in the code it visits.
+/// Finds a use of the analytics API in the code it visits.
 class _ReferenceFinder extends RecursiveAstVisitor<void> {
-  static const _name = 'NeonAnalytics';
+  /// `NeonAnalytics`, an `AnalyticsKind` handed to a base component that
+  /// reports it, or an app's own analytics mixin.
+  static bool _isAnalytics(String name) => name.contains('Analytics');
 
   bool found = false;
 
   @override
   void visitSimpleIdentifier(SimpleIdentifier node) {
-    if (node.name == _name) found = true;
+    if (_isAnalytics(node.name)) found = true;
   }
 
   @override
   void visitNamedType(NamedType node) {
-    if (node.name.lexeme == _name) found = true;
+    if (_isAnalytics(node.name.lexeme)) found = true;
     super.visitNamedType(node);
   }
 }
