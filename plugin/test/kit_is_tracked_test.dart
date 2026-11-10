@@ -103,6 +103,20 @@ class KitIsTrackedTest extends KitRuleTestBase {
 
   Future<void> test_a_theme_owner_is_clean() => expectClean(_theme, _untracked);
 
+  Future<void> test_forwarding_an_analytics_kind_is_clean() => expectClean(_tapArea, '''
+enum AnalyticsKind { toggle }
+
+class AppPiece {
+  final kind = AnalyticsKind.toggle;
+}
+''');
+
+  Future<void> test_an_analytics_mixin_is_clean() => expectClean(_tapArea, '''
+mixin FieldFocusAnalytics {}
+
+class AppPiece with FieldFocusAnalytics {}
+''');
+
   Future<void> test_a_reference_behind_an_import_prefix_is_clean() => expectClean(_tapArea, '''
 import 'package:neon_flutter_analytics/neon_flutter_analytics.dart' as analytics;
 
