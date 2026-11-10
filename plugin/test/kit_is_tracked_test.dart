@@ -20,13 +20,14 @@ void main() {
 
 const _tapArea = 'lib/global_widgets/behaviors/app_tap_area/app_tap_area.dart';
 const _folder = 'lib/global_widgets/components/app_pill_button/';
+const _theme = 'lib/utils/ui/app_style.dart';
 
 const _config = '''
 preset: app
 kit:
   gesture_detector: {use: AppTapArea, owners: [$_tapArea]}
   ink_well: {use: RoundedContainer, owners: [lib/global_widgets/components/rounded_container/rounded_container.dart]}
-  buttons: {use: CustomButton, owners: [lib/global_widgets/components/custom_button/custom_button.dart, $_folder]}
+  buttons: {use: CustomButton, owners: [lib/global_widgets/components/custom_button/custom_button.dart, $_folder, $_theme]}
   switches: {use: AppSwitch, owners: [lib/global_widgets/components/app_switch/app_switch.dart]}
   checkboxes: {use: AppCheckbox, owners: [lib/global_widgets/components/app_checkbox/app_checkbox.dart]}
   text_fields: {use: AppTextField, owners: [lib/global_widgets/components/app_text_field/app_text_field.dart]}
@@ -99,6 +100,8 @@ class KitIsTrackedTest extends KitRuleTestBase {
       );
 
   Future<void> test_an_owner_that_references_it_is_clean() => expectClean(_tapArea, _tracked);
+
+  Future<void> test_a_theme_owner_is_clean() => expectClean(_theme, _untracked);
 
   Future<void> test_a_reference_behind_an_import_prefix_is_clean() => expectClean(_tapArea, '''
 import 'package:neon_flutter_analytics/neon_flutter_analytics.dart' as analytics;
