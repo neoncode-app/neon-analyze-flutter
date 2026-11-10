@@ -289,6 +289,7 @@ only when a pack of the app lists it and the run touches what it checks.
 | `assets` | core | registry paths exist (in the app, or in the dependency the registry names as their package); unused asset files (`--all`) | no |
 | `layout_tree` | core | directly under `lib/` only the folders of the canonical tree (`tree:`) and the entrypoints; ratchet `layout_tree` | no |
 | `feature_used_once` | kit | a feature (the entry file `<feature>/<feature>.dart` of the `features` role declaring a `{@category Feature}` class) imported directly by exactly one page folder (`.../<name>_page/`) and by nothing else outside its folder (no shell, router, other feature, shared `pages/<app>/widgets/`) belongs into that page; ratchet `feature_used_once` | no |
+| `analytics_wired` | analytics | `pubspec.yaml` lists `neon_flutter_analytics` under `dependencies:` and `lib/` contains `NeonAnalytics.init(`, `NeonAnalytics.attachRouter(` and `AnalyticsScope(` (comments and generated files do not count); each missing piece is one finding | no |
 | `catalog_index` | catalog | widget catalog index regenerated | yes |
 | `catalog_previews` | catalog | every widget in `preview_required` has a preview | no |
 | `providers` | flavors | every typed context getter reads a cubit its router or shell, the app startup (`app_root`) or a `showCustomModalBottomSheet(create:)` provides | no |
@@ -591,6 +592,17 @@ Checks: `api_environment` (reads the `enum ApiEnvironment` under `lib/`: a `test
 | --- | --- |
 | `api_environment_values_on_enum` | `kReleaseMode` / `kDebugMode` / `kProfileMode` are read only in the resolver `static ApiEnvironment get current => resolve(const String.fromEnvironment('API_ENV'), isRelease: kReleaseMode)` of the enum (a static field `current` is accepted too); no condition reads `isProduction` or compares an environment with an `ApiEnvironment.x` constant (comparing two variables, `target == state`, is fine), and no `switch` over `ApiEnvironment` outside the enum (NCC0000068, NCC0000076) |
 | `api_environment_fixed_by_build` | nothing changes the environment at runtime: no assignment to an `ApiEnvironment`, no mutable field or top-level variable of that type (`static late ApiEnvironment environment`, `environmentOverride`), `String.fromEnvironment('API_ENV')` only in `ApiEnvironment.current`, no `setBaseUrl(...)`, and no persisted choice (a key `api_environment` / `key_api_environment` / `apiEnvironment` is allowed only as the argument of `remove` / `delete`, to clean up what an older build stored) (NCC0000076) |
+
+### `analytics`
+
+Anonymous usage analytics (`neon_flutter_analytics`, NCR0000050). The app depends on it and wires it in `lib/`, the kit widgets users interact with report to it, and a component with a `trackId` parameter is told what the element is. Both presets switch the pack on; an app that sets `packs:` adds `analytics` itself.
+
+Checks: `analytics_wired`.
+
+| Rule | What it enforces |
+| --- | --- |
+| `pass_track_id` | a creation whose resolved constructor declares a named parameter `trackId` or `leftTrackId` and that passes `onTap`, `onDoubleTap`, `onLongPress`, `onChanged`, `onToggle`, `onPanEnd`, `onHorizontalDragEnd` or `onVerticalDragEnd` with anything but the literal `null` must name the element: `trackId`, `trackLabel`, or both `leftTrackId` and `rightTrackId` (a literal `null` does not count), or pass the literal `tracked: false` when the component reports its own event. No configuration: the parameter is the signal |
+| `kit_is_tracked` | each `owners` file of the `kit:` rows `gesture_detector`, `ink_well`, `buttons`, `switches`, `checkboxes`, `text_fields` references `NeonAnalytics` in code (or in a part of its library); a folder owner stands for its entry file `<folder>/<folder>.dart`; an app that declares none of those rows is not checked |
 
 ### `go_router`
 

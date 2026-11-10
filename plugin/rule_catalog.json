@@ -510,6 +510,18 @@
       "description": "Pages and features read Hive entities through the neon_flutter_hive builders.",
       "message": "{0} reads the box directly; the UI reads entities through the neon_flutter_hive builders.",
       "correction": "Pass the box to HiveEntityBuilder (one id), HiveEntitiesBuilder (ids) or HiveValueBuilder (a key of a KeyValueBox); writes go through the repository from a cubit."
+    },
+    "pass_track_id": {
+      "kind": "lint",
+      "description": "A component with a trackId parameter is told what the element is whenever it is given a callback.",
+      "message": "{0} is given `{1}` but nothing names this element for analytics.",
+      "correction": "Name the element: `trackId: 'home.search_open'` (`trackLabel:` where a label names it, `leftTrackId:` with `rightTrackId:` on a two-sided control), or pass `tracked: false` when the component reports its own event."
+    },
+    "kit_is_tracked": {
+      "kind": "lint",
+      "description": "The kit widgets users interact with report to NeonAnalytics.",
+      "message": "This file is the `{0}` kit widget but never references NeonAnalytics, so its interactions are not counted.",
+      "correction": "Wrap the callback it already has: `onTap: NeonAnalytics.onTap(onTap, id: trackId, component: 'AppTapArea')`."
     }
   }
 }

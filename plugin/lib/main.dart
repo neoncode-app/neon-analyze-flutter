@@ -14,6 +14,7 @@ import 'package:neon_lints/src/dimens_rules.dart';
 import 'package:neon_lints/src/extend_base_cubit.dart';
 import 'package:neon_lints/src/feature_reads_state.dart';
 import 'package:neon_lints/src/header_only_in_kit.dart';
+import 'package:neon_lints/src/kit_is_tracked.dart';
 import 'package:neon_lints/src/labels_only_in_kit.dart';
 import 'package:neon_lints/src/layering_rules.dart';
 import 'package:neon_lints/src/listener_is_mapping.dart';
@@ -40,6 +41,7 @@ import 'package:neon_lints/src/no_unawaited_dialog_opener.dart';
 import 'package:neon_lints/src/no_value_notifier_state.dart';
 import 'package:neon_lints/src/no_widget_builder_method.dart';
 import 'package:neon_lints/src/page_state_rules.dart';
+import 'package:neon_lints/src/pass_track_id.dart';
 import 'package:neon_lints/src/pop_scope_matches_back_action.dart';
 import 'package:neon_lints/src/page_template_rules.dart';
 import 'package:neon_lints/src/piece_rules.dart';
@@ -174,6 +176,9 @@ class NeonLintsPlugin extends Plugin {
       ..registerLintRule(StorageHiveOnly())
       // NCC0000071: states carry ids, the UI reads entities through the Hive builders.
       ..registerLintRule(StateCarriesIds())
-      ..registerLintRule(UiReadsEntitiesThroughBuilder());
+      ..registerLintRule(UiReadsEntitiesThroughBuilder())
+      // NCR0000050: the kit reports to neon_flutter_analytics, elements without text are named.
+      ..registerLintRule(PassTrackId())
+      ..registerLintRule(KitIsTracked());
   }
 }

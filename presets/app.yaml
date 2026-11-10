@@ -3,7 +3,7 @@
 # vernakapp. Add `kit` once the app uses the shared widget kit, `go_router`
 # once it navigates with go_router.
 
-packs: [core, bloc, presentation, responsive, integration]
+packs: [core, bloc, presentation, responsive, analytics, integration]
 
 tests:
   coverage:
